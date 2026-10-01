@@ -353,7 +353,7 @@
                     {{-- Gambar yang sudah ada --}}
                     @if($berita->gambar)
                     <div class="img-current" id="current-img-wrap">
-                        <img src="{{ Storage::url($berita->gambar) }}" alt="Gambar saat ini">
+                        <img src="{{ asset('uploads/berita/' . basename($berita->gambar)) }}" alt="Gambar saat ini">
                         <div class="img-current-actions">
                             <span style="font-size:12px;color:var(--gray);flex:1;">Gambar saat ini</span>
                             <button type="button" class="btn btn-sm btn-outline-danger" id="btn-remove-current">

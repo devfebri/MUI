@@ -7,6 +7,7 @@ use App\Models\Kategori;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -194,7 +195,11 @@ class BeritaController extends Controller
             : null;
 
         if ($request->hasFile('gambar')) {
-            $validated['gambar'] = $request->file('gambar')->store('berita', 'public');
+            $file = $request->file('gambar');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/berita'));
+            $file->move(public_path('uploads/berita'), $filename);
+            $validated['gambar'] = $filename;
         }
 
         Berita::create($validated);
@@ -239,11 +244,30 @@ class BeritaController extends Controller
         if ($request->hasFile('gambar')) {
             // Hapus gambar lama jika ada
             if ($berita->gambar) {
-                \Storage::disk('public')->delete($berita->gambar);
+                $oldFilename = basename($berita->gambar);
+                $oldPath = public_path('uploads/berita/'.$oldFilename);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+                if (\Storage::disk('public')->exists('berita/'.$oldFilename)) {
+                    \Storage::disk('public')->delete('berita/'.$oldFilename);
+                }
             }
-            $validated['gambar'] = $request->file('gambar')->store('berita', 'public');
+
+            $file = $request->file('gambar');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/berita'));
+            $file->move(public_path('uploads/berita'), $filename);
+            $validated['gambar'] = $filename;
         } elseif ($request->boolean('hapus_gambar') && $berita->gambar) {
-            \Storage::disk('public')->delete($berita->gambar);
+            $oldFilename = basename($berita->gambar);
+            $oldPath = public_path('uploads/berita/'.$oldFilename);
+            if (File::exists($oldPath)) {
+                File::delete($oldPath);
+            }
+            if (\Storage::disk('public')->exists('berita/'.$oldFilename)) {
+                \Storage::disk('public')->delete('berita/'.$oldFilename);
+            }
             $validated['gambar'] = null;
         }
 
@@ -259,7 +283,14 @@ class BeritaController extends Controller
     public function destroy(Berita $berita): JsonResponse
     {
         if ($berita->gambar) {
-            \Storage::disk('public')->delete($berita->gambar);
+            $oldFilename = basename($berita->gambar);
+            $oldPath = public_path('uploads/berita/'.$oldFilename);
+            if (File::exists($oldPath)) {
+                File::delete($oldPath);
+            }
+            if (\Storage::disk('public')->exists('berita/'.$oldFilename)) {
+                \Storage::disk('public')->delete('berita/'.$oldFilename);
+            }
         }
 
         $berita->delete();

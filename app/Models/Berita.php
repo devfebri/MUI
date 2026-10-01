@@ -46,4 +46,12 @@ class Berita extends Model
             $this->attributes['slug'] = Str::slug($value);
         }
     }
+
+    /**
+     * URL publik untuk gambar berita menggunakan asset().
+     */
+    public function getGambarUrlAttribute(): ?string
+    {
+        return $this->gambar ? asset('uploads/berita/'.basename($this->gambar)) : null;
+    }
 }

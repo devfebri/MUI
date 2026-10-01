@@ -6,7 +6,9 @@ use App\Models\Fatwa;
 use App\Models\KategoriFatwa;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class FatwaController extends Controller
@@ -37,7 +39,13 @@ class FatwaController extends Controller
         ]);
 
         $validated['status_fatwa'] = $validated['status_fatwa'] ?? Fatwa::STATUS_AKTIF;
-        $validated['filepdf'] = $request->file('filepdf')->store('fatwa', 'public');
+        if ($request->hasFile('filepdf')) {
+            $file = $request->file('filepdf');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/fatwa'));
+            $file->move(public_path('uploads/fatwa'), $filename);
+            $validated['filepdf'] = $filename;
+        }
 
         $fatwa = Fatwa::create($validated);
 
@@ -63,9 +71,21 @@ class FatwaController extends Controller
 
         if ($request->hasFile('filepdf')) {
             if ($fatwa->filepdf) {
-                Storage::disk('public')->delete($fatwa->filepdf);
+                $oldFilename = basename($fatwa->filepdf);
+                $oldPath = public_path('uploads/fatwa/'.$oldFilename);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+                if (Storage::disk('public')->exists('fatwa/'.$oldFilename)) {
+                    Storage::disk('public')->delete('fatwa/'.$oldFilename);
+                }
             }
-            $validated['filepdf'] = $request->file('filepdf')->store('fatwa', 'public');
+
+            $file = $request->file('filepdf');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/fatwa'));
+            $file->move(public_path('uploads/fatwa'), $filename);
+            $validated['filepdf'] = $filename;
         } else {
             unset($validated['filepdf']);
         }
@@ -93,7 +113,14 @@ class FatwaController extends Controller
     public function destroy(Fatwa $fatwa): JsonResponse
     {
         if ($fatwa->filepdf) {
-            Storage::disk('public')->delete($fatwa->filepdf);
+            $oldFilename = basename($fatwa->filepdf);
+            $oldPath = public_path('uploads/fatwa/'.$oldFilename);
+            if (File::exists($oldPath)) {
+                File::delete($oldPath);
+            }
+            if (Storage::disk('public')->exists('fatwa/'.$oldFilename)) {
+                Storage::disk('public')->delete('fatwa/'.$oldFilename);
+            }
         }
 
         $fatwa->delete();
@@ -227,8 +254,8 @@ class FatwaController extends Controller
                 'status_fatwa' => $statusFatwa,
                 'status_fatwa_label' => Fatwa::STATUSES[$statusFatwa] ?? ucfirst($statusFatwa),
                 'keterangan' => $f->keterangan,
-                'filepdf' => $f->filepdf,
-                'file_url' => $f->filepdf ? Storage::url($f->filepdf) : null,
+                'filepdf' => $f->filepdf ? basename($f->filepdf) : null,
+                'file_url' => $f->filepdf ? asset('uploads/fatwa/'.basename($f->filepdf)) : null,
                 'file_name' => $f->filepdf ? basename($f->filepdf) : null,
                 'publikasi' => (int) $f->publikasi,
                 'views' => (int) ($f->views ?? 0),

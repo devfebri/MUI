@@ -736,7 +736,7 @@
         <div class="surat-grid">
             @foreach($surats as $item)
                 @php
-                    $fileUrl = $item->file_surat ? \Illuminate\Support\Facades\Storage::url($item->file_surat) : null;
+                    $fileUrl = $item->file_surat ? asset('uploads/surat/' . basename($item->file_surat)) : null;
                     $ext = strtolower(pathinfo($item->file_surat, PATHINFO_EXTENSION));
                     $isPdf = ($ext === 'pdf');
                     $isImg = in_array($ext, ['jpg', 'jpeg', 'png'], true);

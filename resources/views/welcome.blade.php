@@ -38,7 +38,7 @@
             <div>
                 @if($beritaUtama)
                     @php
-                        $imgUtama = $beritaUtama->gambar ? \Illuminate\Support\Facades\Storage::url($beritaUtama->gambar) : asset('template/assets/img/trending/trending_top.jpg');
+                        $imgUtama = $beritaUtama->gambar ? asset('uploads/berita/' . basename($beritaUtama->gambar)) : asset('template/assets/img/trending/trending_top.jpg');
                     @endphp
                     <a href="{{ route('berita.detail', $beritaUtama->slug ?? $beritaUtama->id) }}" class="post-card post-classic d-block">
                         <div class="post-media">
@@ -73,7 +73,7 @@
             <div>
                 @if($beritaMiddlePrimary)
                     @php
-                        $imgMiddle = $beritaMiddlePrimary->gambar ? \Illuminate\Support\Facades\Storage::url($beritaMiddlePrimary->gambar) : asset('template/assets/img/trending/trending_bottom1.jpg');
+                        $imgMiddle = $beritaMiddlePrimary->gambar ? asset('uploads/berita/' . basename($beritaMiddlePrimary->gambar)) : asset('template/assets/img/trending/trending_bottom1.jpg');
                     @endphp
                     <a href="{{ route('berita.detail', $beritaMiddlePrimary->slug ?? $beritaMiddlePrimary->id) }}" class="post-card post-overlay d-block">
                         <div class="post-media">
@@ -92,7 +92,7 @@
                 <div>
                     @foreach($beritaMiddleList as $idx => $item)
                         @php
-                            $imgList = $item->gambar ? \Illuminate\Support\Facades\Storage::url($item->gambar) : asset('template/assets/img/trending/trending_bottom' . (($idx % 3) + 1) . '.jpg');
+                            $imgList = $item->gambar ? asset('uploads/berita/' . basename($item->gambar)) : asset('template/assets/img/trending/trending_bottom' . (($idx % 3) + 1) . '.jpg');
                         @endphp
                         <a href="{{ route('berita.detail', $item->slug ?? $item->id) }}" class="post-card post-list d-flex">
                             <div class="post-media">
@@ -193,7 +193,7 @@
             <div class="news-grid">
                 @forelse($beritaTerkini as $n)
                     @php
-                        $thumb = $n->gambar ? \Illuminate\Support\Facades\Storage::url($n->gambar) : asset('template/assets/img/news/whatNews' . (($loop->index % 4) + 1) . '.jpg');
+                        $thumb = $n->gambar ? asset('uploads/berita/' . basename($n->gambar)) : asset('template/assets/img/news/whatNews' . (($loop->index % 4) + 1) . '.jpg');
                     @endphp
                     <div class="news-card">
                         <div class="news-card-thumb">
@@ -271,7 +271,7 @@
                         <div class="news-grid" style="grid-template-columns: repeat(3,1fr);">
                             @forelse($beritaKhutbah as $k)
                                 @php
-                                    $kThumb = $k->gambar ? \Illuminate\Support\Facades\Storage::url($k->gambar) : asset('template/assets/img/news/whatNews' . (($loop->index % 4) + 1) . '.jpg');
+                                    $kThumb = $k->gambar ? asset('uploads/berita/' . basename($k->gambar)) : asset('template/assets/img/news/whatNews' . (($loop->index % 4) + 1) . '.jpg');
                                 @endphp
                                 <div class="news-card">
                                     <div class="news-card-thumb" style="height:145px;">

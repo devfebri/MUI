@@ -18,10 +18,10 @@ class BeritaSeeder extends Seeder
         $admin = User::where('role', 'admin')->first() ?? User::first();
         $adminId = $admin ? $admin->id : 1;
 
-        // Siapkan direktori storage berita
-        $beritaStorageDir = storage_path('app/public/berita');
-        if (! File::exists($beritaStorageDir)) {
-            File::makeDirectory($beritaStorageDir, 0755, true);
+        // Siapkan direktori upload berita
+        $beritaUploadDir = public_path('uploads/berita');
+        if (! File::exists($beritaUploadDir)) {
+            File::makeDirectory($beritaUploadDir, 0755, true);
         }
 
         // Kumpulan file template gambar yang tersedia
@@ -40,31 +40,31 @@ class BeritaSeeder extends Seeder
             public_path('template/assets/img/trending/trending_bottom1.jpg'),
         ];
 
-        // Cari gambar yang sudah ada di storage atau salin dari template
+        // Cari gambar yang sudah ada di uploads atau salin dari template
         $sampleImages = [];
         foreach ($templateImages as $i => $sourcePath) {
             $targetFilename = 'sample_berita_'.($i + 1).'.jpg';
-            $targetPath = $beritaStorageDir.'/'.$targetFilename;
+            $targetPath = $beritaUploadDir.'/'.$targetFilename;
 
             if (! File::exists($targetPath) && File::exists($sourcePath)) {
                 File::copy($sourcePath, $targetPath);
             }
 
             if (File::exists($targetPath)) {
-                $sampleImages[] = 'berita/'.$targetFilename;
+                $sampleImages[] = $targetFilename;
             }
         }
 
         // Fallback jika tidak ada template
         if (empty($sampleImages)) {
-            $existing = File::glob($beritaStorageDir.'/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
+            $existing = File::glob($beritaUploadDir.'/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
             if (! empty($existing)) {
-                $sampleImages = array_map(fn ($p) => 'berita/'.basename($p), $existing);
+                $sampleImages = array_map(fn ($p) => basename($p), $existing);
             } else {
                 // Buat dummy 1x1 pixel image fallback
-                $fallbackFile = $beritaStorageDir.'/sample_default.jpg';
+                $fallbackFile = $beritaUploadDir.'/sample_default.jpg';
                 File::put($fallbackFile, base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='));
-                $sampleImages[] = 'berita/sample_default.jpg';
+                $sampleImages[] = 'sample_default.jpg';
             }
         }
 

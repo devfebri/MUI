@@ -17,17 +17,31 @@ class SuratSeeder extends Seeder
         $admin = User::where('role', 'admin')->first() ?? User::first();
         $adminId = $admin ? $admin->id : 1;
 
-        $suratStorageDir = storage_path('app/public/surat');
-        if (! File::exists($suratStorageDir)) {
-            File::makeDirectory($suratStorageDir, 0755, true);
+        $suratUploadDir = public_path('uploads/surat');
+        if (! File::exists($suratUploadDir)) {
+            File::makeDirectory($suratUploadDir, 0755, true);
         }
 
-        // Cari file PDF di direktori surat atau fallback ke direktori fatwa
-        $existingPdfs = File::glob($suratStorageDir.'/*.pdf');
+        // Cari file PDF yang sudah ada di storage/surat lalu salin jika belum ada di uploads
+        $storageSuratDir = storage_path('app/public/surat');
+        if (File::exists($storageSuratDir)) {
+            foreach (File::glob($storageSuratDir.'/*.pdf') as $oldPdf) {
+                $dest = $suratUploadDir.'/'.basename($oldPdf);
+                if (! File::exists($dest)) {
+                    File::copy($oldPdf, $dest);
+                }
+            }
+        }
+
+        // Cari file PDF di direktori surat atau fallback ke fatwa
+        $existingPdfs = File::glob($suratUploadDir.'/*.pdf');
         if (empty($existingPdfs)) {
-            $fatwaPdfs = File::glob(storage_path('app/public/fatwa/*.pdf'));
+            $fatwaPdfs = File::glob(public_path('uploads/fatwa/*.pdf'));
+            if (empty($fatwaPdfs)) {
+                $fatwaPdfs = File::glob(storage_path('app/public/fatwa/*.pdf'));
+            }
             if (! empty($fatwaPdfs)) {
-                $targetPdf = $suratStorageDir.'/sample-dokumen-surat.pdf';
+                $targetPdf = $suratUploadDir.'/sample-dokumen-surat.pdf';
                 File::copy($fatwaPdfs[0], $targetPdf);
                 $existingPdfs = [$targetPdf];
             }
@@ -36,13 +50,13 @@ class SuratSeeder extends Seeder
         $samplePdfs = [];
         if (! empty($existingPdfs)) {
             foreach ($existingPdfs as $pdf) {
-                $samplePdfs[] = 'surat/'.basename($pdf);
+                $samplePdfs[] = basename($pdf);
             }
         } else {
-            $samplePdfPath = $suratStorageDir.'/sample-dokumen-surat.pdf';
+            $samplePdfPath = $suratUploadDir.'/sample-dokumen-surat.pdf';
             $minimalPdf = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF";
             File::put($samplePdfPath, $minimalPdf);
-            $samplePdfs[] = 'surat/sample-dokumen-surat.pdf';
+            $samplePdfs[] = 'sample-dokumen-surat.pdf';
         }
 
         $suratList = [

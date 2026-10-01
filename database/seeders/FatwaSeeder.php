@@ -14,25 +14,36 @@ class FatwaSeeder extends Seeder
      */
     public function run(): void
     {
-        $fatwaStorageDir = storage_path('app/public/fatwa');
-        if (! File::exists($fatwaStorageDir)) {
-            File::makeDirectory($fatwaStorageDir, 0755, true);
+        $fatwaUploadDir = public_path('uploads/fatwa');
+        if (! File::exists($fatwaUploadDir)) {
+            File::makeDirectory($fatwaUploadDir, 0755, true);
+        }
+
+        // Cari file PDF yang sudah ada di storage/fatwa lalu salin jika belum ada di uploads
+        $storageFatwaDir = storage_path('app/public/fatwa');
+        if (File::exists($storageFatwaDir)) {
+            foreach (File::glob($storageFatwaDir.'/*.pdf') as $oldPdf) {
+                $dest = $fatwaUploadDir.'/'.basename($oldPdf);
+                if (! File::exists($dest)) {
+                    File::copy($oldPdf, $dest);
+                }
+            }
         }
 
         // Cari file PDF yang sudah ada di direktori fatwa
-        $existingPdfs = File::glob($fatwaStorageDir.'/*.pdf');
+        $existingPdfs = File::glob($fatwaUploadDir.'/*.pdf');
         $samplePdfs = [];
 
         if (! empty($existingPdfs)) {
             foreach ($existingPdfs as $pdf) {
-                $samplePdfs[] = 'fatwa/'.basename($pdf);
+                $samplePdfs[] = basename($pdf);
             }
         } else {
             // Buat file PDF dummy valid minimal jika belum ada sama sekali
-            $samplePdfPath = $fatwaStorageDir.'/sample-fatwa-dokumen.pdf';
+            $samplePdfPath = $fatwaUploadDir.'/sample-fatwa-dokumen.pdf';
             $minimalPdf = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF";
             File::put($samplePdfPath, $minimalPdf);
-            $samplePdfs[] = 'fatwa/sample-fatwa-dokumen.pdf';
+            $samplePdfs[] = 'sample-fatwa-dokumen.pdf';
         }
 
         // Ambil mapping kategori fatwa

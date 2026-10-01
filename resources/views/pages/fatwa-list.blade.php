@@ -773,7 +773,7 @@
         <div class="fatwa-grid">
             @foreach($fatwas as $item)
                 @php
-                    $fileUrl = $item->filepdf ? \Illuminate\Support\Facades\Storage::url($item->filepdf) : null;
+                    $fileUrl = $item->filepdf ? asset('uploads/fatwa/' . basename($item->filepdf)) : null;
                     $statusFatwa = $item->status_fatwa ?? 'aktif';
                 @endphp
                 <div class="fatwa-card">

@@ -127,7 +127,7 @@
                     <a href="{{ route('berita.detail', $beritaUtama->slug ?? $beritaUtama->id) }}" class="news-featured d-block">
                         <div class="news-featured-thumb">
                             @if($beritaUtama->gambar)
-                                <img src="{{ Storage::url($beritaUtama->gambar) }}"
+                                <img src="{{ asset('uploads/berita/' . basename($beritaUtama->gambar)) }}"
                                      alt="{{ $beritaUtama->judul }}" loading="eager">
                             @else
                                 <div class="news-card-thumb-placeholder">
@@ -169,7 +169,7 @@
                         <a href="{{ route('berita.detail', $berita->slug ?? $berita->id) }}" class="news-card d-block">
                             <div class="news-card-thumb">
                                 @if($berita->gambar)
-                                    <img src="{{ Storage::url($berita->gambar) }}"
+                                    <img src="{{ asset('uploads/berita/' . basename($berita->gambar)) }}"
                                          alt="{{ $berita->judul }}" loading="lazy">
                                 @else
                                     <div class="news-card-thumb-placeholder">

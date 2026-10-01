@@ -73,7 +73,7 @@
                 {{-- Gambar Utama Berita --}}
                 @if($berita->gambar)
                 <div class="article-featured-img">
-                    <img src="{{ Storage::url($berita->gambar) }}" alt="{{ $berita->judul }}" loading="eager">
+                    <img src="{{ asset('uploads/berita/' . basename($berita->gambar)) }}" alt="{{ $berita->judul }}" loading="eager">
                     <div class="article-img-caption">
                         <i class="fas fa-camera me-1"></i> Dokumentasi MUI Digital — {{ $berita->judul }}
                     </div>
@@ -146,7 +146,7 @@
                             <a href="{{ route('berita.detail', $terkait->slug ?? $terkait->id) }}" class="related-card">
                                 <div class="related-card-thumb">
                                     @if($terkait->gambar)
-                                        <img src="{{ Storage::url($terkait->gambar) }}" alt="{{ $terkait->judul }}" loading="lazy">
+                                        <img src="{{ asset('uploads/berita/' . basename($terkait->gambar)) }}" alt="{{ $terkait->judul }}" loading="lazy">
                                     @else
                                         <div class="news-card-thumb-placeholder">
                                             <i class="fas fa-newspaper"></i>

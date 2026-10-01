@@ -43,4 +43,12 @@ class Fatwa extends Model
     {
         return $this->belongsTo(KategoriFatwa::class, 'kategori_fatwa_id');
     }
+
+    /**
+     * URL publik untuk file PDF fatwa menggunakan asset().
+     */
+    public function getFileUrlAttribute(): ?string
+    {
+        return $this->filepdf ? asset('uploads/fatwa/'.basename($this->filepdf)) : null;
+    }
 }

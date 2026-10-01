@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Surat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SuratController extends Controller
@@ -31,7 +33,13 @@ class SuratController extends Controller
         ]);
 
         $validated['user_id'] = auth()->id();
-        $validated['file_surat'] = $request->file('file_surat')->store('surat', 'public');
+        if ($request->hasFile('file_surat')) {
+            $file = $request->file('file_surat');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/surat'));
+            $file->move(public_path('uploads/surat'), $filename);
+            $validated['file_surat'] = $filename;
+        }
 
         $surat = Surat::create($validated);
 
@@ -54,9 +62,21 @@ class SuratController extends Controller
         if ($request->hasFile('file_surat')) {
             // Hapus file lama
             if ($surat->file_surat) {
-                Storage::disk('public')->delete($surat->file_surat);
+                $oldFilename = basename($surat->file_surat);
+                $oldPath = public_path('uploads/surat/'.$oldFilename);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+                if (Storage::disk('public')->exists('surat/'.$oldFilename)) {
+                    Storage::disk('public')->delete('surat/'.$oldFilename);
+                }
             }
-            $validated['file_surat'] = $request->file('file_surat')->store('surat', 'public');
+
+            $file = $request->file('file_surat');
+            $filename = time().'_'.Str::random(16).'.'.strtolower($file->getClientOriginalExtension());
+            File::ensureDirectoryExists(public_path('uploads/surat'));
+            $file->move(public_path('uploads/surat'), $filename);
+            $validated['file_surat'] = $filename;
         } else {
             unset($validated['file_surat']);
         }
@@ -73,7 +93,14 @@ class SuratController extends Controller
     public function destroy(Surat $surat): JsonResponse
     {
         if ($surat->file_surat) {
-            Storage::disk('public')->delete($surat->file_surat);
+            $oldFilename = basename($surat->file_surat);
+            $oldPath = public_path('uploads/surat/'.$oldFilename);
+            if (File::exists($oldPath)) {
+                File::delete($oldPath);
+            }
+            if (Storage::disk('public')->exists('surat/'.$oldFilename)) {
+                Storage::disk('public')->delete('surat/'.$oldFilename);
+            }
         }
 
         $surat->delete();
@@ -157,9 +184,9 @@ class SuratController extends Controller
                 'nomor_surat' => $s->nomor_surat,
                 'perihal' => $s->perihal,
                 'tanggal_surat' => $s->tanggal_surat->format('Y-m-d'),
-                'file_surat' => $s->file_surat,
-                'file_url' => Storage::url($s->file_surat),
-                'file_ext' => pathinfo($s->file_surat, PATHINFO_EXTENSION),
+                'file_surat' => $s->file_surat ? basename($s->file_surat) : null,
+                'file_url' => $s->file_surat ? asset('uploads/surat/'.basename($s->file_surat)) : null,
+                'file_ext' => $s->file_surat ? pathinfo($s->file_surat, PATHINFO_EXTENSION) : null,
                 'pengunggah' => $s->pengunggah ? ['name' => $s->pengunggah->name] : null,
                 'created_at' => $s->created_at,
             ];

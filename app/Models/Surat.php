@@ -26,4 +26,12 @@ class Surat extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    /**
+     * URL publik untuk file surat menggunakan asset().
+     */
+    public function getFileUrlAttribute(): ?string
+    {
+        return $this->file_surat ? asset('uploads/surat/'.basename($this->file_surat)) : null;
+    }
 }
