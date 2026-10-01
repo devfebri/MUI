@@ -22,6 +22,29 @@ class LoginController extends Controller
     }
 
     /**
+     * Menentukan nama input/field form yang digunakan untuk autentikasi.
+     */
+    public function username(): string
+    {
+        return 'username';
+    }
+
+    /**
+     * Mengambil kredensial dari request.
+     * Mendukung login menggunakan username maupun alamat email.
+     */
+    protected function credentials(Request $request): array
+    {
+        $login = $request->input($this->username());
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        return [
+            $field => $login,
+            'password' => $request->input('password'),
+        ];
+    }
+
+    /**
      * Override sendLoginResponse agar redirect SELALU berdasarkan role,
      * bukan dari url.intended yang tersimpan di session (penyebab double-prefix).
      */

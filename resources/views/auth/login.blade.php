@@ -528,7 +528,7 @@
                             class="login-input {{ $errors->has('username') ? 'is-error' : '' }}"
                             value="{{ old('username') }}" placeholder="username" required autofocus
                             autocomplete="username">
-                        <i class="mdi mdi-username-outline"></i>
+                        <i class="mdi mdi-account-outline"></i>
                     </div>
                 </div>
 
