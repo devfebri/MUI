@@ -24,6 +24,7 @@
     <link href="{{ asset('templateadmin/assets/plugins/alertify/css/alertify.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ asset('templateadmin/assets/css/bootstrap.min.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ asset('templateadmin/assets/css/icons.css') }}" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet" type="text/css">
     <link href="{{ asset('templateadmin/assets/css/style.css') }}" rel="stylesheet" type="text/css">
 
     <!-- ============================================================ -->

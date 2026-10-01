@@ -57,8 +57,9 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('admin.users.index') }}" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-account-group"></i></span>
+                <a href="{{ route('admin.users.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.users') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-account-multiple"></i></span>
                     <span class="nav-label">Pengguna</span>
                 </a>
             </li>
@@ -67,14 +68,16 @@
         <div class="mui-nav-section">Konten</div>
         <ul class="mui-nav-list">
             <li>
-                <a href="{{ route('admin.berita.index') }}" class="mui-nav-link">
+                <a href="{{ route('admin.berita.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.berita') ? 'active' : '' }}">
                     <span class="nav-icon"><i class="mdi mdi-newspaper"></i></span>
                     <span class="nav-label">Berita & Artikel</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('admin.kategori.index') }}" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-shape"></i></span>
+                <a href="{{ route('admin.kategori.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.kategori.') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-tag-multiple"></i></span>
                     <span class="nav-label">Kategori</span>
                 </a>
             </li>
@@ -92,7 +95,7 @@
             </li>
             <li>
                 <a href="{{ route('admin.fatwa.index') }}"
-                    class="mui-nav-link {{ $route === 'admin.fatwa.index' ? 'active' : '' }}">
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.fatwa') ? 'active' : '' }}">
                     <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
                     <span class="nav-label">Fatwa</span>
                 </a>
@@ -100,7 +103,7 @@
             <li>
                 <a href="{{ route('admin.kategori-fatwa.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'admin.kategori-fatwa') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-tag-multiple-outline"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-label-outline"></i></span>
                     <span class="nav-label">Kategori Fatwa</span>
                 </a>
             </li>
@@ -111,7 +114,7 @@
             <li>
                 <a href="{{ route('admin.konsultasi.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'admin.konsultasi') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-forum-outline"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-forum"></i></span>
                     <span class="nav-label">Konsultasi</span>
                     @php
                         $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
@@ -130,7 +133,7 @@
         <ul class="mui-nav-list">
             <li>
                 <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-cog"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-settings"></i></span>
                     <span class="nav-label">Pengaturan</span>
                 </a>
             </li>
@@ -159,7 +162,7 @@
             </li>
             <li>
                 <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-shape"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-tag-multiple"></i></span>
                     <span class="nav-label">Kategori</span>
                 </a>
             </li>
@@ -181,7 +184,7 @@
             </li>
             <li>
                 <a href="{{ route('operator.fatwa.index') }}"
-                    class="mui-nav-link {{ $route === 'operator.fatwa.index' ? 'active' : '' }}">
+                    class="mui-nav-link {{ str_starts_with($route, 'operator.fatwa') ? 'active' : '' }}">
                     <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
                     <span class="nav-label">Fatwa</span>
                 </a>
@@ -189,7 +192,7 @@
             <li>
                 <a href="{{ route('operator.kategori-fatwa.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'operator.kategori-fatwa') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-tag-multiple-outline"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-label-outline"></i></span>
                     <span class="nav-label">Kategori Fatwa</span>
                 </a>
             </li>
@@ -200,7 +203,7 @@
             <li>
                 <a href="{{ route('operator.konsultasi.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'operator.konsultasi') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-forum-outline"></i></span>
+                    <span class="nav-icon"><i class="mdi mdi-forum"></i></span>
                     <span class="nav-label">Konsultasi</span>
                     @php
                         $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
@@ -442,15 +445,20 @@
     }
 
     .nav-icon {
-        width: 20px;
+        width: 22px;
         text-align: center;
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .nav-icon i {
-        font-size: 18px;
-        opacity: .8;
-        transition: color .18s;
+        font-size: 19px;
+        line-height: 1;
+        opacity: .85;
+        transition: color .18s, opacity .18s;
+        display: inline-block;
     }
 
     .mui-nav-link:hover .nav-icon i {
