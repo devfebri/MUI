@@ -78,10 +78,50 @@
                     <span class="nav-label">Kategori</span>
                 </a>
             </li>
+
+
+        </ul>
+        <div class="mui-nav-section">Arsip</div>
+        <ul class="mui-nav-list">
             <li>
-                <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-image-multiple"></i></span>
-                    <span class="nav-label">Media</span>
+                <a href="{{ route('admin.surat.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.surat') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-email-outline"></i></span>
+                    <span class="nav-label">Surat</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.fatwa.index') }}"
+                    class="mui-nav-link {{ $route === 'admin.fatwa.index' ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
+                    <span class="nav-label">Fatwa</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.kategori-fatwa.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.kategori-fatwa') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-tag-multiple-outline"></i></span>
+                    <span class="nav-label">Kategori Fatwa</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="mui-nav-section">Layanan</div>
+        <ul class="mui-nav-list">
+            <li>
+                <a href="{{ route('admin.konsultasi.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.konsultasi') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-forum-outline"></i></span>
+                    <span class="nav-label">Konsultasi</span>
+                    @php
+                        $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
+                    @endphp
+                    @if ($pendingKonsultasi > 0)
+                        <span class="badge ml-auto"
+                            style="background:#eab308; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                            {{ $pendingKonsultasi }}
+                        </span>
+                    @endif
                 </a>
             </li>
         </ul>
@@ -112,10 +152,10 @@
         <ul class="mui-nav-list">
             <li>
                 <a href="{{ route('operator.berita.index') }}"
-                class="mui-nav-link {{ str_starts_with($route, 'operator.berita') ? 'active' : '' }}">
-                <span class="nav-icon"><i class="mdi mdi-newspaper"></i></span>
-                <span class="nav-label">Berita & Artikel</span>
-            </a>
+                    class="mui-nav-link {{ str_starts_with($route, 'operator.berita') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-newspaper"></i></span>
+                    <span class="nav-label">Berita & Artikel</span>
+                </a>
             </li>
             <li>
                 <a href="#" class="mui-nav-link">
@@ -127,6 +167,50 @@
                 <a href="#" class="mui-nav-link">
                     <span class="nav-icon"><i class="mdi mdi-image-multiple"></i></span>
                     <span class="nav-label">Media</span>
+                </a>
+            </li>
+        </ul>
+        <div class="mui-nav-section">Arsip</div>
+        <ul class="mui-nav-list">
+            <li>
+                <a href="{{ route('operator.surat.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'operator.surat') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-email-outline"></i></span>
+                    <span class="nav-label">Surat</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('operator.fatwa.index') }}"
+                    class="mui-nav-link {{ $route === 'operator.fatwa.index' ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
+                    <span class="nav-label">Fatwa</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('operator.kategori-fatwa.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'operator.kategori-fatwa') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-tag-multiple-outline"></i></span>
+                    <span class="nav-label">Kategori Fatwa</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="mui-nav-section">Layanan</div>
+        <ul class="mui-nav-list">
+            <li>
+                <a href="{{ route('operator.konsultasi.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'operator.konsultasi') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-forum-outline"></i></span>
+                    <span class="nav-label">Konsultasi</span>
+                    @php
+                        $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
+                    @endphp
+                    @if ($pendingKonsultasi > 0)
+                        <span class="badge ml-auto"
+                            style="background:#eab308; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                            {{ $pendingKonsultasi }}
+                        </span>
+                    @endif
                 </a>
             </li>
         </ul>

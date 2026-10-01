@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Kategori;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -38,5 +40,33 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        // Kategori Berita Default
+        $defaultKategori = [
+            'Berita Utama',
+            'Fatwa',
+            'Bimbingan',
+            'Halal',
+            'Khutbah',
+            'Opini',
+            'Nasional',
+            'Internasional',
+            'Ekonomi',
+            'Teknologi',
+            'Sosial',
+            'Kabar Daerah',
+        ];
+
+        foreach ($defaultKategori as $i => $nama) {
+            Kategori::updateOrCreate(
+                ['nama' => $nama],
+                [
+                    'slug' => Str::slug($nama),
+                    'warna' => '#007f5f',
+                    'aktif' => true,
+                    'urutan' => $i + 1,
+                ]
+            );
+        }
     }
 }

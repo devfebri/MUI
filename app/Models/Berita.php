@@ -17,11 +17,13 @@ class Berita extends Model
         'isi',
         'gambar',
         'status',
+        'views',
         'published_at',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
+        'views' => 'integer',
         'published_at' => 'datetime',
     ];
 

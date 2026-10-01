@@ -388,11 +388,11 @@
             <h5>Tambah Berita <span>Artikel baru</span></h5>
         </div>
         <div class="d-flex align-items-center" style="gap:8px;">
-            <button type="button" class="btn-draft" id="btn-save-draft" onclick="submitForm('draft')">
+            <button type="button" class="btn-draft" id="btn-save-draft" onclick="submitForm('draft')" style="display:none;">
                 <i class="mdi mdi-content-save-outline"></i> Simpan Draft
             </button>
-            <button type="button" class="btn-publish" id="btn-publish" onclick="submitForm('published')">
-                <i class="mdi mdi-send"></i> Publikasikan
+            <button type="button" class="btn-publish" id="btn-publish" onclick="submitForm()">
+                <i class="mdi mdi-content-save-outline" id="btn-publish-icon"></i> <span id="btn-publish-text">Simpan Draft</span>
             </button>
         </div>
     </div>
@@ -419,7 +419,6 @@
     <form id="berita-form" action="{{ route(auth()->user()->role . '.berita.store') }}" method="POST"
         enctype="multipart/form-data">
         @csrf
-        <input type="hidden" id="hidden-status" name="status" value="draft">
         <input type="hidden" id="hidden-isi" name="isi">
 
         <div class="editor-layout">
@@ -461,16 +460,16 @@
                     </div>
                     <div class="editor-card-body">
                         <div class="status-pills" id="status-pills">
-                            <label class="status-pill" id="pill-draft">
-                                <input type="radio" name="_status_visual" value="draft" checked>
+                            <label class="status-pill {{ old('status', 'draft') === 'draft' ? 'checked' : '' }}" id="pill-draft">
+                                <input type="radio" name="status" value="draft" {{ old('status', 'draft') === 'draft' ? 'checked' : '' }}>
                                 <i class="mdi mdi-pencil-box"></i><br>Draft
                             </label>
-                            <label class="status-pill" id="pill-published">
-                                <input type="radio" name="_status_visual" value="published">
+                            <label class="status-pill {{ old('status') === 'published' ? 'checked' : '' }}" id="pill-published">
+                                <input type="radio" name="status" value="published" {{ old('status') === 'published' ? 'checked' : '' }}>
                                 <i class="mdi mdi-check-circle"></i><br>Publish
                             </label>
-                            <label class="status-pill" id="pill-archived">
-                                <input type="radio" name="_status_visual" value="archived">
+                            <label class="status-pill {{ old('status') === 'archived' ? 'checked' : '' }}" id="pill-archived">
+                                <input type="radio" name="status" value="archived" {{ old('status') === 'archived' ? 'checked' : '' }}>
                                 <i class="mdi mdi-archive"></i><br>Arsip
                             </label>
                         </div>
@@ -488,19 +487,35 @@
 
                 {{-- Kategori --}}
                 <div class="editor-card">
-                    <div class="editor-card-head">
-                        <i class="mdi mdi-tag"></i> Kategori
+                    <div class="editor-card-head d-flex justify-content-between align-items-center">
+                        <div><i class="mdi mdi-tag"></i> Kategori</div>
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('admin.kategori.index') }}" target="_blank" style="font-size:11.5px;font-weight:600;color:var(--green);text-decoration:none;">
+                                <i class="mdi mdi-plus-circle-outline"></i> Kelola Kategori
+                            </a>
+                        @endif
                     </div>
                     <div class="editor-card-body">
                         <div class="form-group" style="margin:0;">
                             <select name="kategori" class="form-control" required>
                                 <option value="">— Pilih Kategori —</option>
                                 @foreach ($kategoriList as $kat)
-                                    <option value="{{ $kat }}" {{ old('kategori') === $kat ? 'selected' : '' }}>
-                                        {{ $kat }}
+                                    @php
+                                        $val = is_object($kat) ? $kat->nama : $kat;
+                                    @endphp
+                                    <option value="{{ $val }}" {{ old('kategori') === $val ? 'selected' : '' }}>
+                                        {{ $val }}
                                     </option>
                                 @endforeach
                             </select>
+                            @if(count($kategoriList) === 0)
+                                <small class="text-muted d-block mt-2">
+                                    <i class="mdi mdi-information-outline"></i> Belum ada kategori di tabel kategoris.
+                                    @if(auth()->user()->isAdmin())
+                                        <a href="{{ route('admin.kategori.index') }}" target="_blank" class="text-success font-weight-bold">Tambah Kategori</a>
+                                    @endif
+                                </small>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -508,15 +523,15 @@
                 {{-- Gambar Utama --}}
                 <div class="editor-card">
                     <div class="editor-card-head">
-                        <i class="mdi mdi-image"></i> Gambar Utama (Thumbnail)
+                        <i class="mdi mdi-image"></i> Gambar Utama (Thumbnail) <span class="text-danger">*</span>
                     </div>
                     <div class="editor-card-body">
                         <div class="img-upload-area" id="img-upload-area">
                             <input type="file" name="gambar" id="gambar-input"
-                                accept="image/jpeg,image/png,image/jpg,image/webp">
+                                accept="image/jpeg,image/png,image/jpg,image/webp" required>
                             <i class="mdi mdi-cloud-upload-outline"></i>
                             <p><strong>Klik atau seret gambar ke sini</strong><br>
-                                JPEG, PNG, WEBP · Maks 2 MB</p>
+                                JPEG, PNG, WEBP · Maks 2 MB <span class="text-danger font-weight-bold">(Wajib)</span></p>
                         </div>
                         <div class="img-preview" id="img-preview">
                             <img src="" alt="Preview" id="img-preview-img">
@@ -524,6 +539,9 @@
                                 <i class="mdi mdi-close"></i> Hapus
                             </button>
                         </div>
+                        @error('gambar')
+                            <small class="text-danger font-weight-bold d-block mt-2">{{ $message }}</small>
+                        @enderror
                     </div>
                 </div>
 
@@ -600,16 +618,32 @@
                 this.style.height = this.scrollHeight + 'px';
             }).trigger('input');
 
-            /* ── STATUS PILLS ── */
-            $('input[name="_status_visual"]').on('change', function() {
-                var val = $(this).val();
-                $('.status-pill').removeClass('checked');
-                $(this).closest('.status-pill').addClass('checked');
-                $('#published-at-wrap').toggle(val === 'published');
-            });
+            /* ── STATUS PILLS & UI SYNC ── */
+            function syncStatusUI() {
+                var $checked = $('input[name="status"]:checked');
+                var val = $checked.val() || 'draft';
 
-            // Inisialisasi active pill
-            $('input[name="_status_visual"]:checked').closest('.status-pill').addClass('checked');
+                $('.status-pill').removeClass('checked');
+                $checked.closest('.status-pill').addClass('checked');
+                $('#published-at-wrap').toggle(val === 'published');
+
+                if (val === 'draft') {
+                    $('#btn-publish-icon').attr('class', 'mdi mdi-content-save-outline');
+                    $('#btn-publish-text').text('Simpan Draft');
+                    $('#btn-save-draft').hide();
+                } else if (val === 'published') {
+                    $('#btn-publish-icon').attr('class', 'mdi mdi-send');
+                    $('#btn-publish-text').text('Publikasikan');
+                    $('#btn-save-draft').show();
+                } else if (val === 'archived') {
+                    $('#btn-publish-icon').attr('class', 'mdi mdi-archive');
+                    $('#btn-publish-text').text('Simpan ke Arsip');
+                    $('#btn-save-draft').show();
+                }
+            }
+
+            $('input[name="status"]').on('change', syncStatusUI);
+            syncStatusUI();
 
             /* ── GAMBAR PREVIEW ── */
             $('#gambar-input').on('change', function() {
@@ -661,7 +695,31 @@
         });
 
         /* ── SUBMIT ── */
-        function submitForm(status) {
+        function submitForm(overrideStatus) {
+            if (overrideStatus) {
+                $('input[name="status"][value="' + overrideStatus + '"]').prop('checked', true).trigger('change');
+            }
+
+            var judul = document.getElementById('judul-input').value.trim();
+            if (!judul) {
+                alert('Judul berita wajib diisi.');
+                document.getElementById('judul-input').focus();
+                return;
+            }
+
+            var kategori = document.querySelector('select[name="kategori"]').value;
+            if (!kategori) {
+                alert('Kategori berita wajib dipilih.');
+                document.querySelector('select[name="kategori"]').focus();
+                return;
+            }
+
+            var gambarInput = document.getElementById('gambar-input');
+            if (!gambarInput.files || !gambarInput.files.length) {
+                alert('Gambar utama (thumbnail) wajib diunggah.');
+                return;
+            }
+
             // Sync quill ke hidden field
             var isi = document.querySelector('.ql-editor').innerHTML.trim();
             if (isi === '<p><br></p>' || isi === '') {
@@ -669,7 +727,6 @@
                 return;
             }
             document.getElementById('hidden-isi').value = isi;
-            document.getElementById('hidden-status').value = status;
             document.getElementById('berita-form').submit();
         }
     </script>

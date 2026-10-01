@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Berita;
+use App\Models\Kategori;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,117 @@ class BeritaController extends Controller
     ];
 
     /**
+     * Halaman publik daftar berita dengan filter kategori & pencarian.
+     */
+    public function list(Request $request): View
+    {
+        $kategoriAktif = $request->query('kategori');
+        $search = $request->query('q');
+
+        $query = Berita::with('penulis')
+            ->where('status', 'published')
+            ->orderByDesc('published_at');
+
+        if ($kategoriAktif) {
+            $query->where('kategori', $kategoriAktif);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                    ->orWhere('isi', 'like', "%{$search}%");
+            });
+        }
+
+        $beritas = $query->paginate(12)->withQueryString();
+        $beritaUtama = $beritas->first();
+
+        // Berita per kategori (sidebar & tabs) dari tabel kategoris
+        $kategoriList = Kategori::where('aktif', true)
+            ->orderBy('urutan')
+            ->orderBy('nama')
+            ->pluck('nama')
+            ->toArray();
+
+        if (empty($kategoriList)) {
+            $kategoriList = self::KATEGORI;
+        }
+
+        // Statistik per kategori
+        $statKategori = Berita::where('status', 'published')
+            ->selectRaw('kategori, COUNT(*) as jumlah')
+            ->groupBy('kategori')
+            ->pluck('jumlah', 'kategori');
+
+        // Berita terpopuler (berdasarkan jumlah dilihat / views)
+        $terpopuler = Berita::where('status', 'published')
+            ->orderByDesc('views')
+            ->orderByDesc('published_at')
+            ->take(5)
+            ->get();
+
+        return view('berita.list', compact(
+            'beritas',
+            'beritaUtama',
+            'kategoriList',
+            'kategoriAktif',
+            'statKategori',
+            'terpopuler',
+            'search',
+        ));
+    }
+
+    /**
+     * Halaman publik detail berita.
+     */
+    public function detail(string $slug): View
+    {
+        $berita = Berita::with('penulis')
+            ->where('status', 'published')
+            ->where(function ($q) use ($slug) {
+                $q->where('slug', $slug)
+                    ->orWhere('id', $slug);
+            })
+            ->firstOrFail();
+
+        // Tambah jumlah dilihat (views)
+        $berita->increment('views');
+
+        // Berita terkait dalam kategori yang sama
+        $beritaTerkait = Berita::where('status', 'published')
+            ->where('id', '!=', $berita->id)
+            ->where('kategori', $berita->kategori)
+            ->orderByDesc('published_at')
+            ->take(4)
+            ->get();
+
+        // Berita terpopuler berdasarkan views
+        $terpopuler = Berita::where('status', 'published')
+            ->where('id', '!=', $berita->id)
+            ->orderByDesc('views')
+            ->orderByDesc('published_at')
+            ->take(5)
+            ->get();
+
+        $kategoriList = Kategori::where('aktif', true)
+            ->orderBy('urutan')
+            ->orderBy('nama')
+            ->pluck('nama')
+            ->toArray();
+
+        if (empty($kategoriList)) {
+            $kategoriList = self::KATEGORI;
+        }
+
+        return view('berita.detail', compact(
+            'berita',
+            'beritaTerkait',
+            'terpopuler',
+            'kategoriList',
+        ));
+    }
+
+    /**
      * Tampilkan daftar berita (DataTables JSON atau view).
      */
     public function index(Request $request): mixed
@@ -35,7 +147,12 @@ class BeritaController extends Controller
             return $this->datatableResponse($request);
         }
 
-        return view('berita.index');
+        $kategoriList = Kategori::where('aktif', true)
+            ->orderBy('urutan')
+            ->orderBy('nama')
+            ->get();
+
+        return view('berita.index', compact('kategoriList'));
     }
 
     /**
@@ -43,9 +160,12 @@ class BeritaController extends Controller
      */
     public function create(): View
     {
-        return view('berita.create', [
-            'kategoriList' => self::KATEGORI,
-        ]);
+        $kategoriList = Kategori::where('aktif', true)
+            ->orderBy('urutan')
+            ->orderBy('nama')
+            ->get();
+
+        return view('berita.create', compact('kategoriList'));
     }
 
     /**
@@ -55,11 +175,16 @@ class BeritaController extends Controller
     {
         $validated = $request->validate([
             'judul' => 'required|string|max:255',
-            'kategori' => 'required|string|in:' . implode(',', self::KATEGORI),
+            'kategori' => 'required|string|max:100',
             'isi' => 'required|string',
             'status' => 'required|in:draft,published,archived',
             'published_at' => 'nullable|date',
-            'gambar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'gambar' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'gambar.required' => 'Gambar utama (thumbnail) wajib diunggah.',
+            'gambar.image' => 'File thumbnail harus berupa gambar.',
+            'gambar.mimes' => 'Format gambar harus JPEG, PNG, JPG, atau WEBP.',
+            'gambar.max' => 'Ukuran gambar maksimal 2 MB.',
         ]);
 
         $validated['user_id'] = auth()->id();
@@ -74,7 +199,7 @@ class BeritaController extends Controller
 
         Berita::create($validated);
 
-        return redirect()->route(auth()->user()->role . '.berita.index')
+        return redirect()->route(auth()->user()->role.'.berita.index')
             ->with('success', 'Berita berhasil ditambahkan.');
     }
 
@@ -83,10 +208,12 @@ class BeritaController extends Controller
      */
     public function edit(Berita $berita): View
     {
-        return view('berita.edit', [
-            'berita' => $berita,
-            'kategoriList' => self::KATEGORI,
-        ]);
+        $kategoriList = Kategori::where('aktif', true)
+            ->orderBy('urutan')
+            ->orderBy('nama')
+            ->get();
+
+        return view('berita.edit', compact('berita', 'kategoriList'));
     }
 
     /**
@@ -96,7 +223,7 @@ class BeritaController extends Controller
     {
         $validated = $request->validate([
             'judul' => 'required|string|max:255',
-            'kategori' => 'required|string|in:' . implode(',', self::KATEGORI),
+            'kategori' => 'required|string|max:100',
             'isi' => 'required|string',
             'status' => 'required|in:draft,published,archived',
             'published_at' => 'nullable|date',
@@ -122,7 +249,7 @@ class BeritaController extends Controller
 
         $berita->update($validated);
 
-        return redirect()->route(auth()->user()->role . '.berita.index')
+        return redirect()->route(auth()->user()->role.'.berita.index')
             ->with('success', 'Berita berhasil diperbarui.');
     }
 
@@ -178,10 +305,5 @@ class BeritaController extends Controller
             'recordsFiltered' => $filtered,
             'data' => $data,
         ]);
-    }
-
-    public function list()
-    {
-        return view('berita.list');
     }
 }

@@ -215,11 +215,11 @@
         <h5>Edit Berita <span class="text-truncate" style="max-width:300px;">{{ $berita->judul }}</span></h5>
     </div>
     <div class="d-flex align-items-center" style="gap:8px;">
-        <button type="button" class="btn-draft" onclick="submitForm('draft')">
+        <button type="button" class="btn-draft" id="btn-save-draft" onclick="submitForm('draft')">
             <i class="mdi mdi-content-save-outline"></i> Simpan Draft
         </button>
-        <button type="button" class="btn-publish" onclick="submitForm('published')">
-            <i class="mdi mdi-send"></i> Perbarui & Publish
+        <button type="button" class="btn-publish" id="btn-publish" onclick="submitForm()">
+            <i class="mdi mdi-send" id="btn-publish-icon"></i> <span id="btn-publish-text">Perbarui & Publish</span>
         </button>
     </div>
 </div>
@@ -249,7 +249,6 @@
     enctype="multipart/form-data">
     @csrf
     @method('PUT')
-    <input type="hidden" id="hidden-status" name="status" value="{{ old('status', $berita->status) }}">
     <input type="hidden" id="hidden-isi" name="isi">
     <input type="hidden" name="hapus_gambar" id="hapus_gambar" value="0">
 
@@ -300,7 +299,7 @@
                         @foreach(['draft' => ['mdi-pencil-box','Draft'], 'published' => ['mdi-check-circle','Publish'], 'archived' => ['mdi-archive','Arsip']] as $val => $info)
                         <label class="status-pill {{ old('status',$berita->status) === $val ? 'checked' : '' }}"
                                id="pill-{{ $val }}">
-                            <input type="radio" name="_status_visual" value="{{ $val }}"
+                            <input type="radio" name="status" value="{{ $val }}"
                                 {{ old('status',$berita->status) === $val ? 'checked' : '' }}>
                             <i class="mdi {{ $info[0] }}"></i><br>{{ $info[1] }}
                         </label>
@@ -318,18 +317,26 @@
 
             {{-- Kategori --}}
             <div class="editor-card">
-                <div class="editor-card-head">
-                    <i class="mdi mdi-tag"></i> Kategori
+                <div class="editor-card-head d-flex justify-content-between align-items-center">
+                    <div><i class="mdi mdi-tag"></i> Kategori</div>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.kategori.index') }}" target="_blank" style="font-size:11.5px;font-weight:600;color:var(--green);text-decoration:none;">
+                            <i class="mdi mdi-plus-circle-outline"></i> Kelola Kategori
+                        </a>
+                    @endif
                 </div>
                 <div class="editor-card-body">
                     <div class="form-group" style="margin:0;">
                         <select name="kategori" class="form-control" required>
                             <option value="">— Pilih Kategori —</option>
                             @foreach($kategoriList as $kat)
-                            <option value="{{ $kat }}"
-                                {{ old('kategori', $berita->kategori) === $kat ? 'selected' : '' }}>
-                                {{ $kat }}
-                            </option>
+                                @php
+                                    $val = is_object($kat) ? $kat->nama : $kat;
+                                @endphp
+                                <option value="{{ $val }}"
+                                    {{ old('kategori', $berita->kategori) === $val ? 'selected' : '' }}>
+                                    {{ $val }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -447,13 +454,32 @@ $(function() {
         this.style.height = this.scrollHeight + 'px';
     }).trigger('input');
 
-    /* ── STATUS PILLS ── */
-    $('input[name="_status_visual"]').on('change', function() {
-        var val = $(this).val();
+    /* ── STATUS PILLS & UI SYNC ── */
+    function syncStatusUI() {
+        var $checked = $('input[name="status"]:checked');
+        var val = $checked.val() || '{{ $berita->status }}';
+
         $('.status-pill').removeClass('checked');
-        $(this).closest('.status-pill').addClass('checked');
+        $checked.closest('.status-pill').addClass('checked');
         $('#published-at-wrap').toggle(val === 'published');
-    });
+
+        if (val === 'draft') {
+            $('#btn-publish-icon').attr('class', 'mdi mdi-content-save-outline');
+            $('#btn-publish-text').text('Simpan Perubahan (Draft)');
+            $('#btn-save-draft').hide();
+        } else if (val === 'published') {
+            $('#btn-publish-icon').attr('class', 'mdi mdi-send');
+            $('#btn-publish-text').text('Perbarui & Publish');
+            $('#btn-save-draft').show();
+        } else if (val === 'archived') {
+            $('#btn-publish-icon').attr('class', 'mdi mdi-archive');
+            $('#btn-publish-text').text('Simpan ke Arsip');
+            $('#btn-save-draft').show();
+        }
+    }
+
+    $('input[name="status"]').on('change', syncStatusUI);
+    syncStatusUI();
 
     /* ── GANTI GAMBAR ── */
     $('#btn-change-img').on('click', function() {
@@ -515,14 +541,31 @@ $(function() {
 });
 
 /* ── SUBMIT ── */
-function submitForm(status) {
+function submitForm(overrideStatus) {
+    if (overrideStatus) {
+        $('input[name="status"][value="' + overrideStatus + '"]').prop('checked', true).trigger('change');
+    }
+
+    var judul = document.getElementById('judul-input').value.trim();
+    if (!judul) {
+        alert('Judul berita wajib diisi.');
+        document.getElementById('judul-input').focus();
+        return;
+    }
+
+    var kategori = document.querySelector('select[name="kategori"]').value;
+    if (!kategori) {
+        alert('Kategori berita wajib dipilih.');
+        document.querySelector('select[name="kategori"]').focus();
+        return;
+    }
+
     var isi = document.querySelector('.ql-editor').innerHTML.trim();
     if (isi === '<p><br></p>' || isi === '') {
         alert('Isi berita wajib diisi.');
         return;
     }
     document.getElementById('hidden-isi').value = isi;
-    document.getElementById('hidden-status').value = status;
     document.getElementById('berita-form').submit();
 }
 </script>

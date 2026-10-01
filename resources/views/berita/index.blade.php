@@ -368,8 +368,9 @@
                     </select>
                     <select class="form-control form-control-sm" id="filter-kategori" style="width:160px;">
                         <option value="">Semua Kategori</option>
-                        @foreach (['Berita Utama', 'Fatwa', 'Bimbingan', 'Halal', 'Khutbah', 'Opini', 'Nasional', 'Internasional', 'Ekonomi', 'Teknologi', 'Sosial', 'Kabar Daerah'] as $kat)
-                            <option value="{{ $kat }}">{{ $kat }}</option>
+                        @foreach ($kategoriList as $kat)
+                            @php $val = is_object($kat) ? $kat->nama : $kat; @endphp
+                            <option value="{{ $val }}">{{ $val }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -416,8 +417,9 @@
                                 <label>Kategori <span class="text-danger">*</span></label>
                                 <select class="form-control" id="b-kategori" name="kategori" required>
                                     <option value="">— Pilih Kategori —</option>
-                                    @foreach (['Berita Utama', 'Fatwa', 'Bimbingan', 'Halal', 'Khutbah', 'Opini', 'Nasional', 'Internasional', 'Ekonomi', 'Teknologi', 'Sosial', 'Kabar Daerah'] as $kat)
-                                        <option value="{{ $kat }}">{{ $kat }}</option>
+                                    @foreach ($kategoriList as $kat)
+                                        @php $val = is_object($kat) ? $kat->nama : $kat; @endphp
+                                        <option value="{{ $val }}">{{ $val }}</option>
                                     @endforeach
                                 </select>
                             </div>
