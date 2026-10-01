@@ -12,11 +12,11 @@
                         </svg>
                     </div>
                     <div>
-                        <div class="footer-brand-name">MUI<em>Digital</em></div>
+                        <div class="footer-brand-name">MUI<em>Batanghari</em></div>
                         <span class="footer-brand-sub">Majelis Ulama Indonesia</span>
                     </div>
                 </div>
-                <p class="footer-desc">Situs resmi MUI Digital. Menyajikan berita umat Islam, fatwa MUI, informasi
+                <p class="footer-desc">Situs resmi MUI Batanghari. Menyajikan berita umat Islam, fatwa MUI, informasi
                     halal, bimbingan syariah, dan referensi keagamaan terpercaya.</p>
                 <div class="footer-social">
                     <a href="#" class="footer-social-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
@@ -63,7 +63,7 @@
     <div class="footer-bottom">
         <div class="mui-shell">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <p class="mb-0">Copyright &copy; {{ date('Y') }} <a href="{{ url('/') }}">MUI Digital</a>.
+                <p class="mb-0">Copyright &copy; {{ date('Y') }} <a href="{{ url('/') }}">MUI Batanghari</a>.
                     Semua hak dilindungi.</p>
                 <div class="d-flex gap-3 flex-wrap">
                     <a href="#">Kebijakan Privasi</a>
@@ -98,6 +98,222 @@
         var el = document.getElementById('topbar-date');
         if (el) el.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' +
             now.getFullYear();
+
+        /* ── Jadwal Sholat Dinamis Mengikuti Lokasi & Highlight Mendekati Sholat ── */
+        var defaultCoords = { lat: -1.7241, lng: 103.2562, name: 'Batanghari' };
+        var activeCoords = defaultCoords;
+
+        function calcPrayerTimes(date, lat, lng) {
+            var year = date.getFullYear();
+            var month = date.getMonth() + 1;
+            var day = date.getDate();
+            var a = Math.floor((14 - month) / 12);
+            var yr = year + 4800 - a;
+            var mo = month + 12 * a - 3;
+            var jd = day + Math.floor((153 * mo + 2) / 5) + 365 * yr + Math.floor(yr / 4) - Math.floor(yr / 100) + Math.floor(yr / 400) - 32045;
+            var t = jd - 2451545.0;
+            var g = ((357.529 + 0.98560028 * t) % 360 + 360) % 360;
+            var q = ((280.459 + 0.98564736 * t) % 360 + 360) % 360;
+            var L = ((q + 1.915 * Math.sin(g * Math.PI / 180) + 0.020 * Math.sin(2 * g * Math.PI / 180)) % 360 + 360) % 360;
+            var e = 23.439 - 0.00000036 * t;
+            var sinDec = Math.sin(e * Math.PI / 180) * Math.sin(L * Math.PI / 180);
+            var dec = Math.asin(sinDec);
+            var cosDec = Math.cos(dec);
+            var ra = (Math.atan2(Math.cos(e * Math.PI / 180) * Math.sin(L * Math.PI / 180), Math.cos(L * Math.PI / 180)) * 180 / Math.PI) / 15;
+            ra = (ra % 24 + 24) % 24;
+            var eqt = (q / 15) - ra;
+            if (eqt > 12) eqt -= 24;
+            if (eqt < -12) eqt += 24;
+
+            var tz = -date.getTimezoneOffset() / 60;
+            var noon = 12 + tz - (lng / 15) - eqt;
+
+            function ha(alt) {
+                var lRad = lat * Math.PI / 180, aRad = alt * Math.PI / 180;
+                var c = (Math.sin(aRad) - Math.sin(lRad) * sinDec) / (Math.cos(lRad) * cosDec);
+                if (c > 1) c = 1;
+                if (c < -1) c = -1;
+                return (Math.acos(c) * 180 / Math.PI) / 15;
+            }
+
+            var haSubuh = ha(-20);
+            var haSyuruq = ha(-0.8333);
+            var haMaghrib = ha(-0.8333);
+            var haIsya = ha(-18);
+            var altAshar = Math.atan(1 / (1 + Math.tan(Math.abs((lat * Math.PI / 180) - dec)))) * 180 / Math.PI;
+            var haAshar = ha(altAshar);
+
+            var ikhtiyat = 2 / 60; // 2 menit standar ikhtiyat Kemenag RI
+
+            function toTimeObj(hours) {
+                hours = (hours % 24 + 24) % 24;
+                var hr = Math.floor(hours);
+                var mn = Math.floor((hours - hr) * 60);
+                return {
+                    string: String(hr).padStart(2, '0') + ':' + String(mn).padStart(2, '0'),
+                    minutes: hr * 60 + mn
+                };
+            }
+
+            return {
+                Subuh: toTimeObj(noon - haSubuh + ikhtiyat),
+                Syuruq: toTimeObj(noon - haSyuruq - ikhtiyat),
+                Dzuhur: toTimeObj(noon + ikhtiyat),
+                Ashar: toTimeObj(noon + haAshar + ikhtiyat),
+                Maghrib: toTimeObj(noon + haMaghrib + ikhtiyat),
+                Isya: toTimeObj(noon + haIsya + ikhtiyat)
+            };
+        }
+
+        function updatePrayerUI() {
+            var currentDate = new Date();
+            var prayers = calcPrayerTimes(currentDate, activeCoords.lat, activeCoords.lng);
+            var currentMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
+
+            var pillContainer = document.getElementById('headerPrayerPills');
+            if (pillContainer) {
+                pillContainer.title = 'Jadwal Sholat (' + activeCoords.name + ' - Lokasi Otomatis)';
+            }
+
+            var locationLabel = document.getElementById('sholat-location-label');
+            if (locationLabel) {
+                var monthsIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                locationLabel.textContent = activeCoords.name + ' — ' + currentDate.getDate() + ' ' + monthsIndo[currentDate.getMonth()] + ' ' + currentDate.getFullYear();
+            }
+
+            var prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+
+            // Update waktu di pill header & tabel sidebar
+            prayerNames.forEach(function(name) {
+                var timeObj = prayers[name];
+                if (!timeObj) return;
+
+                var pill = document.querySelector('.vb-prayer-pill[data-prayer="' + name + '"]');
+                if (pill) {
+                    var span = pill.querySelector('.prayer-time');
+                    if (span) span.textContent = timeObj.string;
+                }
+
+                var row = document.querySelector('#sidebarSholatTable tr[data-prayer="' + name + '"]');
+                if (row) {
+                    var cell = row.querySelector('.prayer-time');
+                    if (cell) cell.textContent = timeObj.string;
+                }
+            });
+
+            if (prayers.Syuruq) {
+                var rowSyuruq = document.querySelector('#sidebarSholatTable tr[data-prayer="Syuruq"]');
+                if (rowSyuruq) {
+                    var cellSyuruq = rowSyuruq.querySelector('.prayer-time');
+                    if (cellSyuruq) cellSyuruq.textContent = prayers.Syuruq.string;
+                }
+            }
+
+            // Bersihkan highlight lama
+            document.querySelectorAll('.vb-prayer-pill').forEach(function(p) {
+                p.classList.remove('is-approaching', 'is-active');
+            });
+            document.querySelectorAll('#sidebarSholatTable tr').forEach(function(r) {
+                r.classList.remove('is-approaching');
+            });
+
+            var approachingPrayer = null;
+            var nextPrayer = null;
+
+            for (var i = 0; i < prayerNames.length; i++) {
+                var pName = prayerNames[i];
+                var pMinutes = prayers[pName].minutes;
+                var diff = pMinutes - currentMinutes;
+
+                // Sedang masuk waktu sholat (0 - 15 menit setelah azan)
+                if (currentMinutes >= pMinutes && currentMinutes <= pMinutes + 15) {
+                    approachingPrayer = { name: pName, time: prayers[pName].string, state: 'entered', remaining: 0 };
+                    break;
+                }
+
+                // Waktu sholat mendatang hari ini
+                if (diff > 0) {
+                    if (!nextPrayer) {
+                        nextPrayer = { name: pName, time: prayers[pName].string, remaining: diff };
+                    }
+                    // Mendekati waktu sholat (<= 30 menit)
+                    if (diff <= 30 && !approachingPrayer) {
+                        approachingPrayer = { name: pName, time: prayers[pName].string, state: 'approaching', remaining: diff };
+                        break;
+                    }
+                }
+            }
+
+            // Jika semua waktu sholat hari ini telah lewat, sholat berikutnya adalah Subuh besok
+            if (!nextPrayer && !approachingPrayer) {
+                var subuhTomorrowMinutes = (24 * 60) - currentMinutes + prayers.Subuh.minutes;
+                nextPrayer = { name: 'Subuh', time: prayers.Subuh.string, remaining: subuhTomorrowMinutes };
+                if (subuhTomorrowMinutes <= 30) {
+                    approachingPrayer = { name: 'Subuh', time: prayers.Subuh.string, state: 'approaching', remaining: subuhTomorrowMinutes };
+                }
+            }
+
+            // Berikan penanda visual
+            if (approachingPrayer) {
+                var targetPill = document.querySelector('.vb-prayer-pill[data-prayer="' + approachingPrayer.name + '"]');
+                if (targetPill) {
+                    targetPill.classList.add('is-approaching');
+                    if (approachingPrayer.state === 'entered') {
+                        targetPill.title = 'Waktu sholat ' + approachingPrayer.name + ' sedang berlangsung!';
+                    } else {
+                        targetPill.title = 'Mendekati waktu ' + approachingPrayer.name + ' (' + approachingPrayer.remaining + ' menit lagi)';
+                    }
+                }
+                var targetRow = document.querySelector('#sidebarSholatTable tr[data-prayer="' + approachingPrayer.name + '"]');
+                if (targetRow) {
+                    targetRow.classList.add('is-approaching');
+                }
+            } else if (nextPrayer) {
+                var nextPill = document.querySelector('.vb-prayer-pill[data-prayer="' + nextPrayer.name + '"]');
+                if (nextPill) {
+                    nextPill.classList.add('is-active');
+                    nextPill.title = 'Sholat berikutnya: ' + nextPrayer.name + ' (' + nextPrayer.time + ')';
+                }
+            }
+        }
+
+        // Cek cache koordinat lokasi
+        try {
+            var cachedCoords = localStorage.getItem('mui_user_coords');
+            if (cachedCoords) {
+                var parsed = JSON.parse(cachedCoords);
+                if (parsed.lat && parsed.lng) {
+                    activeCoords = { lat: parsed.lat, lng: parsed.lng, name: parsed.name || 'Lokasi Perangkat' };
+                }
+            }
+        } catch(e) {}
+
+        // Inisialisasi awal
+        updatePrayerUI();
+
+        // Minta izin lokasi perangkat jika didukung
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    activeCoords = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        name: 'Lokasi Anda'
+                    };
+                    try {
+                        localStorage.setItem('mui_user_coords', JSON.stringify(activeCoords));
+                    } catch(e) {}
+                    updatePrayerUI();
+                },
+                function(err) {
+                    // Fallback tenang tetap menggunakan default Batanghari
+                },
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 3600000 }
+            );
+        }
+
+        // Perbarui setiap 60 detik otomatis
+        setInterval(updatePrayerUI, 60000);
 
         /* ── Mobile Drawer ── */
         var hamburger = document.getElementById('hamburgerBtn');

@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
 @section('title')
-@if($kategoriAktif) Kategori Fatwa: {{ $kategoriAktif }} — @elseif($search) Pencarian Fatwa: "{{ $search }}" — @endif Fatwa Majelis Ulama Indonesia — MUI Digital
+@if($kategoriAktif) Kategori Fatwa: {{ $kategoriAktif }} — @elseif($search) Pencarian Fatwa: "{{ $search }}" — @endif Fatwa Majelis Ulama Indonesia — MUI Batanghari
 @endsection
 
 @section('meta_description', 'Kumpulan fatwa resmi Majelis Ulama Indonesia (MUI). Baca langsung dokumen fatwa digital secara online dan terpercaya.')
@@ -665,6 +665,70 @@
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
+
+    /* ── PAGINATION ── */
+    .mui-pagination-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 40px 0 50px;
+        gap: 12px;
+    }
+
+    .mui-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 0;
+        flex-wrap: wrap;
+    }
+
+    .mui-page-btn {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1.5px solid var(--mui-border, #e2e8f0);
+        background: #fff;
+        color: var(--mui-text, #1a1a2e);
+        transition: all var(--mui-tr, 0.22s);
+        text-decoration: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .mui-page-btn:hover {
+        border-color: var(--mui-green, #007f5f);
+        color: var(--mui-green, #007f5f);
+        background: var(--mui-green-pale, #e8f5f1);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .mui-page-btn.active {
+        background: var(--mui-green, #007f5f);
+        color: #fff;
+        border-color: var(--mui-green, #007f5f);
+        box-shadow: 0 4px 12px rgba(0, 127, 95, 0.25);
+    }
+
+    .mui-page-btn.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+
+    .mui-page-info {
+        font-size: 13px;
+        color: var(--mui-gray, #64748b);
+        font-weight: 500;
+    }
 </style>
 
 {{-- ── PAGE BANNER ── --}}
@@ -839,9 +903,43 @@
         </div>
 
         {{-- PAGINATION --}}
-        <div class="d-flex justify-content-center mb-5">
-            {{ $fatwas->links() }}
+        @if($fatwas->hasPages())
+        <div class="mui-pagination-wrap">
+            <div class="mui-pagination">
+                {{-- Previous --}}
+                @if($fatwas->onFirstPage())
+                    <span class="mui-page-btn disabled" aria-disabled="true"><i class="fas fa-chevron-left"></i></span>
+                @else
+                    <a href="{{ $fatwas->previousPageUrl() }}" class="mui-page-btn" title="Halaman Sebelumnya" rel="prev">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                @endif
+
+                {{-- Pages with smart windowing --}}
+                @foreach($fatwas->getUrlRange(1, $fatwas->lastPage()) as $page => $url)
+                    @if($page == $fatwas->currentPage())
+                        <span class="mui-page-btn active" aria-current="page">{{ $page }}</span>
+                    @elseif(abs($page - $fatwas->currentPage()) <= 2 || $page == 1 || $page == $fatwas->lastPage())
+                        <a href="{{ $url }}" class="mui-page-btn">{{ $page }}</a>
+                    @elseif(abs($page - $fatwas->currentPage()) == 3)
+                        <span class="mui-page-btn disabled">…</span>
+                    @endif
+                @endforeach
+
+                {{-- Next --}}
+                @if($fatwas->hasMorePages())
+                    <a href="{{ $fatwas->nextPageUrl() }}" class="mui-page-btn" title="Halaman Selanjutnya" rel="next">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <span class="mui-page-btn disabled" aria-disabled="true"><i class="fas fa-chevron-right"></i></span>
+                @endif
+            </div>
+            <div class="mui-page-info">
+                Menampilkan {{ $fatwas->firstItem() ?? 0 }}–{{ $fatwas->lastItem() ?? 0 }} dari {{ $fatwas->total() }} dokumen fatwa
+            </div>
         </div>
+        @endif
     @else
         {{-- EMPTY STATE --}}
         <div class="fatwa-empty">

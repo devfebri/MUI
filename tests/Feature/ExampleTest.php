@@ -20,7 +20,7 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('MUI Digital');
+        $response->assertSee('MUI Batanghari');
     }
 
     public function test_welcome_page_displays_real_data_from_database(): void
@@ -29,7 +29,7 @@ class ExampleTest extends TestCase
 
         Berita::create([
             'user_id' => $user->id,
-            'judul' => 'Berita Real Unggulan MUI Digital',
+            'judul' => 'Berita Real Unggulan MUI Batanghari',
             'kategori' => 'Berita Utama',
             'isi' => 'Konten berita lengkap dari database.',
             'status' => 'published',
@@ -39,14 +39,14 @@ class ExampleTest extends TestCase
         Fatwa::create([
             'judul' => 'Fatwa Real Tentang Investasi Digital',
             'status_fatwa' => 'aktif',
-            'filepdf' => 'fatwa/real_fatwa.pdf',
+            'filepdf' => 'real_fatwa.pdf',
             'publikasi' => true,
         ]);
 
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('Berita Real Unggulan MUI Digital');
+        $response->assertSee('Berita Real Unggulan MUI Batanghari');
         $response->assertSee('Fatwa Real Tentang Investasi Digital');
         $response->assertSee('Fatwa MUI');
         $response->assertSee('Surat Resmi');

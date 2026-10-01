@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('title', $berita->judul . ' — MUI Digital')
+@section('title', $berita->judul . ' — MUI Batanghari')
 @section('meta_description', Str::limit(strip_tags($berita->isi), 160))
 
 @section('content')
@@ -39,7 +39,7 @@
                             </div>
                             <div>
                                 <span class="d-block fw-bold text-dark" style="font-size: 13.5px;">
-                                    {{ $berita->penulis?->name ?? 'Tim Redaksi MUI Digital' }}
+                                    {{ $berita->penulis?->name ?? 'Tim Redaksi MUI Batanghari' }}
                                 </span>
                                 <span class="text-muted" style="font-size: 12px;">
                                     <i class="fas fa-calendar-alt me-1 text-success"></i>
@@ -75,7 +75,7 @@
                 <div class="article-featured-img">
                     <img src="{{ asset('uploads/berita/' . basename($berita->gambar)) }}" alt="{{ $berita->judul }}" loading="eager">
                     <div class="article-img-caption">
-                        <i class="fas fa-camera me-1"></i> Dokumentasi MUI Digital — {{ $berita->judul }}
+                        <i class="fas fa-camera me-1"></i> Dokumentasi MUI Batanghari — {{ $berita->judul }}
                     </div>
                 </div>
                 @endif
@@ -119,7 +119,7 @@
                     <div>
                         <span class="text-muted small text-uppercase fw-bold" style="letter-spacing: .5px;">Ditulis & Diterbitkan Oleh</span>
                         <h4 class="mb-1" style="font-size: 16px; font-weight: 800; color: var(--green-dark);">
-                            {{ $berita->penulis?->name ?? 'Redaksi MUI Digital' }}
+                            {{ $berita->penulis?->name ?? 'Redaksi MUI Batanghari' }}
                         </h4>
                         <p class="mb-0 text-muted small" style="line-height: 1.5;">
                             Bagian dari komitmen Majelis Ulama Indonesia dalam menyebarkan informasi keislaman, bimbingan syariah, dan dakwah wasathiyah yang mencerahkan.
@@ -150,7 +150,7 @@
                                     @else
                                         <div class="news-card-thumb-placeholder">
                                             <i class="fas fa-newspaper"></i>
-                                            <span>MUI Digital</span>
+                                            <span>MUI Batanghari</span>
                                         </div>
                                     @endif
                                 </div>
@@ -226,7 +226,7 @@
                     <div style="font-family: 'Amiri', serif; font-size: 22px; color: var(--gold-light); margin-bottom: 8px;">
                         بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيم
                     </div>
-                    <h4 style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;">Portal MUI Digital</h4>
+                    <h4 style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;">Portal MUI Batanghari</h4>
                     <p style="font-size: 12.5px; color: rgba(255,255,255,.8); line-height: 1.6; margin-bottom: 14px;">
                         Dapatkan kabar terkini, fatwa, dan bimbingan keislaman langsung dari sumber terpercaya.
                     </p>

@@ -102,10 +102,46 @@
             font-size: 11px;
             color: rgba(255, 255, 255, .85);
             white-space: nowrap;
+            transition: all 0.3s ease;
         }
 
         .vb-prayer-pill b {
             color: var(--gold-light);
+            transition: color 0.3s ease;
+        }
+
+        .vb-prayer-pill.is-approaching {
+            background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+            color: #0c2b1f !important;
+            border-color: #ffe685 !important;
+            font-weight: 700;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.7);
+            animation: prayerPulse 2s infinite ease-in-out;
+        }
+
+        .vb-prayer-pill.is-approaching b {
+            color: #061e15 !important;
+        }
+
+        .vb-prayer-pill.is-active {
+            background: rgba(201, 168, 76, 0.25) !important;
+            border-color: var(--gold) !important;
+            color: #fff !important;
+        }
+
+        .vb-prayer-pill.is-active b {
+            color: var(--gold-light) !important;
+        }
+
+        @keyframes prayerPulse {
+            0%, 100% {
+                box-shadow: 0 0 6px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 12px rgba(212, 175, 55, 0.85);
+                transform: scale(1.05);
+            }
         }
 
         .vb-topbar-login a {
@@ -1229,6 +1265,22 @@
 
         .sholat-table tr:last-child {
             border-bottom: none;
+        }
+
+        .sholat-table tr.is-approaching {
+            background: rgba(201, 168, 76, 0.15);
+            border-radius: 4px;
+        }
+
+        .sholat-table tr.is-approaching td {
+            font-weight: 700;
+            color: #856404;
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
+        .sholat-table tr.is-approaching td:last-child {
+            color: #b8860b;
         }
 
         /* ── NEWSLETTER ──────────────────────────────────────── */

@@ -15,7 +15,7 @@
             </svg>
         </div>
         <div class="mui-brand-text">
-            <span class="mui-brand-name">MUI <em>Digital</em></span>
+            <span class="mui-brand-name">MUI <em>Batanghari</em></span>
             <span class="mui-brand-sub">Majelis Ulama Indonesia</span>
         </div>
     </a>

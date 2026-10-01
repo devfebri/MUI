@@ -438,7 +438,7 @@
         <div class="page-header">
             <div>
                 <h4><i class="mdi mdi-email-outline" style="margin-right:8px;"></i>Manajemen Surat</h4>
-                <p>Kelola arsip surat masuk & keluar MUI Digital</p>
+                <p>Kelola arsip surat masuk & keluar MUI Batanghari</p>
             </div>
             <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-surat">
                 <i class="mdi mdi-plus-circle"></i> Unggah Surat

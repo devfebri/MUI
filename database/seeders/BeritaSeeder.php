@@ -137,7 +137,7 @@ class BeritaSeeder extends Seeder
                 'kategori' => 'Teknologi',
                 'views' => 340,
                 'published_at' => now()->subDays(10),
-                'isi' => '<p>Peluncuran portal terpadu MUI Digital menandai era baru dalam percepatan administrasi persuratan dan pelayanan publik di lingkungan Majelis Ulama Indonesia.</p><p>Kini permohonan surat rekomendasi, konsultasi keagamaan, dan penelusuran dokumen fatwa dapat diakses secara daring dengan fitur pelacakan waktu nyata (real-time tracking).</p>',
+                'isi' => '<p>Peluncuran portal terpadu MUI Batanghari menandai era baru dalam percepatan administrasi persuratan dan pelayanan publik di lingkungan Majelis Ulama Indonesia.</p><p>Kini permohonan surat rekomendasi, konsultasi keagamaan, dan penelusuran dokumen fatwa dapat diakses secara daring dengan fitur pelacakan waktu nyata (real-time tracking).</p>',
             ],
             [
                 'judul' => 'MUI Daerah Gelar Pelatihan Manajemen Pengelolaan Wakaf Produktif Berkelanjutan',

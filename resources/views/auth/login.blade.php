@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUI Digital — Login</title>
-    <meta name="description" content="Login Panel MUI Digital">
+    <title>MUI Batanghari — Login</title>
+    <meta name="description" content="Login Panel MUI Batanghari">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -497,7 +497,7 @@
             <!-- Welcome -->
             <div class="login-welcome">
                 <h4>Selamat Datang</h4>
-                <p>Masuk ke Panel Admin MUI Digital</p>
+                <p>Masuk ke Panel Admin MUI Batanghari</p>
             </div>
 
             <!-- Error Messages -->
@@ -561,7 +561,7 @@
             <!-- Back to site -->
             <div class="login-back">
                 <a href="{{ route('home.public') }}">
-                    ← Kembali ke MUI Digital
+                    ← Kembali ke MUI Batanghari
                 </a>
             </div>
 

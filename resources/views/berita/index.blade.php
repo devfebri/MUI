@@ -305,7 +305,7 @@
         <div class="page-header">
             <div>
                 <h4><i class="mdi mdi-newspaper" style="margin-right:8px;"></i>Manajemen Berita</h4>
-                <p>Kelola semua artikel berita MUI Digital</p>
+                <p>Kelola semua artikel berita MUI Batanghari</p>
             </div>
             @php
                 $createRoute = auth()->user()->isAdmin() ? 'admin.berita.create' : 'operator.berita.create';

@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
 @section('title')
-@if($tahunAktif) Arsip Surat Tahun {{ $tahunAktif }} — @elseif($search) Pencarian Surat: "{{ $search }}" — @endif Arsip Surat Resmi — MUI Digital
+@if($tahunAktif) Arsip Surat Tahun {{ $tahunAktif }} — @elseif($search) Pencarian Surat: "{{ $search }}" — @endif Arsip Surat Resmi — MUI Batanghari
 @endsection
 
 @section('meta_description', 'Koleksi arsip surat resmi, surat edaran, dan korespondensi Majelis Ulama Indonesia (MUI). Akses dan tinjau dokumen surat secara digital.')
@@ -640,6 +640,70 @@
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
     }
+
+    /* ── PAGINATION ── */
+    .mui-pagination-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 40px 0 50px;
+        gap: 12px;
+    }
+
+    .mui-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 0;
+        flex-wrap: wrap;
+    }
+
+    .mui-page-btn {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1.5px solid var(--mui-border, #e2e8f0);
+        background: #fff;
+        color: var(--mui-text, #1a1a2e);
+        transition: all var(--mui-tr, 0.22s);
+        text-decoration: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .mui-page-btn:hover {
+        border-color: var(--mui-green, #007f5f);
+        color: var(--mui-green, #007f5f);
+        background: var(--mui-green-pale, #e8f5f1);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .mui-page-btn.active {
+        background: var(--mui-green, #007f5f);
+        color: #fff;
+        border-color: var(--mui-green, #007f5f);
+        box-shadow: 0 4px 12px rgba(0, 127, 95, 0.25);
+    }
+
+    .mui-page-btn.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+
+    .mui-page-info {
+        font-size: 13px;
+        color: var(--mui-gray, #64748b);
+        font-weight: 500;
+    }
 </style>
 
 {{-- ── PAGE BANNER ── --}}
@@ -808,9 +872,43 @@
         </div>
 
         {{-- PAGINATION --}}
-        <div class="d-flex justify-content-center mb-5">
-            {{ $surats->links() }}
+        @if($surats->hasPages())
+        <div class="mui-pagination-wrap">
+            <div class="mui-pagination">
+                {{-- Previous --}}
+                @if($surats->onFirstPage())
+                    <span class="mui-page-btn disabled" aria-disabled="true"><i class="fas fa-chevron-left"></i></span>
+                @else
+                    <a href="{{ $surats->previousPageUrl() }}" class="mui-page-btn" title="Halaman Sebelumnya" rel="prev">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                @endif
+
+                {{-- Pages with smart windowing --}}
+                @foreach($surats->getUrlRange(1, $surats->lastPage()) as $page => $url)
+                    @if($page == $surats->currentPage())
+                        <span class="mui-page-btn active" aria-current="page">{{ $page }}</span>
+                    @elseif(abs($page - $surats->currentPage()) <= 2 || $page == 1 || $page == $surats->lastPage())
+                        <a href="{{ $url }}" class="mui-page-btn">{{ $page }}</a>
+                    @elseif(abs($page - $surats->currentPage()) == 3)
+                        <span class="mui-page-btn disabled">…</span>
+                    @endif
+                @endforeach
+
+                {{-- Next --}}
+                @if($surats->hasMorePages())
+                    <a href="{{ $surats->nextPageUrl() }}" class="mui-page-btn" title="Halaman Selanjutnya" rel="next">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <span class="mui-page-btn disabled" aria-disabled="true"><i class="fas fa-chevron-right"></i></span>
+                @endif
+            </div>
+            <div class="mui-page-info">
+                Menampilkan {{ $surats->firstItem() ?? 0 }}–{{ $surats->lastItem() ?? 0 }} dari {{ $surats->total() }} arsip surat
+            </div>
         </div>
+        @endif
     @else
         {{-- EMPTY STATE --}}
         <div class="surat-empty">

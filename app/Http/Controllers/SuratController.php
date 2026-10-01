@@ -109,7 +109,7 @@ class SuratController extends Controller
     }
 
     /**
-     * Halaman publik arsip surat MUI Digital.
+     * Halaman publik arsip surat MUI Batanghari.
      */
     public function publicList(Request $request): View
     {

@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#007F5F">
     <meta name="description"
-        content="@yield('meta_description', 'MUI Digital — Portal berita Islam, fatwa MUI, bimbingan syariah, dan informasi halal terpercaya.')">
-    <title>@yield('title', 'MUI Digital — Majelis Ulama Indonesia')</title>
+        content="@yield('meta_description', 'MUI Batanghari — Portal berita Islam, fatwa MUI, bimbingan syariah, dan informasi halal terpercaya.')">
+    <title>@yield('title', 'MUI Batanghari — Majelis Ulama Indonesia')</title>
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('template/assets/img/favicon.ico') }}">
 
     <!-- CSS -->

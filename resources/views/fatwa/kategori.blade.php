@@ -120,7 +120,7 @@
     <div class="page-header">
         <div>
             <h4><i class="mdi mdi-tag-multiple-outline mr-2"></i>Kategori Fatwa</h4>
-            <p>Kelola klasifikasi dan kategori fatwa MUI Digital</p>
+            <p>Kelola klasifikasi dan kategori fatwa MUI Batanghari</p>
         </div>
         <div>
             <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-kategori">

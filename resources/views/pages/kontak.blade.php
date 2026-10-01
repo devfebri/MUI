@@ -171,7 +171,7 @@
                         <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
                             Media Sosial Resmi
                         </h3>
-                        <p class="text-muted small mb-3">Ikuti kanal informasi resmi MUI Digital untuk mendapatkan berita dan fatwa terbaru:</p>
+                        <p class="text-muted small mb-3">Ikuti kanal informasi resmi MUI Batanghari untuk mendapatkan berita dan fatwa terbaru:</p>
                         <div class="d-flex flex-column gap-2">
                             <a href="https://instagram.com" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
                                 <i class="fab fa-instagram text-danger" style="font-size: 20px; width: 24px; text-align: center;"></i>

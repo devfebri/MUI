@@ -164,7 +164,7 @@
     <div class="page-header">
         <div>
             <h4><i class="mdi mdi-shape" style="margin-right:8px;"></i>Manajemen Kategori</h4>
-            <p>Kelola kategori berita MUI Digital</p>
+            <p>Kelola kategori berita MUI Batanghari</p>
         </div>
         <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-kategori">
             <i class="mdi mdi-plus-circle"></i> Tambah Kategori

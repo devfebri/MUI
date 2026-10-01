@@ -5,12 +5,12 @@
             <i class="fas fa-calendar-alt"></i>
             <span id="topbar-date"></span>
         </div>
-        <div class="vb-prayer-pills">
-            <span class="vb-prayer-pill"><b>Subuh</b> 04:38</span>
-            <span class="vb-prayer-pill"><b>Dzuhur</b> 12:01</span>
-            <span class="vb-prayer-pill"><b>Ashar</b> 15:14</span>
-            <span class="vb-prayer-pill"><b>Maghrib</b> 18:02</span>
-            <span class="vb-prayer-pill"><b>Isya</b> 19:13</span>
+        <div class="vb-prayer-pills" id="headerPrayerPills" title="Jadwal Sholat (Otomatis berdasarkan lokasi)">
+            <span class="vb-prayer-pill" data-prayer="Subuh"><b>Subuh</b> <span class="prayer-time">04:37</span></span>
+            <span class="vb-prayer-pill" data-prayer="Dzuhur"><b>Dzuhur</b> <span class="prayer-time">11:58</span></span>
+            <span class="vb-prayer-pill" data-prayer="Ashar"><b>Ashar</b> <span class="prayer-time">15:02</span></span>
+            <span class="vb-prayer-pill" data-prayer="Maghrib"><b>Maghrib</b> <span class="prayer-time">18:02</span></span>
+            <span class="vb-prayer-pill" data-prayer="Isya"><b>Isya</b> <span class="prayer-time">19:10</span></span>
         </div>
         <div class="vb-topbar-login">
             @auth
@@ -42,7 +42,7 @@
                 </svg>
             </div>
             <div>
-                <span class="vb-logo-name">MUI<em>Digital</em></span>
+                <span class="vb-logo-name">MUI<em>Batanghari</em></span>
                 <span class="vb-logo-sub">Majelis Ulama Indonesia</span>
             </div>
         </a>
@@ -128,7 +128,7 @@
                 </svg>
             </div>
             <div>
-                <div class="vb-drawer-logo-name">MUI<em>Digital</em></div>
+                <div class="vb-drawer-logo-name">MUI<em>Batanghari</em></div>
                 <span class="vb-drawer-logo-sub">Majelis Ulama Indonesia</span>
             </div>
         </div>

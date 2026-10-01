@@ -1,10 +1,10 @@
 @extends('layouts.frontend')
 
 @section('title')
-@if($kategoriAktif) {{ $kategoriAktif }} — @elseif($search) Pencarian: {{ $search }} — @endif Berita MUI Digital
+@if($kategoriAktif) {{ $kategoriAktif }} — @elseif($search) Pencarian: {{ $search }} — @endif Berita MUI Batanghari
 @endsection
 
-@section('meta_description', 'Berita & Artikel MUI Digital — Majelis Ulama Indonesia')
+@section('meta_description', 'Berita & Artikel MUI Batanghari — Majelis Ulama Indonesia')
 
 @section('ticker')
     {{-- ── LIVE TICKER ── --}}
@@ -132,7 +132,7 @@
                             @else
                                 <div class="news-card-thumb-placeholder">
                                     <i class="fas fa-newspaper"></i>
-                                    <span>MUI Digital</span>
+                                    <span>MUI Batanghari</span>
                                 </div>
                             @endif
                         </div>
@@ -174,7 +174,7 @@
                                 @else
                                     <div class="news-card-thumb-placeholder">
                                         <i class="fas fa-newspaper"></i>
-                                        <span>MUI Digital</span>
+                                        <span>MUI Batanghari</span>
                                     </div>
                                 @endif
                                 <span class="news-card-cat-badge">{{ $berita->kategori }}</span>
@@ -302,7 +302,7 @@
                         بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيم
                     </div>
                     <p style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.7;text-align:center;margin-bottom:14px;">
-                        MUI Digital adalah portal resmi Majelis Ulama Indonesia untuk berita Islam, fatwa, dan bimbingan syariah terpercaya.
+                        MUI Batanghari adalah portal resmi Majelis Ulama Indonesia untuk berita Islam, fatwa, dan bimbingan syariah terpercaya.
                     </p>
                     <a href="{{ route('home.public') }}"
                        style="display:block;text-align:center;padding:9px;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.2);transition:.2s;">

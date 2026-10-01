@@ -1,10 +1,10 @@
 @extends('layouts.frontend')
 
 @section('title')
-@if($kategoriAktif) Kategori {{ $kategoriAktif }} — @elseif($search) Pencarian: "{{ $search }}" — @endif Konsultasi Syariah & Tanya Ulama — MUI Digital
+@if($kategoriAktif) Kategori {{ $kategoriAktif }} — @elseif($search) Pencarian: "{{ $search }}" — @endif Konsultasi Syariah & Tanya Ulama — MUI Batanghari
 @endsection
 
-@section('meta_description', 'Kumpulan tanya jawab hukum Islam, bimbingan syariah, dan fatwa keagamaan terpercaya dari dewan ulama MUI Digital.')
+@section('meta_description', 'Kumpulan tanya jawab hukum Islam, bimbingan syariah, dan fatwa keagamaan terpercaya dari dewan ulama MUI Batanghari.')
 
 @section('content')
 <style>

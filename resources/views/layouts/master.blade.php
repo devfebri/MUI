@@ -5,8 +5,8 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <title>MUI Digital — Panel Admin</title>
-    <meta content="Panel Admin MUI Digital" name="description" />
+    <title>MUI Batanghari — Panel Admin</title>
+    <meta content="Panel Admin MUI Batanghari" name="description" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link rel="shortcut icon" href="{{ asset('templateadmin/assets/img/favicon.ico') }}">
@@ -300,7 +300,7 @@
                 </span>
                 &nbsp;
                 &copy; {{ date('Y') }}
-                <strong style="color:var(--mui-green);">MUI Digital</strong>
+                <strong style="color:var(--mui-green);">MUI Batanghari</strong>
                 — Majelis Ulama Indonesia. Semua hak dilindungi.
             </footer>
         </div>

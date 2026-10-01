@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('title', 'Detail Konsultasi: ' . Str::limit($konsultasi->pertanyaan, 60) . ' — MUI Digital')
+@section('title', 'Detail Konsultasi: ' . Str::limit($konsultasi->pertanyaan, 60) . ' — MUI Batanghari')
 
 @section('meta_description', Str::limit($konsultasi->pertanyaan, 150))
 

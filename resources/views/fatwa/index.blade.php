@@ -567,7 +567,7 @@
         <div class="page-header">
             <div>
                 <h4><i class="mdi mdi-book-open-variant" style="margin-right:8px;"></i>Manajemen Fatwa</h4>
-                <p>Kelola koleksi fatwa MUI Digital — upload & publikasikan PDF fatwa</p>
+                <p>Kelola koleksi fatwa MUI Batanghari — upload & publikasikan PDF fatwa</p>
             </div>
             <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-fatwa">
                 <i class="mdi mdi-plus-circle"></i> Tambah Fatwa

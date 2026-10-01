@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('title', 'MUI Digital — Majelis Ulama Indonesia')
-@section('meta_description', 'MUI Digital — Portal berita Islam, fatwa MUI, bimbingan syariah, dan informasi halal terpercaya.')
+@section('title', 'MUI Batanghari — Majelis Ulama Indonesia')
+@section('meta_description', 'MUI Batanghari — Portal berita Islam, fatwa MUI, bimbingan syariah, dan informasi halal terpercaya.')
 
 @section('ticker')
     {{-- ── LIVE TICKER ──────────────────────────────────────────────── --}}
@@ -297,15 +297,15 @@
                 <aside>
                     <div class="sidebar-widget">
                         <div class="widget-title"><i class="fas fa-clock"></i> Jadwal Sholat</div>
-                        <div style="font-size:11.5px;color:var(--muted);margin-bottom:9px;">Jakarta —
+                        <div id="sholat-location-label" style="font-size:11.5px;color:var(--muted);margin-bottom:9px;">Batanghari —
                             {{ now()->translatedFormat('d F Y') }}</div>
-                        <table class="sholat-table">
-                            <tr><td>Subuh</td><td>04:38</td></tr>
-                            <tr><td>Syuruq</td><td>05:54</td></tr>
-                            <tr><td>Dzuhur</td><td>12:01</td></tr>
-                            <tr><td>Ashar</td><td>15:14</td></tr>
-                            <tr><td>Maghrib</td><td>18:02</td></tr>
-                            <tr><td>Isya</td><td>19:13</td></tr>
+                        <table class="sholat-table" id="sidebarSholatTable">
+                            <tr data-prayer="Subuh"><td>Subuh</td><td class="prayer-time">04:37</td></tr>
+                            <tr data-prayer="Syuruq"><td>Syuruq</td><td class="prayer-time">05:54</td></tr>
+                            <tr data-prayer="Dzuhur"><td>Dzuhur</td><td class="prayer-time">11:58</td></tr>
+                            <tr data-prayer="Ashar"><td>Ashar</td><td class="prayer-time">15:02</td></tr>
+                            <tr data-prayer="Maghrib"><td>Maghrib</td><td class="prayer-time">18:02</td></tr>
+                            <tr data-prayer="Isya"><td>Isya</td><td class="prayer-time">19:10</td></tr>
                         </table>
                     </div>
                     <div class="sidebar-widget">
@@ -329,7 +329,7 @@
             <div class="row align-items-center gy-4">
                 <div class="col-lg-6">
                     <div class="newsletter-arabic">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيم</div>
-                    <div class="newsletter-title">Tetap Terhubung dengan MUI Digital</div>
+                    <div class="newsletter-title">Tetap Terhubung dengan MUI Batanghari</div>
                     <div class="newsletter-sub">Dapatkan berita, fatwa, dan informasi islami terpercaya langsung ke
                         email Anda.</div>
                     <div class="newsletter-form">
