@@ -14,6 +14,11 @@
         href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('gambar/mui.png') }}">
+
     <!-- Icons -->
     <link href="{{ asset('templateadmin/assets/css/icons.css') }}" rel="stylesheet" type="text/css">
 
@@ -144,11 +149,12 @@
         .login-logo-icon {
             width: 70px;
             height: 70px;
-            background: linear-gradient(135deg, var(--green-dark), var(--green));
+            background: #ffffff;
             border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            padding: 6px;
             margin-bottom: 14px;
             border: 2px solid rgba(201, 168, 76, .4);
             box-shadow:
@@ -474,14 +480,7 @@
             <!-- Logo -->
             <div class="login-logo">
                 <div class="login-logo-icon">
-                    <svg width="34" height="34" viewBox="0 0 28 28" fill="none">
-                        <polygon
-                            points="14,2 16.9,10.5 26,10.5 18.6,15.9 21.5,24.4 14,19 6.5,24.4 9.4,15.9 2,10.5 11.1,10.5"
-                            fill="#c9a84c" opacity=".95" />
-                        <polygon
-                            points="14,6 15.8,11.5 21.5,11.5 17,14.7 18.8,20.2 14,17 9.2,20.2 11,14.7 6.5,11.5 12.2,11.5"
-                            fill="#fff" opacity=".7" />
-                    </svg>
+                    <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI" style="width: 54px; height: 54px; object-fit: contain;">
                 </div>
                 <span class="login-brand-name">MUI<em>Digital</em></span>
                 <span class="login-brand-sub">Majelis Ulama Indonesia</span>

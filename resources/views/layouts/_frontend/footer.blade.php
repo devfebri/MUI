@@ -4,12 +4,8 @@
         <div class="row g-4">
             <div class="col-lg-4 col-md-6">
                 <div class="footer-brand">
-                    <div class="footer-brand-icon">
-                        <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
-                            <polygon
-                                points="14,2 16.9,10.5 26,10.5 18.6,15.9 21.5,24.4 14,19 6.5,24.4 9.4,15.9 2,10.5 11.1,10.5"
-                                fill="#c9a84c" />
-                        </svg>
+                    <div class="footer-brand-icon" style="background: #ffffff; border-radius: 50%; padding: 2px;">
+                        <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI" style="width: 100%; height: 100%; object-fit: contain;">
                     </div>
                     <div>
                         <div class="footer-brand-name">MUI<em>Batanghari</em></div>
@@ -19,11 +15,28 @@
                 <p class="footer-desc">Situs resmi MUI Batanghari. Menyajikan berita umat Islam, fatwa MUI, informasi
                     halal, bimbingan syariah, dan referensi keagamaan terpercaya.</p>
                 <div class="footer-social">
-                    <a href="#" class="footer-social-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="footer-social-btn" title="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="footer-social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="footer-social-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
-                    <a href="#" class="footer-social-btn" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                    @php
+                        $footerIg = \App\Models\Setting::get('kontak_instagram', '@muibatanghari');
+                        $footerYt = \App\Models\Setting::get('kontak_youtube', 'MUI Batanghari');
+                        $footerFb = \App\Models\Setting::get('kontak_facebook', 'muibatanghari');
+                        $footerTw = \App\Models\Setting::get('kontak_twitter', '@muibatanghari');
+                        $footerTt = \App\Models\Setting::get('kontak_tiktok', '@muibatanghari');
+                    @endphp
+                    @if ($footerFb)
+                        <a href="https://facebook.com/{{ ltrim($footerFb, '@') }}" target="_blank" class="footer-social-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    @endif
+                    @if ($footerTw)
+                        <a href="https://twitter.com/{{ ltrim($footerTw, '@') }}" target="_blank" class="footer-social-btn" title="Twitter"><i class="fab fa-twitter"></i></a>
+                    @endif
+                    @if ($footerIg)
+                        <a href="https://instagram.com/{{ ltrim($footerIg, '@') }}" target="_blank" class="footer-social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    @endif
+                    @if ($footerYt)
+                        <a href="https://youtube.com/results?search_query={{ urlencode($footerYt) }}" target="_blank" class="footer-social-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
+                    @endif
+                    @if ($footerTt)
+                        <a href="https://tiktok.com/@{{ ltrim($footerTt, '@') }}" target="_blank" class="footer-social-btn" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                    @endif
                 </div>
             </div>
             <div class="col-lg-2 col-md-3 col-6">

@@ -19,6 +19,7 @@ use Illuminate\Notifications\Notifiable;
     'username',
     'role',
     'email',
+    'foto',
     'password',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -26,6 +27,18 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Get the profile photo URL or null.
+     */
+    public function getFotoUrlAttribute(): ?string
+    {
+        if ($this->foto && file_exists(public_path('uploads/profil/'.$this->foto))) {
+            return asset('uploads/profil/'.$this->foto);
+        }
+
+        return null;
+    }
 
     /**
      * Get the attributes that should be cast.

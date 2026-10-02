@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('title', 'Visi & Misi — Majelis Ulama Indonesia')
-@section('meta_description', 'Visi dan Misi Majelis Ulama Indonesia (MUI) dalam mewujudkan baldatun thayyibatun wa rabbun ghafur serta masyarakat khaira ummah di Indonesia.')
+@section('title', ($settings['visi_title'] ?? 'Visi & Misi') . ' — Majelis Ulama Indonesia')
+@section('meta_description', $settings['visi_subtitle'] ?? 'Visi dan Misi Majelis Ulama Indonesia (MUI) dalam mewujudkan baldatun thayyibatun wa rabbun ghafur serta masyarakat khaira ummah di Indonesia.')
 
 @section('content')
     {{-- ── HERO / BANNER ── --}}
@@ -14,9 +14,9 @@
                 <span class="sep"><i class="fas fa-chevron-right"></i></span>
                 <span class="current">Visi & Misi</span>
             </nav>
-            <h1 class="page-hero-title">Visi & Misi MUI</h1>
+            <h1 class="page-hero-title">{{ $settings['visi_title'] ?? 'Visi & Misi MUI' }}</h1>
             <p class="page-hero-desc">
-                Arah, cita-cita luhur, dan komitmen pengabdian Majelis Ulama Indonesia bagi kemaslahatan umat dan bangsa.
+                {{ $settings['visi_subtitle'] ?? 'Arah, cita-cita luhur, dan komitmen pengabdian Majelis Ulama Indonesia bagi kemaslahatan umat dan bangsa.' }}
             </p>
         </div>
     </section>
@@ -43,7 +43,7 @@
 
                         <div style="background: var(--green-pale); border-left: 4px solid var(--green); border-radius: var(--radius-sm); padding: 22px; margin-top: 14px;">
                             <blockquote style="font-family: 'Amiri', serif; font-size: 20px; line-height: 1.8; color: var(--green-dark); margin-bottom: 12px; font-style: italic;">
-                                "Terciptanya kondisi kehidupan kemasyarakatan, kebangsaan dan kenegaraan yang baik, memperoleh ridha dan ampunan Allah SWT (Baldatun Thayyibatun Wa Rabbun Ghafur) menuju masyarakat berkualitas (Khaira Ummah) demi terwujudnya kejayaan Islam dan kaum muslimin (Izzul Islam wal Muslimin) dalam wadah Negara Kesatuan Republik Indonesia."
+                                "{{ $settings['visi_text'] ?? 'Terciptanya kondisi kehidupan kemasyarakatan, kebangsaan dan kenegaraan yang baik, memperoleh ridha dan ampunan Allah SWT (Baldatun Thayyibatun Wa Rabbun Ghafur) menuju masyarakat berkualitas (Khaira Ummah) demi terwujudnya kejayaan Islam dan kaum muslimin (Izzul Islam wal Muslimin) dalam wadah Negara Kesatuan Republik Indonesia.' }}"
                             </blockquote>
                         </div>
                     </div>
@@ -62,48 +62,30 @@
                             </div>
                         </div>
 
-                        <div class="d-flex flex-column gap-3 mt-3">
-                            @php
-                                $misiList = [
-                                    [
-                                        'num' => '01',
-                                        'title' => 'Menggerakkan Kepemimpinan Keumatan yang Efektif',
-                                        'desc' => 'Menggerakkan kepemimpinan dan kelembagaan umat secara efektif dengan menjadikan ulama sebagai panutan (qudwah hasanah) dalam membimbing umat.'
-                                    ],
-                                    [
-                                        'num' => '02',
-                                        'title' => 'Memperkuat Ukhuwah Islamiyah, Wathaniyah & Insaniyah',
-                                        'desc' => 'Menjadi tenda besar pemersatu umat Islam dalam memelihara dan menegakkan ukhuwah Islamiyah, kerukunan kebangsaan, dan persaudaraan kemanusiaan.'
-                                    ],
-                                    [
-                                        'num' => '03',
-                                        'title' => 'Mengembangkan Dakwah Amar Ma\'ruf Nahi Munkar',
-                                        'desc' => 'Melaksanakan bimbingan dan dakwah Islamiyah dengan hikmah, mau\'izhah hasanah, dan dialog cerdas demi perbaikan akhlak dan peradaban bangsa.'
-                                    ],
-                                    [
-                                        'num' => '04',
-                                        'title' => 'Memberikan Fatwa & Panduan Hukum Syariah Terpercaya',
-                                        'desc' => 'Menetapkan fatwa hukum syariah yang mendalam, kontekstual, dan solutif terhadap dinamika keagamaan serta tuntutan zaman.'
-                                    ],
-                                    [
-                                        'num' => '05',
-                                        'title' => 'Mendorong Pertumbuhan Ekonomi Syariah & Produk Halal',
-                                        'desc' => 'Mengembangkan perekonomian syariah yang inklusif serta menjamin ketersediaan produk halal dan tayyib bagi segenap masyarakat.'
-                                    ],
-                                    [
-                                        'num' => '06',
-                                        'title' => 'Menjaga Kemurnian Akidah & Melindungi Umat',
-                                        'desc' => 'Membentengi akidah umat Islam dari pengaruh paham keagamaan yang menyimpang, ekstremisme, terorisme, dan sekularisme radikal.'
-                                    ],
-                                    [
-                                        'num' => '07',
-                                        'title' => 'Menjalin Kemitraan Bersama Pemerintah & Dunia Internasional',
-                                        'desc' => 'Menjalin kemitraan konstruktif dengan pemerintah dalam kebijakan publik serta memperkuat diplomasi Islam wasathiyah di kancah internasional.'
-                                    ],
-                                ];
-                            @endphp
+                        @php
+                            $rawMisi = array_filter(array_map('trim', explode("\n", $settings['misi_list'] ?? '')));
+                            $misiItems = [];
+                            foreach ($rawMisi as $idx => $line) {
+                                $num = str_pad($idx + 1, 2, '0', STR_PAD_LEFT);
+                                if (str_contains($line, '|')) {
+                                    $parts = explode('|', $line, 2);
+                                    $misiItems[] = [
+                                        'num' => $num,
+                                        'title' => trim($parts[0]),
+                                        'desc' => trim($parts[1]),
+                                    ];
+                                } else {
+                                    $misiItems[] = [
+                                        'num' => $num,
+                                        'title' => 'Misi ' . ($idx + 1),
+                                        'desc' => $line,
+                                    ];
+                                }
+                            }
+                        @endphp
 
-                            @foreach ($misiList as $m)
+                        <div class="d-flex flex-column gap-3 mt-3">
+                            @forelse ($misiItems as $m)
                                 <div style="display: flex; gap: 16px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);">
                                     <div style="font-size: 18px; font-weight: 800; color: var(--green); min-width: 32px;">
                                         {{ $m['num'] }}
@@ -117,7 +99,9 @@
                                         </p>
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-muted small">Belum ada daftar misi yang ditambahkan.</div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -151,10 +135,10 @@
                             <i class="fas fa-balance-scale"></i>
                         </div>
                         <h4 style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin-bottom: 8px;">
-                            Prinsip Islam Wasathiyah
+                            {{ $settings['wasathiyah_title'] ?? 'Prinsip Islam Wasathiyah' }}
                         </h4>
                         <p class="text-muted small mb-0" style="line-height: 1.7;">
-                            MUI senantiasa mengedepankan corak keislaman yang moderat (tawasuth), berimbang (tawazun), adil (i'tidal), dan toleran (tasamuh) dalam setiap bimbingan fatwa dan gerak langkahnya.
+                            {{ $settings['wasathiyah_desc'] ?? 'MUI senantiasa mengedepankan corak keislaman yang moderat (tawasuth), berimbang (tawazun), adil (i\'tidal), dan toleran (tasamuh) dalam setiap bimbingan fatwa dan gerak langkahnya.' }}
                         </p>
                     </div>
                 </div>

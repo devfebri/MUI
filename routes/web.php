@@ -7,6 +7,9 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KategoriFatwaController;
 use App\Http\Controllers\KonsultasiAdminController;
 use App\Http\Controllers\KonsultasiController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\PengaturanController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuratController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
@@ -25,21 +28,10 @@ Route::get('/', [WelcomeController::class, 'index'])->name('home.public');
 Route::get('/berita', [BeritaController::class, 'list'])->name('berita.list');
 Route::get('/berita/{slug}', [BeritaController::class, 'detail'])->name('berita.detail');
 
-Route::get('/profil-mui', function () {
-    return view('pages.profilemui');
-})->name('profilemui');
-
-Route::get('/visi-misi', function () {
-    return view('pages.visi-misi');
-})->name('visi-misi');
-
-Route::get('/struktur-organisasi', function () {
-    return view('pages.struktur-organisasi');
-})->name('struktur-organisasi');
-
-Route::get('/kontak', function () {
-    return view('pages.kontak');
-})->name('kontak');
+Route::get('/profil-mui', [PageController::class, 'profil'])->name('profilemui');
+Route::get('/visi-misi', [PageController::class, 'visiMisi'])->name('visi-misi');
+Route::get('/struktur-organisasi', [PageController::class, 'strukturOrganisasi'])->name('struktur-organisasi');
+Route::get('/kontak', [PageController::class, 'kontak'])->name('kontak');
 
 Route::get('/tanya-ulama', [KonsultasiController::class, 'index'])->name('tanya-ulama');
 Route::post('/tanya-ulama', [KonsultasiController::class, 'store'])->name('tanya-ulama.store');
@@ -64,6 +56,16 @@ Route::get('/dashboard', function () {
         default => redirect()->route('login'),
     };
 })->middleware('auth')->name('dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| User Profile Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    Route::get('/profil-akun', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profil-akun', [ProfileController::class, 'update'])->name('profile.update');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -123,6 +125,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Konsultasi (View Only)
     Route::get('konsultasi', [KonsultasiAdminController::class, 'index'])->name('konsultasi.index');
     Route::get('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'show'])->name('konsultasi.show');
+
+    // Pengaturan (Tentang Kami)
+    Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+    Route::post('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
 });
 
 /*

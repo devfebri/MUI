@@ -38,6 +38,36 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+        User::updateOrCreate(
+            ['email' => 'operator3@operator.com'],
+            [
+                'name' => 'Operator3',
+                'username' => 'operator3',
+                'password' => Hash::make('password'),
+                'role' => 'operator',
+                'email_verified_at' => now(),
+            ]
+        );
+        User::updateOrCreate(
+            ['email' => 'operator2@operator.com'],
+            [
+                'name' => 'Operator2',
+                'username' => 'operator2',
+                'password' => Hash::make('password'),
+                'role' => 'operator',
+                'email_verified_at' => now(),
+            ]
+        );
+        User::updateOrCreate(
+            ['email' => 'operator1@operator.com'],
+            [
+                'name' => 'Operator1',
+                'username' => 'operator1',
+                'password' => Hash::make('password'),
+                'role' => 'operator',
+                'email_verified_at' => now(),
+            ]
+        );
 
         // 3. Panggil seluruh seeder sampel data
         $this->call([

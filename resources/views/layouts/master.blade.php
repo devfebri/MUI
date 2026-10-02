@@ -9,7 +9,9 @@
     <meta content="Panel Admin MUI Batanghari" name="description" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="shortcut icon" href="{{ asset('templateadmin/assets/img/favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('gambar/mui.png') }}">
 
     <!-- Google Fonts — Amiri (arabic feel) + Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -257,6 +259,201 @@
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: var(--mui-green-pale); }
         ::-webkit-scrollbar-thumb { background: var(--mui-green); border-radius: 10px; }
+
+        /* ===== MODERN TOAST NOTIFICATIONS (TOP RIGHT) ===== */
+        .alertify-logs { display: none !important; }
+
+        #mui-toast-container {
+            position: fixed !important;
+            top: 24px !important;
+            right: 24px !important;
+            left: auto !important;
+            bottom: auto !important;
+            z-index: 9999999 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            pointer-events: none !important;
+            max-width: 420px !important;
+            width: calc(100% - 48px) !important;
+        }
+
+        .mui-toast {
+            position: relative;
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px 18px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14), 0 3px 10px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            animation: muiToastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mui-toast.toast-hiding {
+            animation: muiToastSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+
+        @keyframes muiToastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(120%) scale(0.92);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes muiToastSlideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+                max-height: 140px;
+                margin-bottom: 0;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(120%) scale(0.92);
+                max-height: 0;
+                padding-top: 0;
+                padding-bottom: 0;
+                margin-bottom: -12px;
+            }
+        }
+
+        .mui-toast-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .mui-toast-body {
+            flex: 1;
+            min-width: 0;
+            padding-right: 18px;
+        }
+
+        .mui-toast-title {
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 3px;
+        }
+
+        .mui-toast-text {
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .mui-toast-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .mui-toast-close:hover {
+            color: #1e293b;
+            background: #f1f5f9;
+        }
+
+        .mui-toast-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3.5px;
+            width: 100%;
+            transform-origin: left;
+            animation: muiToastProgress 4.5s linear forwards;
+        }
+
+        @keyframes muiToastProgress {
+            from { transform: scaleX(1); }
+            to { transform: scaleX(0); }
+        }
+
+        /* Success variant */
+        .mui-toast-success {
+            border-left: 5px solid #007f5f;
+        }
+        .mui-toast-success .mui-toast-icon {
+            background: #e6f4f0;
+            color: #007f5f;
+        }
+        .mui-toast-success .mui-toast-title {
+            color: #007f5f;
+        }
+        .mui-toast-success .mui-toast-bar {
+            background: #007f5f;
+        }
+
+        /* Error variant */
+        .mui-toast-error {
+            border-left: 5px solid #ef4444;
+        }
+        .mui-toast-error .mui-toast-icon {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .mui-toast-error .mui-toast-title {
+            color: #b91c1c;
+        }
+        .mui-toast-error .mui-toast-bar {
+            background: #ef4444;
+        }
+
+        /* Warning variant */
+        .mui-toast-warning {
+            border-left: 5px solid #f59e0b;
+        }
+        .mui-toast-warning .mui-toast-icon {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .mui-toast-warning .mui-toast-title {
+            color: #b45309;
+        }
+        .mui-toast-warning .mui-toast-bar {
+            background: #f59e0b;
+        }
+
+        /* Info variant */
+        .mui-toast-info {
+            border-left: 5px solid #2563eb;
+        }
+        .mui-toast-info .mui-toast-icon {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .mui-toast-info .mui-toast-title {
+            color: #1d4ed8;
+        }
+        .mui-toast-info .mui-toast-bar {
+            background: #2563eb;
+        }
     </style>
 
     @yield('css')
@@ -345,13 +542,128 @@
 
     @yield('javascript')
 
+    <!-- Modern Toast Container -->
+    <div id="mui-toast-container" aria-live="polite"></div>
+
     <script>
-        // Alertify session flash
+        // ========================================================
+        // MODERN TOAST NOTIFICATION ENGINE (TOP-RIGHT)
+        // ========================================================
+        window.showToast = function(type, message, title) {
+            if (!message) return;
+            var container = document.getElementById('mui-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'mui-toast-container';
+                document.body.appendChild(container);
+            }
+
+            var typeConfig = {
+                success: {
+                    title: title || 'Berhasil',
+                    icon: 'mdi-check-circle-outline',
+                    class: 'mui-toast-success'
+                },
+                error: {
+                    title: title || 'Gagal',
+                    icon: 'mdi-alert-circle-outline',
+                    class: 'mui-toast-error'
+                },
+                warning: {
+                    title: title || 'Perhatian',
+                    icon: 'mdi-alert-outline',
+                    class: 'mui-toast-warning'
+                },
+                info: {
+                    title: title || 'Informasi',
+                    icon: 'mdi-information-outline',
+                    class: 'mui-toast-info'
+                }
+            };
+
+            var cfg = typeConfig[type] || typeConfig.info;
+
+            var toast = document.createElement('div');
+            toast.className = 'mui-toast ' + cfg.class;
+            toast.innerHTML = 
+                '<div class="mui-toast-icon"><i class="mdi ' + cfg.icon + '"></i></div>' +
+                '<div class="mui-toast-body">' +
+                    '<div class="mui-toast-title">' + cfg.title + '</div>' +
+                    '<div class="mui-toast-text">' + message + '</div>' +
+                '</div>' +
+                '<button type="button" class="mui-toast-close" title="Tutup"><i class="mdi mdi-close"></i></button>' +
+                '<div class="mui-toast-bar"></div>';
+
+            container.appendChild(toast);
+
+            var autoDismissTimer = setTimeout(dismiss, 4500);
+
+            function dismiss() {
+                if (toast.classList.contains('toast-hiding')) return;
+                toast.classList.add('toast-hiding');
+                setTimeout(function() {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 320);
+            }
+
+            var closeBtn = toast.querySelector('.mui-toast-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    clearTimeout(autoDismissTimer);
+                    dismiss();
+                });
+            }
+
+            var bar = toast.querySelector('.mui-toast-bar');
+            toast.addEventListener('mouseenter', function() {
+                clearTimeout(autoDismissTimer);
+                if (bar) bar.style.animationPlayState = 'paused';
+            });
+
+            toast.addEventListener('mouseleave', function() {
+                autoDismissTimer = setTimeout(dismiss, 2000);
+                if (bar) bar.style.animationPlayState = 'running';
+            });
+        };
+
+        // Bridge Alertify API so all AJAX calls (create, edit, delete) use modern toast
+        if (typeof alertify !== 'undefined') {
+            alertify.success = function(msg) { window.showToast('success', msg); return alertify; };
+            alertify.error = function(msg) { window.showToast('error', msg); return alertify; };
+            alertify.log = function(msg) { window.showToast('info', msg); return alertify; };
+        }
+
+        // Global notify helper
+        window.notify = {
+            success: function(msg, title) { window.showToast('success', msg, title); },
+            error: function(msg, title) { window.showToast('error', msg, title); },
+            warning: function(msg, title) { window.showToast('warning', msg, title); },
+            info: function(msg, title) { window.showToast('info', msg, title); }
+        };
+
+        // Flash Session Handlers
+        @if (Session::has('success'))
+            window.showToast('success', {!! json_encode(Session::get('success')) !!});
+        @endif
         @if (Session::has('pesan'))
-            alertify.success("{{ Session::get('pesan') }}");
+            window.showToast('success', {!! json_encode(Session::get('pesan')) !!});
+        @endif
+        @if (Session::has('status'))
+            window.showToast('info', {!! json_encode(Session::get('status')) !!});
+        @endif
+        @if (Session::has('warning'))
+            window.showToast('warning', {!! json_encode(Session::get('warning')) !!});
         @endif
         @if (Session::has('error'))
-            alertify.error("{{ Session::get('error') }}");
+            window.showToast('error', {!! json_encode(Session::get('error')) !!});
+        @endif
+        @if ($errors->any())
+            @foreach ($errors->all() as $error)
+                window.showToast('error', {!! json_encode($error) !!}, 'Perhatian');
+            @endforeach
         @endif
 
         // Real-time clock

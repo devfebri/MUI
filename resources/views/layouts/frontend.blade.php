@@ -8,7 +8,9 @@
     <meta name="description"
         content="@yield('meta_description', 'MUI Batanghari — Portal berita Islam, fatwa MUI, bimbingan syariah, dan informasi halal terpercaya.')">
     <title>@yield('title', 'MUI Batanghari — Majelis Ulama Indonesia')</title>
-    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('template/assets/img/favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('gambar/mui.png') }}">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ asset('template/assets/css/bootstrap.min.css') }}">

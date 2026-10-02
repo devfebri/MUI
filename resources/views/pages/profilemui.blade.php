@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('title', 'Profil MUI — Majelis Ulama Indonesia')
-@section('meta_description', 'Profil lengkap Majelis Ulama Indonesia (MUI), sejarah berdirinya, peran khadimul ummah, serta tugas pokok dalam mengayomi umat Islam di Indonesia.')
+@section('title', ($settings['profil_title'] ?? 'Profil MUI') . ' — Majelis Ulama Indonesia')
+@section('meta_description', $settings['profil_subtitle'] ?? 'Profil lengkap Majelis Ulama Indonesia (MUI), sejarah berdirinya, peran khadimul ummah, serta tugas pokok dalam mengayomi umat Islam di Indonesia.')
 
 @section('content')
     {{-- ── HERO / BANNER ── --}}
@@ -14,9 +14,9 @@
                 <span class="sep"><i class="fas fa-chevron-right"></i></span>
                 <span class="current">Profil MUI</span>
             </nav>
-            <h1 class="page-hero-title">Profil Majelis Ulama Indonesia</h1>
+            <h1 class="page-hero-title">{{ $settings['profil_title'] ?? 'Profil Majelis Ulama Indonesia' }}</h1>
             <p class="page-hero-desc">
-                Wadah musyawarah para ulama, zuama, dan cendekiawan muslim di Indonesia yang berkhidmat membimbing, membina, dan mengayomi umat.
+                {{ $settings['profil_subtitle'] ?? 'Wadah musyawarah para ulama, zuama, dan cendekiawan muslim di Indonesia yang berkhidmat membimbing, membina, dan mengayomi umat.' }}
             </p>
         </div>
     </section>
@@ -33,15 +33,21 @@
                             <i class="fas fa-landmark text-success"></i>
                             Sekilas Tentang Majelis Ulama Indonesia
                         </h2>
-                        <p class="lead text-muted" style="font-size: 15.5px; line-height: 1.8;">
-                            <strong>Majelis Ulama Indonesia (MUI)</strong> adalah Lembaga Swadaya Masyarakat yang mewadahi para ulama, zu'ama, dan cendekiawan Islam di Indonesia untuk membimbing, membina, dan mengayomi kaum muslimin di seluruh Indonesia.
-                        </p>
-                        <p style="color: var(--text); line-height: 1.8; font-size: 14.5px;">
-                            MUI berdiri pada tanggal <strong>7 Rajab 1395 Hijriah</strong> atau bertepatan dengan tanggal <strong>26 Juli 1975</strong> di Jakarta, sebagai hasil dari pertemuan para ulama, cendekiawan, dan tokoh dari berbagai organisasi kemasyarakatan Islam di tanah air.
-                        </p>
-                        <p style="color: var(--text); line-height: 1.8; font-size: 14.5px;">
-                            Dalam perjalanannya, MUI terus berdiri di garda terdepan sebagai tenda besar umat Islam Indonesia, merajut persatuan di tengah kebhinekaan serta senantiasa memberikan panduan moral dan syariah bagi masyarakat dan negara.
-                        </p>
+                        @if (!empty($settings['profil_sekilas_1']))
+                            <p class="lead text-muted" style="font-size: 15.5px; line-height: 1.8;">
+                                {!! nl2br(e($settings['profil_sekilas_1'])) !!}
+                            </p>
+                        @endif
+                        @if (!empty($settings['profil_sekilas_2']))
+                            <p style="color: var(--text); line-height: 1.8; font-size: 14.5px;">
+                                {!! nl2br(e($settings['profil_sekilas_2'])) !!}
+                            </p>
+                        @endif
+                        @if (!empty($settings['profil_sekilas_3']))
+                            <p style="color: var(--text); line-height: 1.8; font-size: 14.5px;">
+                                {!! nl2br(e($settings['profil_sekilas_3'])) !!}
+                            </p>
+                        @endif
                     </div>
 
                     {{-- 3 Peran Strategis MUI --}}
@@ -56,9 +62,11 @@
                                     <div class="icon-circle mb-3">
                                         <i class="fas fa-hands-helping"></i>
                                     </div>
-                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">Khadimul Ummah</h5>
+                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">
+                                        {{ $settings['profil_peran_1_title'] ?? 'Khadimul Ummah' }}
+                                    </h5>
                                     <p class="small text-muted mb-0" style="font-size: 12.5px; line-height: 1.6;">
-                                        Pelayan umat yang senantiasa hadir memberikan bimbingan, perlindungan, dan solusi syariah atas berbagai persoalan umat.
+                                        {{ $settings['profil_peran_1_desc'] ?? 'Pelayan umat yang senantiasa hadir memberikan bimbingan, perlindungan, dan solusi syariah atas berbagai persoalan umat.' }}
                                     </p>
                                 </div>
                             </div>
@@ -67,9 +75,11 @@
                                     <div class="icon-circle mb-3">
                                         <i class="fas fa-shield-alt"></i>
                                     </div>
-                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">Himayatul Ummah</h5>
+                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">
+                                        {{ $settings['profil_peran_2_title'] ?? 'Himayatul Ummah' }}
+                                    </h5>
                                     <p class="small text-muted mb-0" style="font-size: 12.5px; line-height: 1.6;">
-                                        Penjaga dan benteng akidah umat dari pemikiran, aliran menyimpang, dan pengaruh negatif yang merusak moralitas bangsa.
+                                        {{ $settings['profil_peran_2_desc'] ?? 'Penjaga dan benteng akidah umat dari pemikiran, aliran menyimpang, dan pengaruh negatif yang merusak moralitas bangsa.' }}
                                     </p>
                                 </div>
                             </div>
@@ -78,9 +88,11 @@
                                     <div class="icon-circle mb-3">
                                         <i class="fas fa-handshake"></i>
                                     </div>
-                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">Shodiqul Hukumah</h5>
+                                    <h5 style="font-size: 15px; font-weight: 700; color: var(--green-dark);">
+                                        {{ $settings['profil_peran_3_title'] ?? 'Shodiqul Hukumah' }}
+                                    </h5>
                                     <p class="small text-muted mb-0" style="font-size: 12.5px; line-height: 1.6;">
-                                        Mitra kritis dan konstruktif pemerintah dalam mewujudkan kemaslahatan masyarakat dan kebijakan bangsa yang bermartabat.
+                                        {{ $settings['profil_peran_3_desc'] ?? 'Mitra kritis dan konstruktif pemerintah dalam mewujudkan kemaslahatan masyarakat dan kebijakan bangsa yang bermartabat.' }}
                                     </p>
                                 </div>
                             </div>
@@ -93,31 +105,30 @@
                             <i class="fas fa-tasks text-success"></i>
                             Tugas Pokok & Fungsi MUI
                         </h2>
+                        @php
+                            $tugasLines = array_filter(array_map('trim', explode("\n", $settings['profil_tugas_pokok'] ?? '')));
+                        @endphp
                         <ul style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 14px;">
-                            <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
-                                <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
-                                <div>
-                                    <strong>Pemberi Fatwa dan Panduan Hukum Islam:</strong> Merumuskan fatwa hukum syariah terhadap masalah-masalah kontemporer keagamaan, sosial, dan ekonomi syariah.
-                                </div>
-                            </li>
-                            <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
-                                <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
-                                <div>
-                                    <strong>Perekat Ukhuwah Islamiyah & Kebangsaan:</strong> Memperkuat persatuan antar umat Islam (Ukhuwah Islamiyah), persaudaraan kebangsaan (Ukhuwah Wathaniyah), dan kemanusiaan (Ukhuwah Insaniyah).
-                                </div>
-                            </li>
-                            <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
-                                <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
-                                <div>
-                                    <strong>Jaminan Produk Halal:</strong> Mengawal kepastian kehalalan produk pangan, obat-obatan, dan kosmetika untuk ketenangan masyarakat muslim Indonesia.
-                                </div>
-                            </li>
-                            <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
-                                <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
-                                <div>
-                                    <strong>Pengembangan Ekonomi Syariah:</strong> Memberikan panduan prinsip-prinsip syariah pada industri keuangan, perbankan, pasar modal, dan bisnis syariah melalui DSN-MUI.
-                                </div>
-                            </li>
+                            @forelse ($tugasLines as $tugas)
+                                @php
+                                    $parts = explode(':', $tugas, 2);
+                                @endphp
+                                <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
+                                    <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
+                                    <div>
+                                        @if (count($parts) === 2)
+                                            <strong>{{ trim($parts[0]) }}:</strong> {{ trim($parts[1]) }}
+                                        @else
+                                            {{ $tugas }}
+                                        @endif
+                                    </div>
+                                </li>
+                            @empty
+                                <li style="display: flex; gap: 12px; font-size: 14.5px; line-height: 1.7;">
+                                    <i class="fas fa-check-circle text-success mt-1" style="font-size: 16px;"></i>
+                                    <div><strong>Pemberi Fatwa dan Panduan Hukum Islam:</strong> Merumuskan fatwa hukum syariah terhadap masalah-masalah kontemporer keagamaan.</div>
+                                </li>
+                            @endforelse
                         </ul>
                     </div>
                 </div>
@@ -153,15 +164,15 @@
                         <div class="d-flex flex-column gap-3 font-monospace" style="font-size: 13px;">
                             <div>
                                 <span class="text-muted d-block font-sans mb-1" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Tanggal Berdiri</span>
-                                <strong style="font-family: 'Inter', sans-serif;">26 Juli 1975 (7 Rajab 1395 H)</strong>
+                                <strong style="font-family: 'Inter', sans-serif;">{{ $settings['profil_tgl_berdiri'] ?? '26 Juli 1975 (7 Rajab 1395 H)' }}</strong>
                             </div>
                             <div>
                                 <span class="text-muted d-block font-sans mb-1" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Sifat Lembaga</span>
-                                <strong style="font-family: 'Inter', sans-serif;">Lembaga Keagamaan Independen</strong>
+                                <strong style="font-family: 'Inter', sans-serif;">{{ $settings['profil_sifat_lembaga'] ?? 'Lembaga Keagamaan Independen' }}</strong>
                             </div>
                             <div>
-                                <span class="text-muted d-block font-sans mb-1" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Alamat Kantor Pusat</span>
-                                <span style="font-family: 'Inter', sans-serif; color: var(--text);">Jl. Proklamasi No. 51, Menteng, Jakarta Pusat 10320</span>
+                                <span class="text-muted d-block font-sans mb-1" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Alamat Kantor</span>
+                                <span style="font-family: 'Inter', sans-serif; color: var(--text);">{{ $settings['profil_alamat_kantor'] ?? 'Jl. Jenderal Sudirman, Muara Bulian, Kab. Batanghari, Jambi' }}</span>
                             </div>
                         </div>
                     </div>

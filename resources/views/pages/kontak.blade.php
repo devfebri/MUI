@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('title', 'Kontak Kami — Majelis Ulama Indonesia')
-@section('meta_description', 'Hubungi Sekretariat Majelis Ulama Indonesia (MUI) Pusat di Jakarta. Alamat kantor, nomor telepon, email, serta formulir pengaduan & aspirasi umat.')
+@section('title', ($settings['kontak_title'] ?? 'Kontak Kami') . ' — Majelis Ulama Indonesia')
+@section('meta_description', $settings['kontak_subtitle'] ?? 'Hubungi Sekretariat Majelis Ulama Indonesia (MUI). Alamat kantor, nomor telepon, email, serta formulir pengaduan & aspirasi umat.')
 
 @section('content')
     {{-- ── HERO / BANNER ── --}}
@@ -14,9 +14,9 @@
                 <span class="sep"><i class="fas fa-chevron-right"></i></span>
                 <span class="current">Kontak Kami</span>
             </nav>
-            <h1 class="page-hero-title">Hubungi MUI Pusat</h1>
+            <h1 class="page-hero-title">{{ $settings['kontak_title'] ?? 'Hubungi MUI Batanghari' }}</h1>
             <p class="page-hero-desc">
-                Sekretariat Majelis Ulama Indonesia siap melayani permohonan informasi, aspirasi keumatan, dan konsultasi keagamaan Anda.
+                {{ $settings['kontak_subtitle'] ?? 'Sekretariat Majelis Ulama Indonesia siap melayani permohonan informasi, aspirasi keumatan, dan konsultasi keagamaan Anda.' }}
             </p>
         </div>
     </section>
@@ -31,10 +31,9 @@
                         <div class="icon-circle mb-3">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
-                        <h4 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px;">Kantor Pusat</h4>
+                        <h4 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px;">Kantor Sekretariat</h4>
                         <p class="text-muted small mb-0" style="line-height: 1.6;">
-                            Gedung Majelis Ulama Indonesia<br>
-                            Jl. Proklamasi No. 51, Pegangsaan, Menteng, Jakarta Pusat, DKI Jakarta 10320
+                            {!! nl2br(e($settings['kontak_alamat'] ?? 'Jl. Jenderal Sudirman, Muara Bulian, Kab. Batanghari, Jambi')) !!}
                         </p>
                     </div>
                 </div>
@@ -45,9 +44,8 @@
                         </div>
                         <h4 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px;">Telepon & WhatsApp</h4>
                         <p class="text-muted small mb-0" style="line-height: 1.6;">
-                            Telp: (021) 3917732 / 31902666<br>
-                            Fax: (021) 3917733<br>
-                            WhatsApp: +62 811-1902-666
+                            Telp: {{ $settings['kontak_telepon'] ?? '(0743) 21123' }}<br>
+                            WhatsApp: {{ $settings['kontak_whatsapp'] ?? '0812-3456-7890' }}
                         </p>
                     </div>
                 </div>
@@ -58,9 +56,8 @@
                         </div>
                         <h4 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px;">Email & Jam Layanan</h4>
                         <p class="text-muted small mb-0" style="line-height: 1.6;">
-                            Email: sekretariat@mui.or.id<br>
-                            Website: mui.or.id<br>
-                            Senin – Jumat: 08.00 – 16.00 WIB
+                            Email: {{ $settings['kontak_email'] ?? 'sekretariat@muibatanghari.or.id' }}<br>
+                            Layanan: {{ $settings['kontak_jam_layanan'] ?? 'Senin – Jumat: 08.00 – 16.00 WIB' }}
                         </p>
                     </div>
                 </div>
@@ -129,18 +126,20 @@
                     </div>
 
                     {{-- Google Maps --}}
-                    <div class="mui-card p-0 overflow-hidden">
-                        <div style="padding: 16px 22px; background: #fff; border-bottom: 1px solid var(--border);">
-                            <h3 style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin: 0;">
-                                <i class="fas fa-map-marked-alt text-success me-2"></i> Peta Lokasi Kantor Pusat MUI
-                            </h3>
+                    @if (!empty($settings['kontak_maps_embed']))
+                        <div class="mui-card p-0 overflow-hidden">
+                            <div style="padding: 16px 22px; background: #fff; border-bottom: 1px solid var(--border);">
+                                <h3 style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin: 0;">
+                                    <i class="fas fa-map-marked-alt text-success me-2"></i> Peta Lokasi Kantor MUI
+                                </h3>
+                            </div>
+                            <iframe
+                                src="{{ $settings['kontak_maps_embed'] }}"
+                                width="100%" height="320" style="border:0; display: block;" allowfullscreen="" loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
                         </div>
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.4526019565506!2d106.84534437499025!3d-6.203871193783935!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f46bda5a7ff3%3A0x63390c50a1dbbe47!2sMajelis%20Ulama%20Indonesia%20Pusat!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
-                            width="100%" height="320" style="border:0; display: block;" allowfullscreen="" loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade">
-                        </iframe>
-                    </div>
+                    @endif
                 </div>
 
                 {{-- Sidebar Column --}}
@@ -171,24 +170,42 @@
                         <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
                             Media Sosial Resmi
                         </h3>
-                        <p class="text-muted small mb-3">Ikuti kanal informasi resmi MUI Batanghari untuk mendapatkan berita dan fatwa terbaru:</p>
+                        <p class="text-muted small mb-3">Ikuti kanal informasi resmi MUI untuk mendapatkan berita dan fatwa terbaru:</p>
                         <div class="d-flex flex-column gap-2">
-                            <a href="https://instagram.com" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
-                                <i class="fab fa-instagram text-danger" style="font-size: 20px; width: 24px; text-align: center;"></i>
-                                <span class="small fw-semibold">@muipusat</span>
-                            </a>
-                            <a href="https://youtube.com" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
-                                <i class="fab fa-youtube text-danger" style="font-size: 20px; width: 24px; text-align: center;"></i>
-                                <span class="small fw-semibold">MUI TV Official</span>
-                            </a>
-                            <a href="https://twitter.com" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
-                                <i class="fab fa-twitter text-primary" style="font-size: 20px; width: 24px; text-align: center;"></i>
-                                <span class="small fw-semibold">@MajelisUlamaID</span>
-                            </a>
-                            <a href="https://facebook.com" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
-                                <i class="fab fa-facebook text-primary" style="font-size: 20px; width: 24px; text-align: center;"></i>
-                                <span class="small fw-semibold">Majelis Ulama Indonesia</span>
-                            </a>
+                            @if (!empty($settings['kontak_instagram']))
+                                <a href="https://instagram.com/{{ ltrim($settings['kontak_instagram'], '@') }}" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
+                                    <i class="fab fa-instagram text-danger" style="font-size: 20px; width: 24px; text-align: center;"></i>
+                                    <span class="small fw-semibold">{{ $settings['kontak_instagram'] }}</span>
+                                </a>
+                            @endif
+
+                            @if (!empty($settings['kontak_youtube']))
+                                <a href="https://youtube.com/results?search_query={{ urlencode($settings['kontak_youtube']) }}" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
+                                    <i class="fab fa-youtube text-danger" style="font-size: 20px; width: 24px; text-align: center;"></i>
+                                    <span class="small fw-semibold">{{ $settings['kontak_youtube'] }}</span>
+                                </a>
+                            @endif
+
+                            @if (!empty($settings['kontak_facebook']))
+                                <a href="https://facebook.com/{{ ltrim($settings['kontak_facebook'], '@') }}" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
+                                    <i class="fab fa-facebook text-primary" style="font-size: 20px; width: 24px; text-align: center;"></i>
+                                    <span class="small fw-semibold">{{ $settings['kontak_facebook'] }}</span>
+                                </a>
+                            @endif
+
+                            @if (!empty($settings['kontak_twitter']))
+                                <a href="https://twitter.com/{{ ltrim($settings['kontak_twitter'], '@') }}" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
+                                    <i class="fab fa-twitter text-info" style="font-size: 20px; width: 24px; text-align: center;"></i>
+                                    <span class="small fw-semibold">{{ $settings['kontak_twitter'] }}</span>
+                                </a>
+                            @endif
+
+                            @if (!empty($settings['kontak_tiktok']))
+                                <a href="https://tiktok.com/@{{ ltrim($settings['kontak_tiktok'], '@') }}" target="_blank" class="d-flex align-items-center gap-3 p-2 text-dark rounded" style="border: 1px solid var(--border);">
+                                    <i class="fab fa-tiktok text-dark" style="font-size: 20px; width: 24px; text-align: center;"></i>
+                                    <span class="small fw-semibold">{{ $settings['kontak_tiktok'] }}</span>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>

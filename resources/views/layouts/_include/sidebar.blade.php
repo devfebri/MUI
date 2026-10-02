@@ -4,15 +4,10 @@
 
 {{-- ── LOGO AREA ─────────────────────────────────────────────── --}}
 <div class="mui-brand">
-    <a href="{{ route('dashboard') }}" class="mui-brand-link">
-        <div class="mui-brand-icon">
-            {{-- Islamic geometric star --}}
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <polygon points="14,2 16.9,10.5 26,10.5 18.6,15.9 21.5,24.4 14,19 6.5,24.4 9.4,15.9 2,10.5 11.1,10.5"
-                    fill="#c9a84c" opacity="0.9" />
-                <polygon points="14,6 15.8,11.5 21.5,11.5 17,14.7 18.8,20.2 14,17 9.2,20.2 11,14.7 6.5,11.5 12.2,11.5"
-                    fill="#005f47" />
-            </svg>
+    <a href="{{ route('home.public') }}" class="mui-brand-link">
+        <div class="mui-brand-icon" style="background: #ffffff; border-radius: 50%; padding: 2px;">
+            <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI"
+                style="width: 100%; height: 100%; object-fit: contain;">
         </div>
         <div class="mui-brand-text">
             <span class="mui-brand-name">MUI <em>Batanghari</em></span>
@@ -28,16 +23,22 @@
 
 {{-- ── USER MINI CARD ─────────────────────────────────────────── --}}
 <div class="mui-user-card">
-    <div class="mui-user-avatar">
-        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-    </div>
-    <div class="mui-user-info">
-        <div class="mui-user-name">{{ auth()->user()->name }}</div>
-        <div class="mui-user-role">
-            <span class="mui-role-dot"></span>
-            {{ ucfirst(auth()->user()->role) }}
+    <a href="{{ route('profile.edit') }}" style="display: flex; align-items: center; gap: 11px; text-decoration: none; width: 100%; color: inherit;">
+        <div class="mui-user-avatar" style="overflow: hidden;">
+            @if(auth()->user()->foto_url)
+                <img src="{{ auth()->user()->foto_url }}" alt="{{ auth()->user()->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+            @else
+                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+            @endif
         </div>
-    </div>
+        <div class="mui-user-info">
+            <div class="mui-user-name">{{ auth()->user()->name }}</div>
+            <div class="mui-user-role">
+                <span class="mui-role-dot"></span>
+                {{ ucfirst(auth()->user()->role) }}
+            </div>
+        </div>
+    </a>
 </div>
 
 {{-- ── NAVIGATION ─────────────────────────────────────────────── --}}
@@ -132,9 +133,17 @@
         <div class="mui-nav-section">Sistem</div>
         <ul class="mui-nav-list">
             <li>
-                <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-settings"></i></span>
-                    <span class="nav-label">Pengaturan</span>
+                <a href="{{ route('profile.edit') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'profile.') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-account-cog"></i></span>
+                    <span class="nav-label">Profil Akun</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.pengaturan.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.pengaturan') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-cog-outline"></i></span>
+                    <span class="nav-label">Pengaturan Web</span>
                 </a>
             </li>
         </ul>
@@ -214,6 +223,17 @@
                             {{ $pendingKonsultasi }}
                         </span>
                     @endif
+                </a>
+            </li>
+        </ul>
+
+        <div class="mui-nav-section">Sistem</div>
+        <ul class="mui-nav-list">
+            <li>
+                <a href="{{ route('profile.edit') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'profile.') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-account-cog"></i></span>
+                    <span class="nav-label">Profil Akun</span>
                 </a>
             </li>
         </ul>

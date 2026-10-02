@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('title', 'Struktur Organisasi — Majelis Ulama Indonesia')
-@section('meta_description', 'Susunan struktur organisasi Majelis Ulama Indonesia (MUI), Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi, dan Badan/Lembaga.')
+@section('title', ($settings['struktur_title'] ?? 'Struktur Organisasi') . ' — Majelis Ulama Indonesia')
+@section('meta_description', $settings['struktur_subtitle'] ?? 'Susunan struktur organisasi Majelis Ulama Indonesia (MUI), Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi, dan Badan/Lembaga.')
 
 @section('content')
     {{-- ── HERO / BANNER ── --}}
@@ -14,9 +14,9 @@
                 <span class="sep"><i class="fas fa-chevron-right"></i></span>
                 <span class="current">Struktur Organisasi</span>
             </nav>
-            <h1 class="page-hero-title">Struktur Organisasi MUI</h1>
+            <h1 class="page-hero-title">{{ $settings['struktur_title'] ?? 'Struktur Organisasi MUI' }}</h1>
             <p class="page-hero-desc">
-                Susunan kepengurusan Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi-Komisi, serta Lembaga/Badan Otonom Majelis Ulama Indonesia.
+                {{ $settings['struktur_subtitle'] ?? 'Susunan kepengurusan Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi-Komisi, serta Lembaga/Badan Otonom Majelis Ulama Indonesia.' }}
             </p>
         </div>
     </section>
@@ -27,6 +27,26 @@
             <div class="row g-4">
                 {{-- Main Column --}}
                 <div class="col-lg-8">
+
+                    {{-- Bagan Struktur Organisasi (Jika Diunggah) --}}
+                    @if (!empty($settings['struktur_bagan_gambar']))
+                        <div class="mui-card mb-4" style="border-top: 4px solid var(--green);">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                <h2 class="mui-card-title mb-0">
+                                    <i class="fas fa-project-diagram text-success"></i>
+                                    Bagan Struktur Organisasi
+                                </h2>
+                                <a href="{{ asset('uploads/pengaturan/' . $settings['struktur_bagan_gambar']) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-expand me-1"></i> Perbesar Bagan
+                                </a>
+                            </div>
+                            <div class="text-center p-2 rounded" style="background: #f8fafc; border: 1px solid var(--border);">
+                                <img src="{{ asset('uploads/pengaturan/' . $settings['struktur_bagan_gambar']) }}"
+                                     alt="Bagan Struktur Organisasi MUI" class="img-fluid rounded shadow-sm" style="max-height: 480px; object-fit: contain;">
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- Dewan Pertimbangan --}}
                     <div class="mui-card">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -39,7 +59,7 @@
                             </span>
                         </div>
                         <p class="text-muted small mb-3" style="line-height: 1.6;">
-                            Dewan Pertimbangan berwenang memberikan arahan, fatwa pertimbangan strategis, serta nasihat kepada Dewan Pimpinan Harian dalam penetapan garis kebijakan organisasi.
+                            {{ $settings['struktur_dewan_pertimbangan_desc'] ?? 'Dewan Pertimbangan berwenang memberikan arahan, fatwa pertimbangan strategis, serta nasihat kepada Dewan Pimpinan Harian dalam penetapan garis kebijakan organisasi.' }}
                         </p>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -49,7 +69,7 @@
                                     </div>
                                     <div>
                                         <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Ketua Dewan Pertimbangan</span>
-                                        <strong style="color: var(--green-dark); font-size: 15px;">Prof. Dr. KH. Ma'ruf Amin</strong>
+                                        <strong style="color: var(--green-dark); font-size: 15px;">{{ $settings['struktur_ketua_pertimbangan'] ?? "Prof. Dr. KH. Ma'ruf Amin" }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -60,7 +80,7 @@
                                     </div>
                                     <div>
                                         <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Wakil Ketua & Anggota</span>
-                                        <strong style="color: var(--green-dark); font-size: 15px;">Tokoh & Ulama Ormas Islam</strong>
+                                        <strong style="color: var(--green-dark); font-size: 15px;">{{ $settings['struktur_anggota_pertimbangan'] ?? 'Tokoh & Ulama Ormas Islam' }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -79,7 +99,7 @@
                             </span>
                         </div>
                         <p class="text-muted small mb-3" style="line-height: 1.6;">
-                            Dewan Pimpinan Harian bertanggung jawab menjalankan roda organisasi, kepemimpinan operasional, serta representasi resmi Majelis Ulama Indonesia.
+                            {{ $settings['struktur_pimpinan_harian_desc'] ?? 'Dewan Pimpinan Harian bertanggung jawab menjalankan roda organisasi, kepemimpinan operasional, serta representasi resmi Majelis Ulama Indonesia.' }}
                         </p>
 
                         <div class="row g-3">
@@ -90,44 +110,64 @@
                                         <i class="fas fa-user-check"></i>
                                     </div>
                                     <span class="badge" style="background: var(--green-dark); color: #fff; font-size: 11px; padding: 4px 10px;">Pucuk Pimpinan</span>
-                                    <h4 class="mt-2 mb-1" style="font-weight: 800; color: var(--green-dark); font-size: 18px;">Ketua Umum Dewan Pimpinan MUI</h4>
-                                    <p class="mb-0 text-muted small">Memimpin seluruh pelaksanaan ketetapan Munas dan kebijakan Dewan Pimpinan.</p>
+                                    <h4 class="mt-2 mb-1" style="font-weight: 800; color: var(--green-dark); font-size: 18px;">
+                                        {{ $settings['struktur_ketua_umum'] ?? 'Ketua Umum Dewan Pimpinan MUI' }}
+                                    </h4>
+                                    <p class="mb-0 text-muted small">
+                                        {{ $settings['struktur_ketua_umum_desc'] ?? 'Memimpin seluruh pelaksanaan ketetapan Munas dan kebijakan Dewan Pimpinan.' }}
+                                    </p>
                                 </div>
                             </div>
 
                             {{-- Wakil Ketua Umum --}}
                             <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
                                     <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Posisi Pimpinan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">Wakil Ketua Umum</h5>
-                                    <p class="small text-muted mb-0">Membantu pelaksanaan tugas dan wewenang Ketua Umum dalam bidang-bidang strategis.</p>
+                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
+                                        {{ $settings['struktur_wakil_ketua_umum'] ?? 'Wakil Ketua Umum' }}
+                                    </h5>
+                                    <p class="small text-muted mb-0">
+                                        {{ $settings['struktur_wakil_ketua_umum_desc'] ?? 'Membantu pelaksanaan tugas dan wewenang Ketua Umum dalam bidang-bidang strategis.' }}
+                                    </p>
                                 </div>
                             </div>
 
                             {{-- Sekretaris Jenderal --}}
                             <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
                                     <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Kesekretariatan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">Sekretaris Jenderal (Sekjen)</h5>
-                                    <p class="small text-muted mb-0">Memimpin tata kelola administrasi, koordinasi komisi, dan operasional kesekretariatan.</p>
+                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
+                                        {{ $settings['struktur_sekjen'] ?? 'Sekretaris Jenderal (Sekjen)' }}
+                                    </h5>
+                                    <p class="small text-muted mb-0">
+                                        {{ $settings['struktur_sekjen_desc'] ?? 'Memimpin tata kelola administrasi, koordinasi komisi, dan operasional kesekretariatan.' }}
+                                    </p>
                                 </div>
                             </div>
 
                             {{-- Bendahara Umum --}}
                             <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
                                     <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Perbendaharaan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">Bendahara Umum</h5>
-                                    <p class="small text-muted mb-0">Mengelola perbendaharaan, transparansi keuangan, dan akuntabilitas anggaran lembaga.</p>
+                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
+                                        {{ $settings['struktur_bendahara_umum'] ?? 'Bendahara Umum' }}
+                                    </h5>
+                                    <p class="small text-muted mb-0">
+                                        {{ $settings['struktur_bendahara_umum_desc'] ?? 'Mengelola perbendaharaan, transparansi keuangan, dan akuntabilitas anggaran lembaga.' }}
+                                    </p>
                                 </div>
                             </div>
 
                             {{-- Para Ketua Bidang --}}
                             <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
                                     <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Bidang Kerja</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">Ketua-Ketua Bidang</h5>
-                                    <p class="small text-muted mb-0">Mengoordinasikan komisi fatwa, dakwah, ukhuwah, hukum, infokom, dan luar negeri.</p>
+                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
+                                        {{ $settings['struktur_ketua_bidang'] ?? 'Ketua-Ketua Bidang' }}
+                                    </h5>
+                                    <p class="small text-muted mb-0">
+                                        {{ $settings['struktur_ketua_bidang_desc'] ?? 'Mengoordinasikan komisi fatwa, dakwah, ukhuwah, hukum, infokom, dan luar negeri.' }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -139,31 +179,36 @@
                             <i class="fas fa-layer-group text-success"></i>
                             Komisi, Badan & Lembaga Otonom
                         </h2>
+                        @php
+                            $rawKomisi = array_filter(array_map('trim', explode("\n", $settings['struktur_komisi_list'] ?? '')));
+                            $komisiItems = [];
+                            foreach ($rawKomisi as $k) {
+                                if (str_contains($k, '|')) {
+                                    $p = explode('|', $k, 2);
+                                    $komisiItems[] = ['name' => trim($p[0]), 'desc' => trim($p[1])];
+                                } else {
+                                    $komisiItems[] = ['name' => $k, 'desc' => ''];
+                                }
+                            }
+                        @endphp
                         <div class="row g-3">
-                            @php
-                                $komisiBadan = [
-                                    ['name' => 'Komisi Fatwa', 'desc' => 'Merumuskan dan mengeluarkan fatwa-fatwa hukum syariah kontemporer.'],
-                                    ['name' => 'Komisi Dakwah & Pengembangan Masyarakat', 'desc' => 'Mengoordinasikan program standardisasi da\'i dan pemberdayaan umat.'],
-                                    ['name' => 'Komisi Ukhuwah Islamiyah', 'desc' => 'Merajut kesatuan dan kerukunan antar organisasi kemasyarakatan Islam.'],
-                                    ['name' => 'Komisi Hukum & Hak Asasi Manusia', 'desc' => 'Advokasi hukum, perlindungan umat, dan kajian legislasi kebangsaan.'],
-                                    ['name' => 'Dewan Syariah Nasional (DSN-MUI)', 'desc' => 'Menetapkan fatwa ekonomi, perbankan, dan keuangan syariah nasional.'],
-                                    ['name' => 'Lembaga Pengkajian POM (LPPOM-MUI)', 'desc' => 'Pemeriksaan kepatuhan halal produk pangan, obat, dan kosmetika.'],
-                                ];
-                            @endphp
-
-                            @foreach ($komisiBadan as $item)
+                            @forelse ($komisiItems as $item)
                                 <div class="col-md-6">
                                     <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; background: var(--bg); height: 100%;">
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <i class="fas fa-check text-success" style="font-size: 13px;"></i>
                                             <strong style="color: var(--green-dark); font-size: 14px;">{{ $item['name'] }}</strong>
                                         </div>
-                                        <p class="mb-0 text-muted small" style="font-size: 12.5px; line-height: 1.5;">
-                                            {{ $item['desc'] }}
-                                        </p>
+                                        @if ($item['desc'])
+                                            <p class="mb-0 text-muted small" style="font-size: 12.5px; line-height: 1.5;">
+                                                {{ $item['desc'] }}
+                                            </p>
+                                        @endif
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="col-12 text-muted small">Belum ada komisi atau badan otonom terdaftar.</div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -191,16 +236,13 @@
                         </div>
                     </div>
 
-                    {{-- Periode Kepengurusan --}}
-                    <div class="mui-card" style="padding: 22px; background: linear-gradient(135deg, #fff 0%, var(--green-pale) 100%);">
-                        <div class="icon-circle mb-3">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <h4 style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin-bottom: 8px;">
-                            Musyawarah Nasional (Munas)
-                        </h4>
-                        <p class="text-muted small mb-0" style="line-height: 1.7;">
-                            Kepengurusan Majelis Ulama Indonesia dipilih secara musyawarah mufakat melalui Musyawarah Nasional (Munas) yang diadakan secara berkala setiap 5 (lima) tahun sekali.
+                    {{-- Informasi Singkat --}}
+                    <div class="mui-card" style="padding: 22px; background: linear-gradient(180deg, #fbfbfb 0%, #fff 100%);">
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
+                            Musyawarah Nasional
+                        </h3>
+                        <p class="small text-muted mb-0" style="line-height: 1.7;">
+                            Struktur kepengurusan Majelis Ulama Indonesia ditetapkan secara berkala melalui Musyawarah Nasional (Munas) yang dihadiri oleh perwakilan ormas Islam dan utusan ulama se-Indonesia.
                         </p>
                     </div>
                 </div>

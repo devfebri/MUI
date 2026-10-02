@@ -69,8 +69,12 @@
             <button class="mui-user-trigger dropdown-toggle"
                     data-toggle="dropdown" type="button"
                     aria-haspopup="true" aria-expanded="false">
-                <div class="mui-topbar-avatar">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                <div class="mui-topbar-avatar" style="overflow: hidden;">
+                    @if(auth()->user()->foto_url)
+                        <img src="{{ auth()->user()->foto_url }}" alt="{{ auth()->user()->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    @else
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    @endif
                 </div>
                 <div class="mui-topbar-user-info">
                     <span class="mui-topbar-username">{{ auth()->user()->name }}</span>
@@ -82,8 +86,12 @@
             <div class="dropdown-menu dropdown-menu-right mui-dropdown mui-user-dropdown">
                 {{-- Header kartu --}}
                 <div class="mui-user-dropdown-header">
-                    <div class="mui-udh-avatar">
-                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    <div class="mui-udh-avatar" style="overflow: hidden;">
+                        @if(auth()->user()->foto_url)
+                            <img src="{{ auth()->user()->foto_url }}" alt="{{ auth()->user()->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        @else
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        @endif
                     </div>
                     <div>
                         <div class="mui-udh-name">{{ auth()->user()->name }}</div>
@@ -94,11 +102,11 @@
 
                 {{-- Menu items --}}
                 <div class="mui-dropdown-items">
-                    <a href="#" class="mui-dropdown-item">
+                    <a href="{{ route('profile.edit') }}" class="mui-dropdown-item">
                         <i class="mdi mdi-account-circle-outline"></i>
                         <span>Profil Saya</span>
                     </a>
-                    <a href="#" class="mui-dropdown-item">
+                    <a href="{{ route('profile.edit') }}#password-section" class="mui-dropdown-item">
                         <i class="mdi mdi-lock-outline"></i>
                         <span>Ubah Password</span>
                     </a>

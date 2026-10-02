@@ -31,16 +31,7 @@
     <div class="vb-mainbar-inner">
         {{-- Logo --}}
         <a href="{{ url('/') }}" class="vb-logo">
-            <div class="vb-logo-icon">
-                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                    <polygon
-                        points="14,2 16.9,10.5 26,10.5 18.6,15.9 21.5,24.4 14,19 6.5,24.4 9.4,15.9 2,10.5 11.1,10.5"
-                        fill="#c9a84c" />
-                    <polygon
-                        points="14,6 15.8,11.5 21.5,11.5 17,14.7 18.8,20.2 14,17 9.2,20.2 11,14.7 6.5,11.5 12.2,11.5"
-                        fill="#fff" opacity=".7" />
-                </svg>
-            </div>
+            <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI" width="38" height="38" style="object-fit: contain; flex-shrink: 0;">
             <div>
                 <span class="vb-logo-name">MUI<em>Batanghari</em></span>
                 <span class="vb-logo-sub">Majelis Ulama Indonesia</span>
@@ -120,12 +111,8 @@
     <div class="vb-drawer-head">
         <div class="vb-drawer-logo">
             <div
-                style="width:32px;height:32px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
-                    <polygon
-                        points="14,2 16.9,10.5 26,10.5 18.6,15.9 21.5,24.4 14,19 6.5,24.4 9.4,15.9 2,10.5 11.1,10.5"
-                        fill="#c9a84c" />
-                </svg>
+                style="width:34px;height:34px;background:#ffffff;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:2px;flex-shrink:0;">
+                <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
             <div>
                 <div class="vb-drawer-logo-name">MUI<em>Batanghari</em></div>
