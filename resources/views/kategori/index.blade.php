@@ -326,7 +326,7 @@ $(function () {
     'use strict';
 
     /* ── CONFIG ── */
-    var baseUrl  = @json(route('admin.kategori.index'));
+    var baseUrl  = @json(auth()->user()->isOperator() ? route('operator.kategori.index') : route('admin.kategori.index'));
     var rows     = {};
     var editingId = null;
     var table;

@@ -64,6 +64,13 @@
                     <span class="nav-label">Pengguna</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('admin.operator-permissions.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.operator-permissions') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-shield-account"></i></span>
+                    <span class="nav-label">Hak Akses Operator</span>
+                </a>
+            </li>
         </ul>
 
         <div class="mui-nav-section">Konten</div>
@@ -176,88 +183,119 @@
             </li>
         </ul>
 
-        <div class="mui-nav-section">Konten</div>
-        <ul class="mui-nav-list">
-            <li>
-                <a href="{{ route('operator.berita.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'operator.berita') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-newspaper"></i></span>
-                    <span class="nav-label">Berita & Artikel</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-tag-multiple"></i></span>
-                    <span class="nav-label">Kategori</span>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="mui-nav-link">
-                    <span class="nav-icon"><i class="mdi mdi-image-multiple"></i></span>
-                    <span class="nav-label">Media</span>
-                </a>
-            </li>
-        </ul>
-        <div class="mui-nav-section">Arsip</div>
-        <ul class="mui-nav-list">
-            <li>
-                <a href="{{ route('operator.surat.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'operator.surat') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-email-outline"></i></span>
-                    <span class="nav-label">Surat</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('operator.fatwa.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'operator.fatwa') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
-                    <span class="nav-label">Fatwa</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('operator.kategori-fatwa.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'operator.kategori-fatwa') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-label-outline"></i></span>
-                    <span class="nav-label">Kategori Fatwa</span>
-                </a>
-            </li>
-        </ul>
+        {{-- Konten --}}
+        @if(auth()->user()->hasMenuPermission('berita') || auth()->user()->hasMenuPermission('kategori'))
+            <div class="mui-nav-section">Konten</div>
+            <ul class="mui-nav-list">
+                @if(auth()->user()->hasMenuPermission('berita'))
+                    <li>
+                        <a href="{{ route('operator.berita.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.berita') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-newspaper"></i></span>
+                            <span class="nav-label">Berita & Artikel</span>
+                        </a>
+                    </li>
+                @endif
+                @if(auth()->user()->hasMenuPermission('kategori'))
+                    <li>
+                        <a href="{{ route('operator.kategori.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.kategori.') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-tag-multiple"></i></span>
+                            <span class="nav-label">Kategori</span>
+                        </a>
+                    </li>
+                @endif
+            </ul>
+        @endif
 
-        <div class="mui-nav-section">Layanan</div>
-        <ul class="mui-nav-list">
-            <li>
-                <a href="{{ route('admin.livechat.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'admin.livechat') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-chat-processing-outline"></i></span>
-                    <span class="nav-label">Live Chat</span>
-                    @php
-                        $waitingChatCount = \App\Models\ChatSession::where('status', 'menunggu')->count();
-                    @endphp
-                    @if ($waitingChatCount > 0)
-                        <span class="badge ml-auto"
-                            style="background:#f59e0b; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
-                            {{ $waitingChatCount }}
-                        </span>
-                    @endif
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('operator.konsultasi.index') }}"
-                    class="mui-nav-link {{ str_starts_with($route, 'operator.konsultasi') ? 'active' : '' }}">
-                    <span class="nav-icon"><i class="mdi mdi-forum"></i></span>
-                    <span class="nav-label">Konsultasi</span>
-                    @php
-                        $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
-                    @endphp
-                    @if ($pendingKonsultasi > 0)
-                        <span class="badge ml-auto"
-                            style="background:#eab308; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
-                            {{ $pendingKonsultasi }}
-                        </span>
-                    @endif
-                </a>
-            </li>
-        </ul>
+        {{-- Arsip --}}
+        @if(auth()->user()->hasMenuPermission('surat') || auth()->user()->hasMenuPermission('fatwa') || auth()->user()->hasMenuPermission('kategori-fatwa'))
+            <div class="mui-nav-section">Arsip</div>
+            <ul class="mui-nav-list">
+                @if(auth()->user()->hasMenuPermission('surat'))
+                    <li>
+                        <a href="{{ route('operator.surat.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.surat') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-email-outline"></i></span>
+                            <span class="nav-label">Surat</span>
+                        </a>
+                    </li>
+                @endif
+                @if(auth()->user()->hasMenuPermission('fatwa'))
+                    <li>
+                        <a href="{{ route('operator.fatwa.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.fatwa') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-book-open-variant"></i></span>
+                            <span class="nav-label">Fatwa</span>
+                        </a>
+                    </li>
+                @endif
+                @if(auth()->user()->hasMenuPermission('kategori-fatwa'))
+                    <li>
+                        <a href="{{ route('operator.kategori-fatwa.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.kategori-fatwa') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-label-outline"></i></span>
+                            <span class="nav-label">Kategori Fatwa</span>
+                        </a>
+                    </li>
+                @endif
+            </ul>
+        @endif
+
+        {{-- Layanan --}}
+        @if(auth()->user()->hasMenuPermission('livechat') || auth()->user()->hasMenuPermission('konsultasi'))
+            <div class="mui-nav-section">Layanan</div>
+            <ul class="mui-nav-list">
+                @if(auth()->user()->hasMenuPermission('livechat'))
+                    <li>
+                        <a href="{{ route('admin.livechat.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'admin.livechat') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-chat-processing-outline"></i></span>
+                            <span class="nav-label">Live Chat</span>
+                            @php
+                                $waitingChatCount = \App\Models\ChatSession::where('status', 'menunggu')->count();
+                            @endphp
+                            @if ($waitingChatCount > 0)
+                                <span class="badge ml-auto"
+                                    style="background:#f59e0b; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                                    {{ $waitingChatCount }}
+                                </span>
+                            @endif
+                        </a>
+                    </li>
+                @endif
+                @if(auth()->user()->hasMenuPermission('konsultasi'))
+                    <li>
+                        <a href="{{ route('operator.konsultasi.index') }}"
+                            class="mui-nav-link {{ str_starts_with($route, 'operator.konsultasi') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="mdi mdi-forum"></i></span>
+                            <span class="nav-label">Konsultasi</span>
+                            @php
+                                $pendingKonsultasi = \App\Models\Konsultasi::where('status', 'pending')->count();
+                            @endphp
+                            @if ($pendingKonsultasi > 0)
+                                <span class="badge ml-auto"
+                                    style="background:#eab308; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                                    {{ $pendingKonsultasi }}
+                                </span>
+                            @endif
+                        </a>
+                    </li>
+                @endif
+            </ul>
+        @endif
+
+        @php
+            $opAssigned = auth()->user()->getAssignedPermissions();
+        @endphp
+        @if(empty($opAssigned))
+            <div class="mui-nav-section">Tugas</div>
+            <ul class="mui-nav-list">
+                <li style="padding: 10px 20px; color: rgba(201, 168, 76, 0.7); font-size: 11px; font-style: italic; line-height: 1.4;">
+                    <i class="mdi mdi-information-outline mr-1"></i> Belum ada tugas yang dibagikan oleh Admin.
+                </li>
+            </ul>
+        @endif
 
         <div class="mui-nav-section">Sistem</div>
         <ul class="mui-nav-list">

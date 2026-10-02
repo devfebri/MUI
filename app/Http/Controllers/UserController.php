@@ -53,6 +53,11 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate($this->rules());
+
+        if (($validated['role'] ?? '') === 'operator' && ! isset($validated['menu_permissions'])) {
+            $validated['menu_permissions'] = User::DEFAULT_OPERATOR_PERMISSIONS;
+        }
+
         $user = User::create($validated);
 
         return response()->json([
@@ -111,6 +116,8 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user),
             ],
+            'menu_permissions' => ['nullable', 'array'],
+            'menu_permissions.*' => ['string', Rule::in(array_keys(User::OPERATOR_PERMISSIONS))],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
         ];
     }
@@ -129,6 +136,7 @@ class UserController extends Controller
             'nohp',
             'username',
             'role',
+            'menu_permissions',
             'email',
             'created_at',
         ];

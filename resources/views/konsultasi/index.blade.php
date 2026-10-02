@@ -715,6 +715,63 @@ $(document).ready(function () {
             $('#stat-total').text(res.recordsTotal);
         });
     }
+
+    /* ── OTOMATIS BUKA DETAIL DARI NOTIFIKASI / URL QUERY ── */
+    var urlParams = new URLSearchParams(window.location.search);
+    var targetDetailId = urlParams.get('detail_id');
+    if (targetDetailId) {
+        $.ajax({
+            url: crudBase + '/' + targetDetailId,
+            headers: { 'Accept': 'application/json' },
+            success: function (item) {
+                if (!item || !item.id) return;
+                rows[item.id] = item;
+                currentKonsultasi = item;
+
+                $('#d-nama').text(item.nama);
+                $('#d-email').text(item.email);
+                $('#d-usia-jk').text((item.usia ? item.usia + ' Tahun' : '—') + ' / ' + (item.jenis_kelamin || '—'));
+                $('#d-kab-kota').text(item.kab_kota || '—');
+                $('#d-kategori').text(item.kategori);
+                $('#d-pertanyaan').text(item.pertanyaan);
+                $('#d-created-at').text(item.created_at || '—');
+
+                var statusHtml = '';
+                if (item.status === 'dijawab') {
+                    statusHtml = '<span class="status-badge dijawab"><i class="mdi mdi-check-circle"></i> Dijawab</span>';
+                } else if (item.status === 'ditolak') {
+                    statusHtml = '<span class="status-badge ditolak"><i class="mdi mdi-close-circle"></i> Ditolak</span>';
+                } else {
+                    statusHtml = '<span class="status-badge pending"><i class="mdi mdi-clock-outline"></i> Menunggu Jawaban</span>';
+                }
+                $('#d-status').html(statusHtml);
+
+                if (item.jawaban) {
+                    $('#d-jawaban').text(item.jawaban);
+                    var penjawabInfo = '<i class="mdi mdi-account-check mr-1"></i> Dijawab oleh: <strong>' +
+                                       (item.penjawab_nama || 'Operator MUI') + '</strong>' +
+                                       (item.answered_at ? ' pada ' + item.answered_at : '');
+                    $('#d-penjawab-info').html(penjawabInfo);
+                    $('#d-jawaban-wrapper').show();
+                } else {
+                    $('#d-jawaban-wrapper').hide();
+                }
+
+                if (isOperator) {
+                    $('#btn-detail-balas').show();
+                    if (item.status === 'dijawab') {
+                        $('#btn-detail-balas').html('<i class="mdi mdi-pencil mr-1"></i> Edit Jawaban');
+                    } else {
+                        $('#btn-detail-balas').html('<i class="mdi mdi-reply mr-1"></i> Beri Jawaban');
+                    }
+                } else {
+                    $('#btn-detail-balas').hide();
+                }
+
+                $('#modal-detail').modal('show');
+            }
+        });
+    }
 });
 </script>
 @endsection

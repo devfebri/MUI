@@ -27,28 +27,36 @@ class KonsultasiAdminController extends Controller
     }
 
     /**
-     * Tampilkan detail konsultasi (JSON).
+     * Tampilkan detail konsultasi (JSON untuk AJAX / DataTables, atau redirect ke halaman index dengan modal terbuka).
      */
-    public function show(Konsultasi $konsultasi): JsonResponse
+    public function show(Request $request, Konsultasi $konsultasi): mixed
     {
-        $konsultasi->load('penjawab:id,name,role');
+        if ($request->wantsJson() || $request->ajax()) {
+            $konsultasi->load('penjawab:id,name,role');
 
-        return response()->json([
-            'id' => $konsultasi->id,
-            'nama' => $konsultasi->nama,
-            'email' => $konsultasi->email,
-            'usia' => $konsultasi->usia,
-            'jenis_kelamin' => $konsultasi->jenis_kelamin,
-            'kab_kota' => $konsultasi->kab_kota,
-            'kategori' => $konsultasi->kategori,
-            'pertanyaan' => $konsultasi->pertanyaan,
-            'status' => $konsultasi->status,
-            'jawaban' => $konsultasi->jawaban,
-            'penjawab_nama' => $konsultasi->penjawab?->name,
-            'penjawab_role' => $konsultasi->penjawab?->role,
-            'answered_at' => $konsultasi->answered_at?->translatedFormat('d F Y H:i'),
-            'created_at' => $konsultasi->created_at?->translatedFormat('d F Y H:i'),
-        ]);
+            return response()->json([
+                'id' => $konsultasi->id,
+                'nama' => $konsultasi->nama,
+                'email' => $konsultasi->email,
+                'usia' => $konsultasi->usia,
+                'jenis_kelamin' => $konsultasi->jenis_kelamin,
+                'kab_kota' => $konsultasi->kab_kota,
+                'kategori' => $konsultasi->kategori,
+                'pertanyaan' => $konsultasi->pertanyaan,
+                'status' => $konsultasi->status,
+                'jawaban' => $konsultasi->jawaban,
+                'penjawab_nama' => $konsultasi->penjawab?->name,
+                'penjawab_role' => $konsultasi->penjawab?->role,
+                'answered_at' => $konsultasi->answered_at?->translatedFormat('d F Y H:i'),
+                'created_at' => $konsultasi->created_at?->translatedFormat('d F Y H:i'),
+            ]);
+        }
+
+        $targetRoute = auth()->user() && auth()->user()->isOperator()
+            ? 'operator.konsultasi.index'
+            : 'admin.konsultasi.index';
+
+        return redirect()->route($targetRoute, ['detail_id' => $konsultasi->id]);
     }
 
     /**

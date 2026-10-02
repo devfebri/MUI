@@ -9,6 +9,8 @@ use App\Http\Controllers\KategoriFatwaController;
 use App\Http\Controllers\KonsultasiAdminController;
 use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\LiveChatController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OperatorPermissionController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\ProfileController;
@@ -67,6 +69,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profil-akun', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profil-akun', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
 });
 
 /*
@@ -131,6 +134,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Pengaturan (Tentang Kami)
     Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
     Route::post('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
+
+    // Hak Akses & Pembagian Tugas Operator
+    Route::prefix('operator-permissions')->name('operator-permissions.')->group(function () {
+        Route::get('/', [OperatorPermissionController::class, 'index'])->name('index');
+        Route::get('/{user}/edit', [OperatorPermissionController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [OperatorPermissionController::class, 'update'])->name('update');
+        Route::post('/{user}/grant-all', [OperatorPermissionController::class, 'grantAll'])->name('grant-all');
+        Route::post('/{user}/revoke-all', [OperatorPermissionController::class, 'revokeAll'])->name('revoke-all');
+    });
 });
 
 /*
@@ -141,41 +153,64 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:operator'])->prefix('operator')->name('operator.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('berita', BeritaController::class)
-        ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])
-        ->parameters(['berita' => 'berita']);
+    // Berita & Artikel
+    Route::middleware('operator.permission:berita')->group(function () {
+        Route::resource('berita', BeritaController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])
+            ->parameters(['berita' => 'berita']);
+    });
 
-    Route::resource('surat', SuratController::class)->only([
-        'index',
-        'store',
-        'update',
-        'destroy',
-    ]);
+    // Kategori Berita
+    Route::middleware('operator.permission:kategori')->group(function () {
+        Route::resource('kategori', KategoriController::class)->only([
+            'index',
+            'store',
+            'update',
+            'destroy',
+        ]);
+    });
 
-    Route::resource('fatwa', FatwaController::class)->only([
-        'index',
-        'store',
-        'update',
-        'destroy',
-    ]);
-    Route::patch('fatwa/{fatwa}/toggle-publikasi', [FatwaController::class, 'togglePublikasi'])
-        ->name('fatwa.togglePublikasi');
+    // Arsip Surat
+    Route::middleware('operator.permission:surat')->group(function () {
+        Route::resource('surat', SuratController::class)->only([
+            'index',
+            'store',
+            'update',
+            'destroy',
+        ]);
+    });
 
-    // Kategori Fatwa (AJAX CRUD)
-    Route::resource('kategori-fatwa', KategoriFatwaController::class)->only([
-        'index',
-        'store',
-        'update',
-        'destroy',
-    ]);
-    Route::patch('kategori-fatwa/{kategori_fatwa}/toggle-status', [KategoriFatwaController::class, 'toggleStatus'])
-        ->name('kategori-fatwa.toggleStatus');
+    // Fatwa MUI
+    Route::middleware('operator.permission:fatwa')->group(function () {
+        Route::resource('fatwa', FatwaController::class)->only([
+            'index',
+            'store',
+            'update',
+            'destroy',
+        ]);
+        Route::patch('fatwa/{fatwa}/toggle-publikasi', [FatwaController::class, 'togglePublikasi'])
+            ->name('fatwa.togglePublikasi');
+    });
+
+    // Kategori Fatwa
+    Route::middleware('operator.permission:kategori-fatwa')->group(function () {
+        Route::resource('kategori-fatwa', KategoriFatwaController::class)->only([
+            'index',
+            'store',
+            'update',
+            'destroy',
+        ]);
+        Route::patch('kategori-fatwa/{kategori_fatwa}/toggle-status', [KategoriFatwaController::class, 'toggleStatus'])
+            ->name('kategori-fatwa.toggleStatus');
+    });
 
     // Konsultasi (View + Reply)
-    Route::get('konsultasi', [KonsultasiAdminController::class, 'index'])->name('konsultasi.index');
-    Route::get('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'show'])->name('konsultasi.show');
-    Route::post('konsultasi/{konsultasi}/jawab', [KonsultasiAdminController::class, 'jawab'])->name('konsultasi.jawab');
-    Route::delete('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'destroy'])->name('konsultasi.destroy');
+    Route::middleware('operator.permission:konsultasi')->group(function () {
+        Route::get('konsultasi', [KonsultasiAdminController::class, 'index'])->name('konsultasi.index');
+        Route::get('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'show'])->name('konsultasi.show');
+        Route::post('konsultasi/{konsultasi}/jawab', [KonsultasiAdminController::class, 'jawab'])->name('konsultasi.jawab');
+        Route::delete('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'destroy'])->name('konsultasi.destroy');
+    });
 });
 
 /*
@@ -198,7 +233,7 @@ Route::prefix('livechat')->name('livechat.')->group(function () {
 | Live Chat Panel Petugas (Admin & Operator)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin,operator'])->prefix('petugas/livechat')->name('admin.livechat.')->group(function () {
+Route::middleware(['auth', 'role:admin,operator', 'operator.permission:livechat'])->prefix('petugas/livechat')->name('admin.livechat.')->group(function () {
     Route::get('/', [AdminLiveChatController::class, 'index'])->name('index');
     Route::post('/take/{session}', [AdminLiveChatController::class, 'take'])->name('take');
     Route::get('/room/{session}', [AdminLiveChatController::class, 'show'])->name('show');

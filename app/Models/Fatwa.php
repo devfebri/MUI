@@ -45,6 +45,14 @@ class Fatwa extends Model
     }
 
     /**
+     * Alias relasi ke Kategori Fatwa (kategoriFatwa).
+     */
+    public function kategoriFatwa(): BelongsTo
+    {
+        return $this->kategori();
+    }
+
+    /**
      * URL publik untuk file PDF fatwa menggunakan asset().
      */
     public function getFileUrlAttribute(): ?string

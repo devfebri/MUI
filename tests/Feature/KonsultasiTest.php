@@ -136,6 +136,31 @@ class KonsultasiTest extends TestCase
         ]);
     }
 
+    public function test_konsultasi_show_returns_json_for_ajax_and_redirects_for_browser(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $konsultasi = Konsultasi::create([
+            'nama' => 'Ahmad Test',
+            'email' => 'ahmad@example.com',
+            'usia' => 30,
+            'jenis_kelamin' => 'Laki-laki',
+            'kab_kota' => 'Banda Aceh',
+            'kategori' => 'Muamalah',
+            'pertanyaan' => 'Pertanyaan uji show',
+            'status' => 'pending',
+        ]);
+
+        // 1. AJAX request returns JSON
+        $ajaxResponse = $this->actingAs($admin)->getJson(route('admin.konsultasi.show', $konsultasi));
+        $ajaxResponse->assertStatus(200);
+        $ajaxResponse->assertJsonPath('id', $konsultasi->id);
+        $ajaxResponse->assertJsonPath('nama', 'Ahmad Test');
+
+        // 2. Direct browser GET request redirects to index view with detail_id
+        $browserResponse = $this->actingAs($admin)->get(route('admin.konsultasi.show', $konsultasi));
+        $browserResponse->assertRedirect(route('admin.konsultasi.index', ['detail_id' => $konsultasi->id]));
+    }
+
     /**
      * Test public can view konsultasi list page.
      */

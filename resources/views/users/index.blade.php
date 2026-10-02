@@ -500,8 +500,13 @@
                             return new Date(data).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                         }},
                         { data: null, orderable: false, searchable: false, render: function(data, type, row) {
-                            return '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-user" data-user="' + row.id + '"><i class="mdi mdi-pencil"></i></button> ' +
-                                '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-user" data-user="' + row.id + '"><i class="mdi mdi-delete"></i></button>';
+                            let actions = '';
+                            if (row.role === 'operator') {
+                                actions += '<a href="/admin/operator-permissions?search=' + encodeURIComponent(row.username) + '" class="btn btn-outline-info btn-sm mr-1" title="Atur Tugas & Hak Akses"><i class="mdi mdi-shield-account"></i></a> ';
+                            }
+                            actions += '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-user mr-1" data-user="' + row.id + '" title="Edit Pengguna"><i class="mdi mdi-pencil"></i></button>' +
+                                '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-user" data-user="' + row.id + '" title="Hapus Pengguna"><i class="mdi mdi-delete"></i></button>';
+                            return actions;
                         }}
                     ],
                     language: {

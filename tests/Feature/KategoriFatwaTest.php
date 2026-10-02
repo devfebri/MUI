@@ -24,7 +24,10 @@ class KategoriFatwaTest extends TestCase
 
     public function test_operator_can_view_kategori_fatwa_page(): void
     {
-        $operator = User::factory()->create(['role' => 'operator']);
+        $operator = User::factory()->create([
+            'role' => 'operator',
+            'menu_permissions' => ['kategori-fatwa'],
+        ]);
 
         $response = $this->actingAs($operator)->get(route('operator.kategori-fatwa.index'));
 

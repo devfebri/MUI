@@ -106,6 +106,16 @@ class AdminLiveChatController extends Controller
      */
     public function show(ChatSession $session): View
     {
+        // Jika sesi masih menunggu dan dibuka langsung oleh petugas, aktifkan dan tugaskan ke petugas ini
+        if ($session->status === 'menunggu') {
+            $session->update([
+                'operator_id' => auth()->id(),
+                'status' => 'aktif',
+                'started_at' => $session->started_at ?? now(),
+                'last_activity_at' => now(),
+            ]);
+        }
+
         $session->load(['operator', 'messages']);
 
         return view('admin.livechat.show', compact('session'));
