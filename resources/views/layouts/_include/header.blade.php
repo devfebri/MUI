@@ -37,6 +37,17 @@
         {{-- Divider --}}
         <div class="mui-topbar-divider"></div>
 
+        {{-- Live Chat Quick Alert --}}
+        @php
+            $headerWaitingChat = \App\Models\ChatSession::where('status', 'menunggu')->count();
+        @endphp
+        <a href="{{ route('admin.livechat.index') }}" class="mui-topbar-btn" title="Live Chat Masyarakat" style="text-decoration: none;">
+            <i class="mdi mdi-chat-processing-outline"></i>
+            <span class="mui-notif-badge mui-livechat-header-badge {{ $headerWaitingChat > 0 ? '' : 'd-none' }}" style="background: #f59e0b;">
+                {{ $headerWaitingChat }}
+            </span>
+        </a>
+
         {{-- Notification Bell --}}
         <div class="dropdown">
             <button class="mui-topbar-btn dropdown-toggle"
@@ -494,3 +505,47 @@
 .mui-logout-item:hover { background: #fef2f2 !important; color: #dc2626 !important; }
 .mui-logout-item:hover i { color: #dc2626 !important; }
 </style>
+
+<script>
+(function() {
+    let topbarLastWaitingId = null;
+
+    function pollHeaderChatAlert() {
+        fetch('{{ route('admin.livechat.poll-overview') }}')
+            .then(res => res.json())
+            .then(data => {
+                const badges = document.querySelectorAll('.mui-livechat-header-badge');
+                badges.forEach(b => {
+                    b.textContent = data.waiting_count;
+                    if (data.waiting_count > 0) {
+                        b.classList.remove('d-none');
+                    } else {
+                        b.classList.add('d-none');
+                    }
+                });
+
+                if (data.latest_waiting_id && data.latest_waiting_id !== topbarLastWaitingId) {
+                    if (topbarLastWaitingId !== null) {
+                        try {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.frequency.setValueAtTime(800, ctx.currentTime);
+                            osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+                            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+                            osc.start(ctx.currentTime);
+                            osc.stop(ctx.currentTime + 0.45);
+                        } catch(e) {}
+                    }
+                    topbarLastWaitingId = data.latest_waiting_id;
+                }
+            })
+            .catch(() => {});
+    }
+
+    setInterval(pollHeaderChatAlert, 5000);
+})();
+</script>

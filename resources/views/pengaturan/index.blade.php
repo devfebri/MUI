@@ -200,6 +200,10 @@
            class="nav-settings-link {{ $tab === 'kontak' ? 'active' : '' }}">
             <i class="mdi mdi-phone-classic"></i> 4. Kontak & Medsos
         </a>
+        <a href="{{ route('admin.pengaturan.index', ['tab' => 'livechat']) }}"
+           class="nav-settings-link {{ $tab === 'livechat' ? 'active' : '' }}">
+            <i class="mdi mdi-forum-outline"></i> 5. Live Chat & Jam Kerja
+        </a>
     </div>
 
     {{-- TAB 1: PROFIL MUI --}}
@@ -719,6 +723,89 @@
             <div class="mt-4 pt-3">
                 <button type="submit" class="btn-save">
                     <i class="mdi mdi-content-save"></i> Simpan Kontak & Medsos
+                </button>
+            </div>
+        </form>
+    </div>
+    @endif
+
+    {{-- TAB 5: LIVE CHAT & JAM OPERASIONAL --}}
+    @if ($tab === 'livechat')
+    <div class="settings-card">
+        <form action="{{ route('admin.pengaturan.update') }}" method="POST">
+            @csrf
+            <input type="hidden" name="_section" value="livechat">
+
+            <div class="section-title">
+                <i class="mdi mdi-toggle-switch"></i> Status Fitur Live Chat
+            </div>
+            <p class="section-desc">Aktifkan atau nonaktifkan widget floating live chat di seluruh halaman website publik.</p>
+
+            <div class="form-check form-switch mb-4">
+                <input class="form-check-input" type="checkbox" name="chat_is_enabled" id="chat_is_enabled" value="1"
+                       {{ old('chat_is_enabled', $settings['chat_is_enabled'] ?? '1') === '1' ? 'checked' : '' }} style="width: 44px; height: 22px;">
+                <label class="form-check-label ms-2 fw-bold" for="chat_is_enabled">
+                    Aktifkan Fitur Live Chat di Frontend
+                </label>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="section-title">
+                <i class="mdi mdi-clock-outline"></i> Jam & Hari Operasional Petugas
+            </div>
+            <p class="section-desc">Tentukan jam kerja operasional petugas melayani masyarakat. Di luar jam ini, sistem akan otomatis beralih ke Asisten Virtual (Chatbot FAQ 24 Jam).</p>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Jam Mulai Layanan <span class="text-danger">*</span></label>
+                    <input type="text" name="chat_operational_start" class="form-control" placeholder="08:00"
+                           value="{{ old('chat_operational_start', $settings['chat_operational_start'] ?? '08:00') }}" required>
+                    <small class="text-muted">Format 24 jam (WIB), contoh: 08:00</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Jam Selesai Layanan <span class="text-danger">*</span></label>
+                    <input type="text" name="chat_operational_end" class="form-control" placeholder="16:00"
+                           value="{{ old('chat_operational_end', $settings['chat_operational_end'] ?? '16:00') }}" required>
+                    <small class="text-muted">Format 24 jam (WIB), contoh: 16:00</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Estimasi Waktu Tunggu / Antrian <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="number" name="chat_avg_wait_minutes" class="form-control" min="1" max="60"
+                               value="{{ old('chat_avg_wait_minutes', $settings['chat_avg_wait_minutes'] ?? '4') }}" required>
+                        <span class="input-group-text">Menit / Antrian</span>
+                    </div>
+                    <small class="text-muted">Digunakan untuk menghitung perkiraan waktu tunggu pengunjung.</small>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Hari Operasional Petugas</label>
+                    <input type="text" name="chat_operational_days" class="form-control" placeholder="1,2,3,4,5"
+                           value="{{ old('chat_operational_days', $settings['chat_operational_days'] ?? '1,2,3,4,5') }}">
+                    <small class="text-muted">Keterangan: 1 = Senin, 2 = Selasa, 3 = Rabu, 4 = Kamis, 5 = Jumat, 6 = Sabtu, 7 = Minggu (Pisahkan dengan koma).</small>
+                </div>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="section-title">
+                <i class="mdi mdi-robot"></i> Pesan & Sapaan Chatbot
+            </div>
+            <p class="section-desc">Kustomisasi teks pembuka dan respon otomatis saat petugas offline / di luar jam kerja.</p>
+
+            <div class="mb-3">
+                <label class="form-label">Teks Sapaan Awal (Jam Kerja) <span class="text-danger">*</span></label>
+                <textarea name="chat_bot_greeting" rows="2" class="form-control" required>{{ old('chat_bot_greeting', $settings['chat_bot_greeting'] ?? 'Assalamu\'alaikum! Selamat datang di Layanan Bantuan Online MUI Batanghari. Ada yang bisa kami bantu?') }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Pesan Otomatis di Luar Jam Operasional <span class="text-danger">*</span></label>
+                <textarea name="chat_offline_message" rows="3" class="form-control" required>{{ old('chat_offline_message', $settings['chat_offline_message'] ?? 'Mohon maaf, saat ini kantor MUI Batanghari sedang di luar jam operasional (Jam kerja: Senin - Jumat 08.00 - 16.00 WIB). Silakan pilih pertanyaan umum di bawah ini atau tinggalkan pesan untuk petugas kami.') }}</textarea>
+            </div>
+
+            <div class="mt-4 pt-3">
+                <button type="submit" class="btn-save">
+                    <i class="mdi mdi-content-save"></i> Simpan Pengaturan Live Chat
                 </button>
             </div>
         </form>

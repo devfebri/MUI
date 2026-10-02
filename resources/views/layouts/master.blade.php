@@ -541,6 +541,8 @@
     <script src="{{ asset('templateadmin/assets/js/app.js') }}"></script>
 
     @yield('javascript')
+    @yield('script')
+    @stack('scripts')
 
     <!-- Modern Toast Container -->
     <div id="mui-toast-container" aria-live="polite"></div>

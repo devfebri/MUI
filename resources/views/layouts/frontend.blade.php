@@ -48,6 +48,9 @@
         @include('layouts._frontend.footer')
     @show
 
+    {{-- ── WIDGET LIVE CHAT & CHATBOT MUI ── --}}
+    @include('layouts._frontend.livechat')
+
     @stack('scripts')
 
 </body>

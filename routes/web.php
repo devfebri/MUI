@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminLiveChatController;
 use App\Http\Controllers\BeritaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FatwaController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KategoriFatwaController;
 use App\Http\Controllers\KonsultasiAdminController;
 use App\Http\Controllers\KonsultasiController;
+use App\Http\Controllers\LiveChatController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\ProfileController;
@@ -174,4 +176,39 @@ Route::middleware(['auth', 'role:operator'])->prefix('operator')->name('operator
     Route::get('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'show'])->name('konsultasi.show');
     Route::post('konsultasi/{konsultasi}/jawab', [KonsultasiAdminController::class, 'jawab'])->name('konsultasi.jawab');
     Route::delete('konsultasi/{konsultasi}', [KonsultasiAdminController::class, 'destroy'])->name('konsultasi.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Live Chat Frontend (Public)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('livechat')->name('livechat.')->group(function () {
+    Route::get('/init', [LiveChatController::class, 'init'])->name('init');
+    Route::post('/start', [LiveChatController::class, 'start'])->name('start');
+    Route::post('/send', [LiveChatController::class, 'send'])->name('send');
+    Route::post('/ask-faq', [LiveChatController::class, 'askFaq'])->name('ask-faq');
+    Route::get('/poll', [LiveChatController::class, 'poll'])->name('poll');
+    Route::get('/stream', [LiveChatController::class, 'stream'])->name('stream');
+    Route::post('/close', [LiveChatController::class, 'close'])->name('close');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Live Chat Panel Petugas (Admin & Operator)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin,operator'])->prefix('petugas/livechat')->name('admin.livechat.')->group(function () {
+    Route::get('/', [AdminLiveChatController::class, 'index'])->name('index');
+    Route::post('/take/{session}', [AdminLiveChatController::class, 'take'])->name('take');
+    Route::get('/room/{session}', [AdminLiveChatController::class, 'show'])->name('show');
+    Route::post('/room/{session}/send', [AdminLiveChatController::class, 'sendMessage'])->name('send');
+    Route::get('/room/{session}/poll', [AdminLiveChatController::class, 'pollSession'])->name('poll-session');
+    Route::post('/room/{session}/close', [AdminLiveChatController::class, 'close'])->name('close');
+    Route::get('/poll-overview', [AdminLiveChatController::class, 'pollOverview'])->name('poll-overview');
+    Route::get('/export-csv', [AdminLiveChatController::class, 'exportCsv'])->name('export-csv');
+    Route::get('/transcript/{session}', [AdminLiveChatController::class, 'transcript'])->name('transcript');
+    Route::post('/faq', [AdminLiveChatController::class, 'storeFaq'])->name('faq.store');
+    Route::put('/faq/{faq}', [AdminLiveChatController::class, 'updateFaq'])->name('faq.update');
+    Route::delete('/faq/{faq}', [AdminLiveChatController::class, 'deleteFaq'])->name('faq.destroy');
 });

@@ -131,6 +131,22 @@ class PengaturanController extends Controller
             foreach ($data as $key => $val) {
                 Setting::set($key, $val, 'kontak');
             }
+        } elseif ($section === 'livechat') {
+            $data = $request->validate([
+                'chat_is_enabled' => 'nullable|string',
+                'chat_operational_start' => 'required|string|max:10',
+                'chat_operational_end' => 'required|string|max:10',
+                'chat_operational_days' => 'nullable|string|max:50',
+                'chat_avg_wait_minutes' => 'required|integer|min:1',
+                'chat_bot_greeting' => 'required|string',
+                'chat_offline_message' => 'required|string',
+            ]);
+
+            $data['chat_is_enabled'] = $request->has('chat_is_enabled') ? '1' : '0';
+
+            foreach ($data as $key => $val) {
+                Setting::set($key, (string) $val, 'livechat');
+            }
         }
 
         Setting::clearCache();
@@ -140,9 +156,10 @@ class PengaturanController extends Controller
             'visi_misi' => 'Visi & Misi',
             'struktur' => 'Struktur Organisasi',
             'kontak' => 'Kontak & Media Sosial',
+            'livechat' => 'Live Chat & Jam Kerja',
         ];
 
-        $label = $sectionLabels[$section] ?? 'Tentang Kami';
+        $label = $sectionLabels[$section] ?? 'Pengaturan';
 
         return redirect()->route('admin.pengaturan.index', ['tab' => $section])
             ->with('pesan', 'Pengaturan '.$label.' berhasil disimpan!');

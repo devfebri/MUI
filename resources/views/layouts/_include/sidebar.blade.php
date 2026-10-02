@@ -113,6 +113,22 @@
         <div class="mui-nav-section">Layanan</div>
         <ul class="mui-nav-list">
             <li>
+                <a href="{{ route('admin.livechat.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.livechat') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-chat-processing-outline"></i></span>
+                    <span class="nav-label">Live Chat</span>
+                    @php
+                        $waitingChatCount = \App\Models\ChatSession::where('status', 'menunggu')->count();
+                    @endphp
+                    @if ($waitingChatCount > 0)
+                        <span class="badge ml-auto"
+                            style="background:#f59e0b; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                            {{ $waitingChatCount }}
+                        </span>
+                    @endif
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.konsultasi.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'admin.konsultasi') ? 'active' : '' }}">
                     <span class="nav-icon"><i class="mdi mdi-forum"></i></span>
@@ -209,6 +225,22 @@
 
         <div class="mui-nav-section">Layanan</div>
         <ul class="mui-nav-list">
+            <li>
+                <a href="{{ route('admin.livechat.index') }}"
+                    class="mui-nav-link {{ str_starts_with($route, 'admin.livechat') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="mdi mdi-chat-processing-outline"></i></span>
+                    <span class="nav-label">Live Chat</span>
+                    @php
+                        $waitingChatCount = \App\Models\ChatSession::where('status', 'menunggu')->count();
+                    @endphp
+                    @if ($waitingChatCount > 0)
+                        <span class="badge ml-auto"
+                            style="background:#f59e0b; color:#1e293b; font-weight:700; font-size:11px; border-radius:10px; padding:2px 7px;">
+                            {{ $waitingChatCount }}
+                        </span>
+                    @endif
+                </a>
+            </li>
             <li>
                 <a href="{{ route('operator.konsultasi.index') }}"
                     class="mui-nav-link {{ str_starts_with($route, 'operator.konsultasi') ? 'active' : '' }}">
