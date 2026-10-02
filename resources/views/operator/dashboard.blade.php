@@ -153,6 +153,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
         background: #fafcfb;
     }
 
@@ -333,11 +335,67 @@
         border: 3px solid #fff;
         box-shadow: 0 4px 10px rgba(0,0,0,.08);
     }
+
+    /* Responsive Portal Container & Breakpoints */
+    .portal-container {
+        padding: 24px 28px;
+    }
+
+    @media (max-width: 991.98px) {
+        .portal-container {
+            padding: 18px 20px;
+        }
+        .dashboard-header {
+            padding: 20px 22px;
+            margin-bottom: 20px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .portal-container {
+            padding: 14px 14px;
+        }
+        .dashboard-header {
+            padding: 18px 16px;
+            margin-bottom: 16px;
+        }
+        .dashboard-header h4 {
+            font-size: 18px;
+        }
+        .dashboard-header p {
+            font-size: 12.5px;
+        }
+        .stat-card-custom {
+            padding: 16px;
+        }
+        .stat-icon-wrap {
+            width: 46px;
+            height: 46px;
+            font-size: 22px;
+        }
+        .stat-info-wrap .stat-num {
+            font-size: 20px;
+        }
+        .quick-link-box {
+            padding: 11px 12px;
+        }
+        .quick-link-box .ql-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 18px;
+        }
+        .panel-card .panel-header {
+            padding: 14px 16px;
+        }
+        .panel-card .panel-body {
+            padding: 16px 14px;
+        }
+    }
 </style>
 @endsection
 
 @section('content')
-<div class="container-fluid" style="padding: 24px 30px;">
+<div class="container-fluid portal-container">
 
     {{-- ===== HEADER DASHBOARD OPERATOR ===== --}}
     <div class="dashboard-header">
@@ -370,7 +428,7 @@
     <div class="row g-3 mb-4">
         {{-- Stat Live Chat --}}
         @if(auth()->user()->hasMenuPermission('livechat'))
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('admin.livechat.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap {{ ($stats['chat_menunggu'] ?? 0) > 0 ? 'red' : 'blue' }}">
                         <i class="mdi mdi-chat-processing-outline"></i>
@@ -385,7 +443,7 @@
                 </a>
             </div>
 
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('admin.livechat.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap green">
                         <i class="mdi mdi-wechat"></i>
@@ -403,7 +461,7 @@
 
         {{-- Stat Konsultasi --}}
         @if(auth()->user()->hasMenuPermission('konsultasi'))
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.konsultasi.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap {{ ($stats['konsultasi_pending'] ?? 0) > 0 ? 'yellow' : 'green' }}">
                         <i class="mdi mdi-forum-outline"></i>
@@ -418,7 +476,7 @@
                 </a>
             </div>
 
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.konsultasi.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap purple">
                         <i class="mdi mdi-comment-check-outline"></i>
@@ -436,7 +494,7 @@
 
         {{-- Stat Berita --}}
         @if(auth()->user()->hasMenuPermission('berita'))
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.berita.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap green">
                         <i class="mdi mdi-newspaper"></i>
@@ -451,7 +509,7 @@
                 </a>
             </div>
 
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.berita.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap blue">
                         <i class="mdi mdi-eye-outline"></i>
@@ -469,7 +527,7 @@
 
         {{-- Stat Arsip Fatwa & Surat bila ada --}}
         @if(auth()->user()->hasMenuPermission('fatwa'))
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.fatwa.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap yellow">
                         <i class="mdi mdi-book-open-variant"></i>
@@ -486,7 +544,7 @@
         @endif
 
         @if(auth()->user()->hasMenuPermission('surat'))
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
                 <a href="{{ route('operator.surat.index') }}" class="stat-card-custom">
                     <div class="stat-icon-wrap purple">
                         <i class="mdi mdi-email-outline"></i>

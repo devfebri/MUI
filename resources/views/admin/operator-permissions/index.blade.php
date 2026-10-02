@@ -82,6 +82,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
     .panel-card .panel-header h5 {
@@ -282,12 +284,55 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Responsive Portal Container & Breakpoints */
+    .portal-container {
+        padding: 24px 28px;
+    }
+
+    @media (max-width: 991.98px) {
+        .portal-container {
+            padding: 18px 20px;
+        }
+        .page-header {
+            padding: 20px 22px;
+            margin-bottom: 20px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .portal-container {
+            padding: 14px 14px;
+        }
+        .page-header {
+            padding: 18px 16px;
+            margin-bottom: 16px;
+        }
+        .page-header h4 {
+            font-size: 18px;
+        }
+        .page-header p {
+            font-size: 12.5px;
+        }
+        .panel-card .panel-header {
+            padding: 14px 16px;
+        }
+        .perm-grid {
+            grid-template-columns: 1fr;
+        }
+        .quick-selector-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 </style>
 @endsection
 
 @section('content')
-<div class="container-fluid" style="padding: 24px 30px;">
+<div class="container-fluid portal-container">
 
     {{-- ===== PAGE HEADER ===== --}}
     <div class="page-header">

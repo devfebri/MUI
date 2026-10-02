@@ -46,7 +46,7 @@
     {{-- ── LEFT: Hamburger + Breadcrumb ──────────────────────────── --}}
     <div class="mui-topbar-left">
         {{-- Mobile toggle --}}
-        <button type="button" class="mui-menu-toggle button-menu-mobile open-left waves-effect" title="Buka/Tutup Navigasi">
+        <button type="button" class="mui-menu-toggle button-menu-mobile open-left waves-effect" id="btn-toggle-sidebar" aria-label="Buka/Tutup Navigasi" title="Buka/Tutup Navigasi">
             <i class="mdi mdi-menu"></i>
         </button>
 
@@ -840,6 +840,28 @@
 
 .mui-logout-item:hover i {
     color: #dc2626 !important;
+}
+
+@media (max-width: 575.98px) {
+    .mui-topbar {
+        padding: 0 10px !important;
+        height: 56px !important;
+    }
+    .mui-page-title {
+        font-size: 11.5px;
+    }
+    .mui-page-sub {
+        font-size: 11.5px;
+    }
+    .mui-topbar-right {
+        gap: 4px;
+    }
+    .mui-user-trigger {
+        padding: 2px 4px !important;
+    }
+    .mui-chevron {
+        display: none !important;
+    }
 }
 </style>
 

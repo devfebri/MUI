@@ -74,13 +74,27 @@
             vertical-align: middle;
         }
 
-        /* ===== SIDEBAR ===== */
-        .left.side-menu {
+        /* ===== SIDEBAR & RESPONSIVE LAYOUT ===== */
+        .left.side-menu,
+        body.fixed-left .side-menu.left,
+        #wrapper .left.side-menu {
             background: linear-gradient(180deg, var(--mui-green-dark) 0%, var(--mui-green) 40%, #006b50 100%) !important;
             width: var(--sidebar-w) !important;
             box-shadow: 3px 0 20px rgba(0,0,0,.18) !important;
-            position: relative;
-            z-index: 100;
+            position: fixed !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            margin-left: 0 !important; /* OVERRIDE style.css -100% / -75px */
+            margin-right: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+            height: 100vh !important;
+            z-index: 1055 !important; /* OVERRIDE style.css z-index: 10 */
+            display: flex !important;
+            flex-direction: column !important;
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
         /* Islamic top border di sidebar */
@@ -90,12 +104,32 @@
             top: 0; left: 0; right: 0;
             height: 3px;
             background: linear-gradient(90deg, var(--mui-gold), var(--mui-gold-light), var(--mui-gold));
+            z-index: 2;
         }
 
-        /* Sidebar layout — flex column so footer sticks bottom */
-        .left.side-menu {
-            display: flex !important;
-            flex-direction: column !important;
+        /* Tombol Tutup Sidebar pada Mobile */
+        .button-menu-mobile-topbar {
+            display: none;
+            position: absolute;
+            top: 14px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.18) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 8px !important;
+            font-size: 20px !important;
+            cursor: pointer;
+            z-index: 1055;
+            align-items: center;
+            justify-content: center;
+            padding: 0 !important;
+            transition: background var(--transition);
+        }
+
+        .button-menu-mobile-topbar:hover {
+            background: rgba(255, 255, 255, 0.3) !important;
         }
 
         /* Hide default topbar-left — sidebar has its own brand */
@@ -167,26 +201,167 @@
             padding: 14px 20px 6px;
         }
 
-        /* ===== TOPBAR ===== */
-        .topbar {
-            background: var(--mui-white) !important;
-            border-bottom: 2px solid var(--mui-green-pale) !important;
-            box-shadow: var(--shadow-sm) !important;
-            min-height: var(--topbar-h) !important;
-        }
-
-        .navbar-custom {
-            background: transparent !important;
-        }
-
         /* ===== CONTENT PAGE ===== */
         .content-page {
             margin-left: var(--sidebar-w) !important;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: calc(100% - var(--sidebar-w));
+            max-width: 100%;
+            transition: margin-left var(--transition), width var(--transition) !important;
+            overflow-x: hidden;
         }
 
         .content {
             padding: 0 !important;
             background: #f0f4f2 !important;
+            flex: 1 0 auto;
+        }
+
+        /* Mobile Backdrop Overlay */
+        .mui-sidebar-backdrop {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: rgba(10, 25, 20, 0.65) !important;
+            backdrop-filter: blur(2px) !important;
+            -webkit-backdrop-filter: blur(2px) !important;
+            z-index: 1050 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transition: opacity 0.25s ease, visibility 0.25s ease !important;
+        }
+
+        /* ===== DESKTOP COLLAPSE (ENLARGED) ===== */
+        @media (min-width: 992px) {
+            #wrapper.enlarged .left.side-menu {
+                transform: translateX(-100%) !important;
+            }
+            #wrapper.enlarged .content-page {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
+
+        /* ===== TABLET & MOBILE (MAX-WIDTH: 991.98px) ===== */
+        @media (max-width: 991.98px) {
+            .left.side-menu,
+            body.fixed-left .side-menu.left,
+            #wrapper .left.side-menu,
+            #wrapper.enlarged .left.side-menu {
+                position: fixed !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                margin-left: 0 !important; /* OVERRIDE style.css -100% / -75px */
+                width: 275px !important;
+                max-width: 85vw !important;
+                transform: translateX(-105%) !important; /* Hidden offscreen */
+                box-shadow: none !important;
+                visibility: hidden !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s ease !important;
+            }
+
+            .button-menu-mobile-topbar {
+                display: flex !important;
+            }
+
+            .mui-brand-link {
+                padding-right: 40px !important;
+            }
+
+            .content-page {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+            }
+
+            /* Saat drawer sidebar terbuka pada mobile / tablet */
+            body.sidebar-open .left.side-menu,
+            body.sidebar-open #wrapper .left.side-menu,
+            body.sidebar-open .side-menu.left {
+                transform: translateX(0) !important; /* Slides into view */
+                box-shadow: 10px 0 40px rgba(0, 0, 0, 0.45) !important;
+                visibility: visible !important;
+            }
+
+            body.sidebar-open .mui-sidebar-backdrop {
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+            }
+
+            body.sidebar-open {
+                overflow: hidden !important;
+            }
+
+            .container-fluid {
+                padding-left: 18px !important;
+                padding-right: 18px !important;
+            }
+
+            .portal-container {
+                padding: 18px 20px !important;
+            }
+        }
+
+        /* ===== SMARTPHONE / HP (MAX-WIDTH: 767.98px) ===== */
+        @media (max-width: 767.98px) {
+            .container-fluid {
+                padding-left: 14px !important;
+                padding-right: 14px !important;
+                padding-top: 14px !important;
+            }
+
+            .portal-container {
+                padding: 14px 14px !important;
+            }
+
+            /* Responsive tables on phones */
+            .table-responsive {
+                -webkit-overflow-scrolling: touch;
+                border: none;
+            }
+
+            /* DataTables control stacking */
+            .dataTables_wrapper .dataTables_filter,
+            .dataTables_wrapper .dataTables_length {
+                text-align: left !important;
+                float: none !important;
+                margin-bottom: 10px;
+            }
+
+            .dataTables_wrapper .dataTables_filter input {
+                width: 100% !important;
+                margin-left: 0 !important;
+            }
+
+            .dataTables_wrapper .dataTables_paginate {
+                text-align: center !important;
+                float: none !important;
+                margin-top: 12px;
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+        }
+
+        /* ===== SMARTPHONE / HP KECIL (MAX-WIDTH: 575.98px) ===== */
+        @media (max-width: 575.98px) {
+            :root {
+                --sidebar-w: 260px;
+                --topbar-h: 56px;
+            }
+
+            .footer {
+                padding: 12px 14px !important;
+                font-size: 11.5px !important;
+            }
         }
 
         /* ===== FOOTER ===== */
@@ -197,6 +372,7 @@
             font-size: 13px !important;
             text-align: center !important;
             padding: 14px 20px !important;
+            flex-shrink: 0;
         }
 
         /* ===== CARD OVERRIDES ===== */
@@ -471,11 +647,13 @@
     <!-- Begin page -->
     <div id="wrapper">
 
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="mui-sidebar-backdrop" id="muiSidebarBackdrop"></div>
+
         <!-- ========== Left Sidebar ========== -->
         <div class="left side-menu">
-            <button type="button" class="button-menu-mobile button-menu-mobile-topbar open-left waves-effect"
-                style="color:rgba(255,255,255,.7);">
-                <i class="ion-close"></i>
+            <button type="button" class="button-menu-mobile-topbar" id="btn-close-sidebar" aria-label="Tutup Menu" title="Tutup Menu">
+                <i class="mdi mdi-close"></i>
             </button>
             @include('layouts._include.sidebar')
         </div>
@@ -668,15 +846,72 @@
             @endforeach
         @endif
 
-        // Real-time clock
-        (function tick() {
-            var el = document.getElementById('time');
-            if (el) {
-                el.innerHTML = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
-                    .replace(', ', ' — ');
+        // ========================================================
+        // MOBILE & DESKTOP SIDEBAR DRAWER CONTROLLER
+        // ========================================================
+        $(document).ready(function() {
+            // Unbind Annex template's old button-menu-mobile click handlers to avoid conflict
+            $('.button-menu-mobile').off('click');
+
+            function openMobileSidebar() {
+                $('body').addClass('sidebar-open');
+                $('#wrapper').addClass('sidebar-open');
             }
-            setTimeout(tick, 1000);
-        })();
+
+            function closeMobileSidebar() {
+                $('body').removeClass('sidebar-open');
+                $('#wrapper').removeClass('sidebar-open');
+            }
+
+            function toggleSidebar(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                if ($(window).width() < 992) {
+                    if ($('body').hasClass('sidebar-open')) {
+                        closeMobileSidebar();
+                    } else {
+                        openMobileSidebar();
+                    }
+                } else {
+                    $('#wrapper').toggleClass('enlarged');
+                }
+            }
+
+            // Click / touch on hamburger button
+            $(document).on('click', '#btn-toggle-sidebar, .mui-menu-toggle, .button-menu-mobile:not(.button-menu-mobile-topbar)', toggleSidebar);
+
+            // Close sidebar when clicking backdrop or close (X) button inside sidebar
+            $(document).on('click', '#muiSidebarBackdrop, #btn-close-sidebar, .button-menu-mobile-topbar', function(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                closeMobileSidebar();
+            });
+
+            // Close on ESC key
+            $(document).on('keydown', function(e) {
+                if ((e.key === 'Escape' || e.keyCode === 27) && $('body').hasClass('sidebar-open')) {
+                    closeMobileSidebar();
+                }
+            });
+
+            // Close drawer when clicking a link inside sidebar on mobile
+            $(document).on('click', '.mui-nav-link:not(.has-submenu)', function() {
+                if ($(window).width() < 992) {
+                    closeMobileSidebar();
+                }
+            });
+
+            // Auto close mobile drawer if window resized to desktop
+            $(window).on('resize', function () {
+                if ($(window).width() >= 992) {
+                    closeMobileSidebar();
+                }
+            });
+        });
     </script>
 
 </body>

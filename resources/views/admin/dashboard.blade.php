@@ -282,11 +282,60 @@
         height: 100%;
         object-fit: cover;
     }
+
+    /* Responsive Portal Container & Breakpoints */
+    .portal-container {
+        padding: 24px 28px;
+    }
+
+    @media (max-width: 991.98px) {
+        .portal-container {
+            padding: 18px 20px;
+        }
+        .dashboard-header {
+            padding: 20px 22px;
+            margin-bottom: 20px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .portal-container {
+            padding: 14px 14px;
+        }
+        .dashboard-header {
+            padding: 18px 16px;
+            margin-bottom: 16px;
+        }
+        .dashboard-header h4 {
+            font-size: 18px;
+        }
+        .dashboard-header p {
+            font-size: 12.5px;
+        }
+        .stat-card-custom {
+            padding: 16px;
+        }
+        .stat-icon-wrap {
+            width: 46px;
+            height: 46px;
+            font-size: 22px;
+        }
+        .stat-info-wrap .stat-num {
+            font-size: 20px;
+        }
+        .shortcuts-grid {
+            gap: 8px;
+        }
+        .shortcut-btn {
+            padding: 10px 8px;
+            font-size: 11.5px;
+        }
+    }
 </style>
 @endsection
 
 @section('content')
-<div class="container-fluid" style="padding: 24px 30px;">
+<div class="container-fluid portal-container">
 
     {{-- ===== HEADER ===== --}}
     <div class="dashboard-header">
@@ -304,7 +353,7 @@
     {{-- ===== STAT CARDS ROW ===== --}}
     <div class="row g-3 mb-4">
         {{-- 1. Layanan Masyarakat --}}
-        <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
+        <div class="col-xl-3 col-md-6 col-sm-6 col-12 mb-3 mb-xl-0">
             <a href="{{ route('admin.livechat.index') }}" class="stat-card-custom">
                 <div class="stat-icon-wrap green">
                     <i class="mdi mdi-chat-processing-outline"></i>
@@ -320,7 +369,7 @@
         </div>
 
         {{-- 2. Publikasi Berita --}}
-        <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
+        <div class="col-xl-3 col-md-6 col-sm-6 col-12 mb-3 mb-xl-0">
             <a href="{{ route('admin.berita.index') }}" class="stat-card-custom">
                 <div class="stat-icon-wrap blue">
                     <i class="mdi mdi-newspaper"></i>
@@ -336,7 +385,7 @@
         </div>
 
         {{-- 3. Fatwa & Arsip Surat --}}
-        <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
+        <div class="col-xl-3 col-md-6 col-sm-6 col-12 mb-3 mb-xl-0">
             <a href="{{ route('admin.fatwa.index') }}" class="stat-card-custom">
                 <div class="stat-icon-wrap yellow">
                     <i class="mdi mdi-book-open-variant"></i>
@@ -352,7 +401,7 @@
         </div>
 
         {{-- 4. Pengguna & Operator --}}
-        <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
+        <div class="col-xl-3 col-md-6 col-sm-6 col-12 mb-3 mb-xl-0">
             <a href="{{ route('admin.operator-permissions.index') }}" class="stat-card-custom">
                 <div class="stat-icon-wrap purple">
                     <i class="mdi mdi-account-group"></i>
