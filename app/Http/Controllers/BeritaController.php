@@ -314,6 +314,14 @@ class BeritaController extends Controller
             });
         }
 
+        if ($status = $request->input('filter_status')) {
+            $query->where('status', $status);
+        }
+
+        if ($kategori = $request->input('filter_kategori')) {
+            $query->where('kategori', $kategori);
+        }
+
         $total = Berita::count();
         $filtered = $query->count();
 
@@ -326,15 +334,26 @@ class BeritaController extends Controller
             $query->orderBy("beritas.{$col}", $orderDir);
         }
 
+        // Urutan cadangan agar paginasi stabil saat nilai kolom urut sama.
+        $query->orderByDesc('beritas.id');
+
         $start = (int) $request->input('start', 0);
         $length = (int) $request->input('length', 10);
         $data = $query->skip($start)->take($length)->get();
+
+        $perStatus = Berita::selectRaw('status, COUNT(*) as jumlah')->groupBy('status')->pluck('jumlah', 'status');
 
         return response()->json([
             'draw' => (int) $request->input('draw'),
             'recordsTotal' => $total,
             'recordsFiltered' => $filtered,
             'data' => $data,
+            'stats' => [
+                'total' => $total,
+                'published' => (int) ($perStatus['published'] ?? 0),
+                'draft' => (int) ($perStatus['draft'] ?? 0),
+                'archived' => (int) ($perStatus['archived'] ?? 0),
+            ],
         ]);
     }
 }

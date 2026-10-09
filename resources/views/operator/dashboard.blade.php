@@ -1,999 +1,716 @@
-@extends('layouts.master')
+@php
+    $tz = 'Asia/Jakarta';
+    $user = auth()->user();
+    $now = now($tz);
+    $nama = $user->name_gelar ?: $user->name;
+    $sapaan = match (true) {
+        $now->hour < 11 => 'Selamat pagi',
+        $now->hour < 15 => 'Selamat siang',
+        $now->hour < 18 => 'Selamat sore',
+        default => 'Selamat malam',
+    };
 
-@section('title', 'Dashboard Operator')
-
-@section('css')
-<style>
-    :root {
-        --green: #007f5f;
-        --green-dark: #005f47;
-        --green-light: #00a878;
-        --green-pale: #e8f5f1;
-        --yellow: #f0a500;
-        --yellow-pale: #fffbeb;
-        --blue: #2563eb;
-        --blue-pale: #eff6ff;
-        --red: #ef4444;
-        --red-pale: #fef2f2;
-        --purple: #7c3aed;
-        --purple-pale: #f5f3ff;
-        --gold: #c9a84c;
-        --text: #1a1a2e;
-        --gray: #6b7280;
-        --bg: #f4f7f6;
-        --white: #ffffff;
-        --radius: 14px;
-        --radius-sm: 8px;
-        --shadow: 0 2px 16px rgba(0, 0, 0, .07);
-        --shadow-hover: 0 8px 32px rgba(0, 127, 95, .16);
-        --transition: .22s cubic-bezier(.4, 0, .2, 1);
+    // Tanggal Hijriah (kalender Umm al-Qura) — disembunyikan bila ekstensi intl tidak tersedia.
+    $hijri = null;
+    try {
+        $bulanHijri = ['Muharram', 'Safar', 'Rabiul Awal', 'Rabiul Akhir', 'Jumadil Awal', 'Jumadil Akhir', 'Rajab', "Sya'ban", 'Ramadhan', 'Syawal', "Dzulqa'dah", 'Dzulhijjah'];
+        $fmtHijri = \IntlDateFormatter::create('en_US@calendar=islamic-umalqura', \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, $tz, \IntlDateFormatter::TRADITIONAL, 'd/M/y');
+        [$hd, $hm, $hy] = array_map('intval', explode('/', (string) $fmtHijri?->format($now->getTimestamp())) + [0, 0, 0]);
+        $hijri = isset($bulanHijri[$hm - 1]) && $hd > 0 && $hy > 0 ? "{$hd} {$bulanHijri[$hm - 1]} {$hy} H" : null;
+    } catch (\Throwable) {
+        $hijri = null;
     }
 
-    body { background: var(--bg) !important; }
+    $angka = fn ($n) => number_format((int) $n, 0, ',', '.');
+    $tgl = fn ($date, string $format = 'j M Y') => $date ? $date->copy()->setTimezone($tz)->translatedFormat($format) : '—';
+    $inisial = fn (?string $teks) => collect(preg_split('/\s+/', trim((string) $teks)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') ?: '?';
 
-    /* Page Header */
-    .dashboard-header {
-        background: linear-gradient(135deg, #0b5e42 0%, #10875b 60%, #17a06f 100%);
-        border-radius: var(--radius);
-        padding: 26px 30px;
-        margin-bottom: 24px;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 14px;
-        box-shadow: 0 4px 20px rgba(11, 94, 66, 0.22);
+    $bisaChat = $user->hasMenuPermission('livechat');
+    $bisaKonsultasi = $user->hasMenuPermission('konsultasi');
+    $bisaBerita = $user->hasMenuPermission('berita');
+    $bisaFatwa = $user->hasMenuPermission('fatwa');
+    $bisaSurat = $user->hasMenuPermission('surat');
+
+    $waitingChats = $operatorData['waiting_chats'] ?? collect();
+    $myActiveChats = $operatorData['my_active_chats'] ?? collect();
+    $pendingKonsultasi = $operatorData['pending_konsultasi'] ?? collect();
+    $myAnswered = $operatorData['my_answered_konsultasi'] ?? collect();
+    $myBerita = $operatorData['my_berita'] ?? collect();
+    $latestBerita = $operatorData['latest_berita'] ?? collect();
+    $latestFatwa = $operatorData['latest_fatwa'] ?? collect();
+    $latestSurat = $operatorData['latest_surat'] ?? collect();
+
+    $perluRespon = ($bisaChat ? $stats['chat_menunggu'] : 0) + ($bisaKonsultasi ? $stats['konsultasi_pending'] : 0);
+    // Tanpa antrian layanan & berita, kolom utama pendek → fatwa/surat ditaruh di kolom utama (bukan baris penuh di bawah).
+    $fatwaSuratDiUtama = ! ($bisaChat || $bisaKonsultasi || $bisaBerita);
+    $statusBerita = ['published' => ['badge-green', 'Terbit'], 'draft' => ['badge-gold', 'Draft'], 'archived' => ['badge-gray', 'Diarsipkan']];
+    $nada = [
+        'brand' => 'bg-brand-50 text-brand-700 ring-brand-100',
+        'gold' => 'bg-gold-50 text-gold-700 ring-gold-100',
+        'blue' => 'bg-sky-50 text-sky-700 ring-sky-100',
+        'red' => 'bg-red-50 text-red-600 ring-red-100',
+        'purple' => 'bg-violet-50 text-violet-700 ring-violet-100',
+        'stone' => 'bg-stone-100 text-stone-600 ring-stone-200',
+    ];
+    // Ikon & warna tiap menu tugas (selaras dengan menu samping panel).
+    $ikonIzin = ['berita' => 'newspaper', 'kategori' => 'tag', 'surat' => 'folder-archive', 'fatwa' => 'scale', 'kategori-fatwa' => 'tags', 'livechat' => 'messages-square', 'konsultasi' => 'message-circle-question'];
+    $nadaIzin = ['berita' => 'blue', 'kategori' => 'brand', 'surat' => 'purple', 'fatwa' => 'gold', 'kategori-fatwa' => 'gold', 'livechat' => 'red', 'konsultasi' => 'brand'];
+    $menuSaya = collect(\App\Models\User::OPERATOR_PERMISSIONS)->filter(fn ($perm, $key) => $user->hasMenuPermission($key));
+
+    // Kartu statistik sesuai wewenang menu.
+    $kartu = [];
+    if ($bisaChat) {
+        $kartu[] = ['Chat menunggu', 'messages-square', $stats['chat_menunggu'] > 0 ? 'red' : 'blue', $angka($stats['chat_menunggu']), $stats['chat_menunggu'] > 0 ? 'Butuh respons segera' : 'Tidak ada antrian', route('admin.livechat.index')];
+        $kartu[] = ['Chat aktif saya', 'headset', 'brand', $angka($operatorData['my_active_chats_count'] ?? 0), 'Sedang Anda tangani', route('admin.livechat.index')];
     }
-
-    .dashboard-header h4 {
-        font-size: 22px;
-        font-weight: 800;
-        margin: 0;
-        color: #fff;
+    if ($bisaKonsultasi) {
+        $kartu[] = ['Konsultasi baru', 'message-circle-question', $stats['konsultasi_pending'] > 0 ? 'gold' : 'brand', $angka($stats['konsultasi_pending']), 'Menunggu jawaban', route('operator.konsultasi.index')];
+        $kartu[] = ['Jawaban saya', 'check-check', 'purple', $angka($operatorData['my_answered_count'] ?? 0), 'Pertanyaan telah Anda jawab', route('operator.konsultasi.index')];
     }
-
-    .dashboard-header p {
-        margin: 4px 0 0;
-        font-size: 13.5px;
-        opacity: .9;
-        color: #e6f7f2;
+    if ($bisaBerita) {
+        $kartu[] = ['Artikel ditulis saya', 'feather', 'brand', $angka($operatorData['my_berita_count'] ?? 0), 'Kontributor berita', route('operator.berita.index')];
+        $kartu[] = ['Total pembaca portal', 'eye', 'blue', $angka($stats['total_views_berita']), 'Publikasi terbaca', route('operator.berita.index')];
     }
-
-    .badge-role-tag {
-        background: rgba(255, 255, 255, .2);
-        border: 1px solid rgba(255, 255, 255, .35);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 700;
-        padding: 6px 16px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+    if ($bisaFatwa) {
+        $kartu[] = ['Dokumen fatwa', 'scale', 'gold', $angka($stats['total_fatwa']), $angka($stats['fatwa_published']).' terpublikasi', route('operator.fatwa.index')];
     }
-
-    /* Stat Cards */
-    .stat-card-custom {
-        background: var(--white);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        padding: 22px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        transition: all var(--transition);
-        border: 1px solid #edf2f0;
-        height: 100%;
-        text-decoration: none !important;
-        color: inherit;
+    if ($bisaSurat) {
+        $kartu[] = ['Arsip surat', 'folder-archive', 'purple', $angka($stats['total_surat']), 'Surat masuk & keluar', route('operator.surat.index')];
     }
+    $kolomKartu = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-2 lg:grid-cols-3', 4 => 'sm:grid-cols-2 xl:grid-cols-4', 5 => 'sm:grid-cols-2 lg:grid-cols-3', 6 => 'sm:grid-cols-2 lg:grid-cols-3', 7 => 'sm:grid-cols-2 xl:grid-cols-4', 8 => 'sm:grid-cols-2 xl:grid-cols-4'][count($kartu)] ?? 'sm:grid-cols-2';
 
-    .stat-card-custom:hover {
-        box-shadow: var(--shadow-hover);
-        transform: translateY(-3px);
-        border-color: #bbf7d0;
-        color: inherit;
-    }
+    // Grafik aktivitas bulanan (hanya seri yang menjadi wewenang operator; warna tetap per entitas).
+    $warnaSeri = ['berita' => '#0284c7', 'konsultasi' => '#177a53', 'fatwa' => '#c9951f', 'surat' => '#7c3aed'];
+    $bulan = $activity['months'];
+    $seri = array_map(fn ($s) => $s + ['color' => $warnaSeri[$s['key']] ?? '#78716c'], $activity['series']);
+    $totalBulan = array_map(fn ($i) => array_sum(array_column(array_column($seri, 'data'), $i)), array_keys($bulan));
+    $puncak = max([0, ...$totalBulan]);
+    $kasar = max($puncak, 4) / 5;
+    $mag = 10 ** floor(log10($kasar));
+    $langkah = max(1, (int) collect([1, 2, 5, 10])->map(fn ($m) => $m * $mag)->first(fn ($s) => $s >= $kasar));
+    $sumbuMax = max((int) (ceil(max($puncak, 1) / $langkah) * $langkah), $langkah * 2);
+    $ticks = range(0, $sumbuMax, $langkah);
+    $grandTotal = array_sum($totalBulan);
+    $catatanSeri = collect([
+        'berita' => 'berita menurut tanggal terbit',
+        'surat' => 'arsip surat menurut tanggal surat',
+        'fatwa' => 'fatwa menurut tanggal masuk',
+        'konsultasi' => 'konsultasi menurut tanggal masuk',
+    ])->only(array_column($seri, 'key'))->implode(', ');
+@endphp
 
-    .stat-icon-wrap {
-        width: 54px;
-        height: 54px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        flex-shrink: 0;
-    }
+<x-layouts.admin title="Dashboard" header="Ringkasan tugas & layanan yang menjadi wewenang Anda">
+    {{-- ===== Sambutan ===== --}}
+    <section class="bg-gradient-brand relative overflow-hidden rounded-3xl text-white shadow-[var(--shadow-lift)]">
+        <div class="pattern-islamic absolute inset-0"></div>
+        <div class="absolute -top-24 -right-20 size-80 rounded-full bg-gold-400/20 blur-3xl"></div>
+        <div class="absolute -bottom-32 left-1/3 size-80 rounded-full bg-brand-400/20 blur-3xl"></div>
+        <div class="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center lg:gap-10">
+            <div class="min-w-0">
+                <p class="eyebrow text-gold-300!">Dashboard Petugas Operator</p>
+                <h2 class="mt-3 font-display text-[1.75rem] leading-tight font-semibold text-balance text-white sm:text-4xl">Selamat bertugas, {{ $nama }}</h2>
+                <p class="mt-3 max-w-2xl text-sm leading-relaxed text-pretty text-white/75 sm:text-[15px]">Assalamu'alaikum, {{ Str::lower($sapaan) }}. Berikut antrian layanan dan tugas yang menjadi wewenang Anda di {{ $site['site_short'] }}.</p>
+                <div class="mt-5 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 ring-1 ring-white/15"><x-icon name="shield-check" class="size-3.5 text-gold-300" /> Operator</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-black/15 px-3 py-1.5 ring-1 ring-white/15"><x-icon name="badge-check" class="size-3.5 text-gold-300" /> {{ count($assignedPerms) }} tugas ditetapkan</span>
+                    @if ($perluRespon > 0)
+                        <a href="#perlu-tindakan" class="inline-flex items-center gap-2 rounded-full bg-gold-300 px-3 py-1.5 text-brand-950 transition hover:bg-gold-200">
+                            <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75"></span><span class="relative inline-flex size-2 rounded-full bg-red-600"></span></span>
+                            {{ $perluRespon }} menunggu tanggapan
+                        </a>
+                    @elseif ($bisaChat || $bisaKonsultasi)
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-brand-100 ring-1 ring-white/15"><x-icon name="circle-check-big" class="size-3.5 text-brand-300" /> Antrian layanan kosong</span>
+                    @endif
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
+                    @if ($bisaBerita)
+                        <a href="{{ route('operator.berita.create') }}" class="btn btn-gold col-span-2"><x-icon name="pen-line" class="size-4" /> Tulis Berita</a>
+                    @endif
+                    @if ($bisaChat)
+                        <a href="{{ route('admin.livechat.index') }}" class="btn btn-glass px-3 sm:px-5"><x-icon name="messages-square" class="size-4" /> Live Chat</a>
+                    @endif
+                    @if ($bisaKonsultasi)
+                        <a href="{{ route('operator.konsultasi.index') }}" class="btn btn-glass px-3 sm:px-5"><x-icon name="message-circle-question" class="size-4" /> Konsultasi</a>
+                    @endif
+                    <a href="{{ route('home.public') }}" target="_blank" rel="noopener" @class(['btn btn-glass px-3 sm:px-5', 'col-span-2' => ((int) $bisaChat + (int) $bisaKonsultasi) % 2 === 0])><x-icon name="external-link" class="size-4" /> Lihat Website</a>
+                </div>
+            </div>
 
-    .stat-icon-wrap.green  { background: var(--green-pale); color: var(--green); }
-    .stat-icon-wrap.yellow { background: var(--yellow-pale); color: var(--yellow); }
-    .stat-icon-wrap.blue   { background: var(--blue-pale); color: var(--blue); }
-    .stat-icon-wrap.purple { background: var(--purple-pale); color: var(--purple); }
-    .stat-icon-wrap.red    { background: var(--red-pale); color: var(--red); }
-
-    .stat-info-wrap .stat-num {
-        font-size: 24px;
-        font-weight: 800;
-        color: var(--text);
-        line-height: 1.1;
-        margin-bottom: 3px;
-    }
-
-    .stat-info-wrap .stat-label {
-        font-size: 13px;
-        color: var(--gray);
-        font-weight: 600;
-    }
-
-    .stat-info-wrap .stat-sub {
-        font-size: 11.5px;
-        margin-top: 3px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    /* Panels */
-    .panel-card {
-        background: var(--white);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        border: 1px solid #edf2f0;
-        overflow: hidden;
-        margin-bottom: 24px;
-    }
-
-    .panel-card .panel-header {
-        padding: 16px 22px;
-        border-bottom: 1px solid #f0f4f3;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-        background: #fafcfb;
-    }
-
-    .panel-card .panel-header h5 {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .panel-card .panel-body {
-        padding: 20px 22px;
-    }
-
-    /* Custom Badges */
-    .badge-urgent {
-        background: var(--red-pale);
-        color: var(--red);
-        border: 1px solid #fecaca;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 12px;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .badge-active-chat {
-        background: var(--green-pale);
-        color: var(--green);
-        border: 1px solid #bbf7d0;
-        font-size: 11px;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 12px;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    /* Table styles */
-    .table-modern {
-        width: 100%;
-        margin-bottom: 0;
-    }
-
-    .table-modern th {
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--gray);
-        border-top: none;
-        border-bottom: 2px solid #edf2f0;
-        padding: 10px 14px;
-        letter-spacing: 0.5px;
-    }
-
-    .table-modern td {
-        font-size: 13.5px;
-        vertical-align: middle;
-        padding: 12px 14px;
-        border-bottom: 1px solid #f4f7f6;
-    }
-
-    .table-modern tr:hover td {
-        background: #fbfdfc;
-    }
-
-    /* Duty item */
-    .duty-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 12px;
-        border-radius: 16px;
-        font-size: 12px;
-        font-weight: 600;
-        margin: 3px;
-        background: #f1f5f9;
-        color: #334155;
-        border: 1px solid #e2e8f0;
-    }
-
-    .duty-chip.active {
-        background: var(--green-pale);
-        color: var(--green-dark);
-        border-color: #a7f3d0;
-    }
-
-    .quick-link-box {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 14px;
-        border-radius: 12px;
-        border: 1px solid #edf2f0;
-        margin-bottom: 10px;
-        text-decoration: none;
-        transition: all var(--transition);
-        color: var(--text);
-        background: #fff;
-    }
-
-    .quick-link-box:hover {
-        border-color: var(--green);
-        background: var(--green-pale);
-        color: var(--green);
-        box-shadow: 0 4px 14px rgba(0, 127, 95, 0.12);
-        transform: translateX(4px);
-    }
-
-    .quick-link-box .ql-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        color: var(--green);
-        flex-shrink: 0;
-        transition: all var(--transition);
-    }
-
-    .quick-link-box:hover .ql-icon {
-        background: var(--green);
-        color: #fff;
-        border-color: var(--green);
-    }
-
-    .quick-link-box .ql-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .quick-link-box .ql-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text);
-        display: block;
-        margin-bottom: 2px;
-    }
-
-    .quick-link-box .ql-desc {
-        font-size: 12px;
-        color: var(--gray);
-        display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .user-avatar-lg {
-        width: 68px;
-        height: 68px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #e2e8f0;
-    }
-
-    .user-avatar-initials-lg {
-        width: 68px;
-        height: 68px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--green-dark), var(--green-light));
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        font-weight: 800;
-        border: 3px solid #fff;
-        box-shadow: 0 4px 10px rgba(0,0,0,.08);
-    }
-
-    /* Responsive Portal Container & Breakpoints */
-    .portal-container {
-        padding: 24px 28px;
-    }
-
-    @media (max-width: 991.98px) {
-        .portal-container {
-            padding: 18px 20px;
-        }
-        .dashboard-header {
-            padding: 20px 22px;
-            margin-bottom: 20px;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .portal-container {
-            padding: 14px 14px;
-        }
-        .dashboard-header {
-            padding: 18px 16px;
-            margin-bottom: 16px;
-        }
-        .dashboard-header h4 {
-            font-size: 18px;
-        }
-        .dashboard-header p {
-            font-size: 12.5px;
-        }
-        .stat-card-custom {
-            padding: 16px;
-        }
-        .stat-icon-wrap {
-            width: 46px;
-            height: 46px;
-            font-size: 22px;
-        }
-        .stat-info-wrap .stat-num {
-            font-size: 20px;
-        }
-        .quick-link-box {
-            padding: 11px 12px;
-        }
-        .quick-link-box .ql-icon {
-            width: 38px;
-            height: 38px;
-            font-size: 18px;
-        }
-        .panel-card .panel-header {
-            padding: 14px 16px;
-        }
-        .panel-card .panel-body {
-            padding: 16px 14px;
-        }
-    }
-</style>
-@endsection
-
-@section('content')
-<div class="container-fluid portal-container">
-
-    {{-- ===== HEADER DASHBOARD OPERATOR ===== --}}
-    <div class="dashboard-header">
-        <div>
-            <h4><i class="mdi mdi-view-dashboard" style="margin-right: 8px;"></i>Dashboard Petugas Operator</h4>
-            <p>Selamat bertugas, <strong>{{ auth()->user()->name_gelar ?: auth()->user()->name }}</strong> · Hari ini {{ now()->translatedFormat('l, d F Y') }}</p>
+            <div class="rounded-2xl border border-white/15 bg-white/[.07] p-5 shadow-2xl backdrop-blur-md">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-[11px] font-bold tracking-[.2em] text-gold-300 uppercase">Hari ini</p>
+                    <x-icon name="moon-star" class="size-4 text-gold-300" />
+                </div>
+                @if ($hijri)
+                    <p class="mt-3 font-display text-2xl leading-snug font-semibold text-white">{{ $hijri }}</p>
+                @endif
+                <p class="mt-1 text-sm text-white/75">{{ $now->translatedFormat('l, j F Y') }}</p>
+                <div class="mt-4 flex items-end justify-between gap-3 border-t border-white/10 pt-4">
+                    <span class="text-xs text-white/60">Waktu Batanghari</span>
+                    <span class="font-display text-2xl leading-none font-semibold text-white"><span x-data="wibClock" x-text="text">{{ $now->format('H:i') }}</span> <span class="font-sans text-xs font-bold text-gold-300">WIB</span></span>
+                </div>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge-role-tag">
-                <i class="mdi mdi-shield-account"></i> Operator Portal
-            </span>
-            <span class="badge-role-tag" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.25);">
-                <i class="mdi mdi-check-decagram text-warning"></i> {{ count($assignedPerms) }} Tugas Ditetapkan
-            </span>
-        </div>
-    </div>
+    </section>
 
-    {{-- ===== PERINGATAN BILA BELUM ADA AKSES MENU ===== --}}
-    @if(count($assignedPerms) === 0)
-        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4 p-3" style="border-radius: 12px;">
-            <i class="mdi mdi-alert-circle text-warning mr-3" style="font-size: 32px;"></i>
+    {{-- ===== Peringatan bila belum ada wewenang ===== --}}
+    @if (count($assignedPerms) === 0)
+        <div class="mt-6 flex items-start gap-4 rounded-2xl border border-gold-200 bg-gold-50 p-5" role="alert">
+            <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-gold-100 text-gold-700"><x-icon name="triangle-alert" class="size-5" /></span>
             <div>
-                <strong class="d-block font-size-15">Belum Ada Wewenang Tugas yang Ditetapkan</strong>
-                <span class="text-muted small">Administrator belum mengaktifkan hak akses menu tugas untuk akun Anda. Silakan hubungi Administrator agar dapat membuka menu dan menangani tugas operasional.</span>
+                <p class="font-semibold text-ink-900">Belum ada wewenang tugas yang ditetapkan</p>
+                <p class="mt-1 text-sm leading-relaxed text-stone-600">Administrator belum mengaktifkan hak akses menu tugas untuk akun Anda. Silakan hubungi Administrator agar dapat membuka menu dan menangani tugas operasional.</p>
             </div>
         </div>
     @endif
 
-    {{-- ===== KARTU INDIKATOR OPERASIONAL (DYNAMIC SESUAI WEWENANG) ===== --}}
-    <div class="row g-3 mb-4">
-        {{-- Stat Live Chat --}}
-        @if(auth()->user()->hasMenuPermission('livechat'))
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('admin.livechat.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap {{ ($stats['chat_menunggu'] ?? 0) > 0 ? 'red' : 'blue' }}">
-                        <i class="mdi mdi-chat-processing-outline"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num text-danger">{{ $stats['chat_menunggu'] ?? 0 }}</div>
-                        <div class="stat-label">Chat Menunggu</div>
-                        <div class="stat-sub text-danger">
-                            <i class="mdi mdi-alert-circle-outline"></i> Butuh Respon Segera
-                        </div>
-                    </div>
-                </a>
-            </div>
+    {{-- ===== Statistik sesuai wewenang ===== --}}
+    @if ($kartu)
+        {{-- Ponsel: baris geser (snap) agar ringkas; tablet ke atas: grid. --}}
+        <div class="scrollbar-none -mx-4 mt-5 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-3 sm:mx-0 sm:mt-6 sm:grid sm:snap-none sm:gap-4 sm:overflow-visible sm:p-0 {{ $kolomKartu }}" aria-label="Statistik tugas">
+            @foreach ($kartu as [$label, $icon, $tone, $value, $note, $href])
+                <x-stat-card @class(['shrink-0 snap-start sm:w-auto', 'w-[82%]' => count($kartu) > 1, 'w-full' => count($kartu) === 1]) :label="$label" :icon="$icon" :tone="$tone" :value="$value" :note="$note" :href="$href" />
+            @endforeach
+        </div>
+    @endif
 
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('admin.livechat.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap green">
-                        <i class="mdi mdi-wechat"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num text-success">{{ $operatorData['my_active_chats_count'] ?? 0 }}</div>
-                        <div class="stat-label">Chat Aktif Saya</div>
-                        <div class="stat-sub text-success">
-                            <i class="mdi mdi-account-voice"></i> Sedang Ditangani
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endif
-
-        {{-- Stat Konsultasi --}}
-        @if(auth()->user()->hasMenuPermission('konsultasi'))
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.konsultasi.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap {{ ($stats['konsultasi_pending'] ?? 0) > 0 ? 'yellow' : 'green' }}">
-                        <i class="mdi mdi-forum-outline"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num" style="color: var(--yellow);">{{ $stats['konsultasi_pending'] ?? 0 }}</div>
-                        <div class="stat-label">Konsultasi Baru</div>
-                        <div class="stat-sub text-warning">
-                            <i class="mdi mdi-clock-outline"></i> Menunggu Jawaban
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.konsultasi.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap purple">
-                        <i class="mdi mdi-comment-check-outline"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num text-primary">{{ $operatorData['my_answered_count'] ?? 0 }}</div>
-                        <div class="stat-label">Jawaban Saya</div>
-                        <div class="stat-sub text-primary">
-                            <i class="mdi mdi-check-all"></i> Telah Dijawab
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endif
-
-        {{-- Stat Berita --}}
-        @if(auth()->user()->hasMenuPermission('berita'))
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.berita.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap green">
-                        <i class="mdi mdi-newspaper"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num text-success">{{ $operatorData['my_berita_count'] ?? 0 }}</div>
-                        <div class="stat-label">Artikel Ditulis Saya</div>
-                        <div class="stat-sub text-success">
-                            <i class="mdi mdi-feather"></i> Kontributor Berita
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.berita.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap blue">
-                        <i class="mdi mdi-eye-outline"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num text-info">{{ number_format($stats['total_views_berita'] ?? 0) }}</div>
-                        <div class="stat-label">Total Pembaca Portal</div>
-                        <div class="stat-sub text-info">
-                            <i class="mdi mdi-chart-line"></i> Publikasi Terbaca
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endif
-
-        {{-- Stat Arsip Fatwa & Surat bila ada --}}
-        @if(auth()->user()->hasMenuPermission('fatwa'))
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.fatwa.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap yellow">
-                        <i class="mdi mdi-book-open-variant"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num" style="color: var(--yellow);">{{ $stats['total_fatwa'] ?? 0 }}</div>
-                        <div class="stat-label">Dokumen Fatwa</div>
-                        <div class="stat-sub text-muted">
-                            <i class="mdi mdi-file-document-outline"></i> Naskah & Keputusan
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endif
-
-        @if(auth()->user()->hasMenuPermission('surat'))
-            <div class="col-xl-3 col-md-6 col-sm-6 col-12">
-                <a href="{{ route('operator.surat.index') }}" class="stat-card-custom">
-                    <div class="stat-icon-wrap purple">
-                        <i class="mdi mdi-email-outline"></i>
-                    </div>
-                    <div class="stat-info-wrap">
-                        <div class="stat-num" style="color: var(--purple);">{{ $stats['total_surat'] ?? 0 }}</div>
-                        <div class="stat-label">Arsip Surat</div>
-                        <div class="stat-sub text-muted">
-                            <i class="mdi mdi-folder-outline"></i> Surat Masuk & Keluar
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endif
-    </div>
-
-    {{-- ===== WORK QUEUES & OPERATIONAL PANELS ===== --}}
-    <div class="row g-3">
-
-        {{-- KOLOM UTAMA: DAFTAR TUGAS DAN ANTRIAN --}}
-        <div class="col-lg-8">
-
-            {{-- 1. ANTRIAN LIVE CHAT REALTIME --}}
-            @if(auth()->user()->hasMenuPermission('livechat'))
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <h5>
-                            <i class="mdi mdi-chat-processing text-danger"></i>
-                            Antrian Live Chat Menunggu Respon
-                            @if(isset($operatorData['waiting_chats']) && count($operatorData['waiting_chats']) > 0)
-                                <span class="badge badge-danger ml-2" style="font-size: 11px;">{{ count($operatorData['waiting_chats']) }} Menunggu</span>
-                            @endif
-                        </h5>
-                        <a href="{{ route('admin.livechat.index') }}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;">
-                            <i class="mdi mdi-open-in-new mr-1"></i> Buka Panel Live Chat
-                        </a>
-                    </div>
-                    <div class="panel-body p-0">
-                        @if(isset($operatorData['waiting_chats']) && count($operatorData['waiting_chats']) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-modern">
-                                    <thead>
-                                        <tr>
-                                            <th>Pengunjung</th>
-                                            <th>Kontak</th>
-                                            <th>Waktu Menunggu</th>
-                                            <th class="text-right">Aksi Layani</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($operatorData['waiting_chats'] as $chat)
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="avatar-xs mr-2">
-                                                            <span class="avatar-title rounded-circle bg-soft-danger text-danger font-weight-bold" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-                                                                {{ strtoupper(substr($chat->nama_pengunjung, 0, 1)) }}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <strong class="text-dark d-block">{{ $chat->nama_pengunjung }}</strong>
-                                                            <small class="text-muted">Topik: {{ $chat->topik ?: 'Layanan Umum' }}</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="d-block small text-dark"><i class="mdi mdi-email-outline mr-1 text-muted"></i>{{ $chat->email_pengunjung ?: '-' }}</span>
-                                                    @if($chat->nohp_pengunjung)
-                                                        <span class="d-block small text-muted"><i class="mdi mdi-phone mr-1"></i>{{ $chat->nohp_pengunjung }}</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <span class="badge-urgent">
-                                                        <i class="mdi mdi-clock-fast"></i> {{ $chat->created_at->diffForHumans() }}
-                                                    </span>
-                                                </td>
-                                                <td class="text-right">
-                                                    <a href="{{ route('admin.livechat.show', $chat->id) }}" class="btn btn-sm btn-danger px-3" style="border-radius: 6px; font-weight: 600;">
-                                                        <i class="mdi mdi-chat-alert mr-1"></i> Balas Chat
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+    {{-- Fatwa & arsip surat: didefinisikan sekali, ditampilkan di kolom utama (bila kolom utama pendek) atau sebagai baris penuh. --}}
+    @if ($bisaFatwa || $bisaSurat)
+        @section('dasbor-fatwa-surat')
+        <div @class(['grid gap-6', 'md:grid-cols-2' => $bisaFatwa && $bisaSurat])>
+            @if ($bisaFatwa)
+                <section class="card overflow-hidden">
+                    <header class="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-700 ring-1 ring-gold-100"><x-icon name="scale" class="size-[18px]" /></span>
+                            <div class="min-w-0">
+                                <h3 class="text-[15px] font-bold text-ink-900">Fatwa terkini</h3>
+                                <p class="text-xs text-stone-500">{{ $angka($stats['fatwa_published']) }} dari {{ $angka($stats['total_fatwa']) }} terpublikasi</p>
                             </div>
-                        @else
-                            <div class="text-center py-4 text-muted">
-                                <i class="mdi mdi-check-circle-outline text-success" style="font-size: 38px;"></i>
-                                <p class="mb-0 mt-2 font-weight-bold">Tidak ada antrian chat saat ini.</p>
-                                <small>Semua obrolan masyarakat telah ditangani dengan baik.</small>
+                        </div>
+                        <a href="{{ route('operator.fatwa.index') }}" class="btn btn-ghost btn-sm shrink-0">Kelola <x-icon name="chevron-right" class="size-4" /></a>
+                    </header>
+                    <ul class="divide-y divide-stone-100">
+                        @forelse ($latestFatwa as $f)
+                            <li class="flex items-start gap-3 px-5 py-3.5">
+                                <div class="min-w-0 flex-1">
+                                    <p class="line-clamp-2 text-sm leading-snug font-semibold text-ink-900">{{ $f->judul }}</p>
+                                    <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
+                                        <span>{{ $f->kategoriFatwa?->nama ?: 'Fatwa' }}</span><span aria-hidden="true">·</span><span>{{ $tgl($f->created_at) }}</span>
+                                        @unless ($f->publikasi)<span class="badge badge-gray">Draf</span>@endunless
+                                    </p>
+                                </div>
+                                @if ($f->file_url)
+                                    <a href="{{ $f->file_url }}" target="_blank" rel="noopener" class="grid size-8 shrink-0 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600" title="Unduh PDF fatwa" aria-label="Unduh PDF fatwa {{ Str::limit($f->judul, 40) }}"><x-icon name="file-text" class="size-4" /></a>
+                                @endif
+                            </li>
+                        @empty
+                            <li class="px-5 py-8 text-center text-sm text-stone-500">Belum ada data fatwa.</li>
+                        @endforelse
+                    </ul>
+                </section>
+            @endif
+
+            @if ($bisaSurat)
+                <section class="card overflow-hidden">
+                    <header class="flex items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700 ring-1 ring-violet-100"><x-icon name="folder-archive" class="size-[18px]" /></span>
+                            <div class="min-w-0">
+                                <h3 class="text-[15px] font-bold text-ink-900">Arsip surat terkini</h3>
+                                <p class="text-xs text-stone-500">{{ $angka($stats['total_surat']) }} surat tersimpan</p>
                             </div>
+                        </div>
+                        <a href="{{ route('operator.surat.index') }}" class="btn btn-ghost btn-sm shrink-0">Kelola <x-icon name="chevron-right" class="size-4" /></a>
+                    </header>
+                    <ul class="divide-y divide-stone-100">
+                        @forelse ($latestSurat as $s)
+                            <li class="flex items-start gap-3 px-5 py-3.5">
+                                <div class="min-w-0 flex-1">
+                                    <p class="line-clamp-2 text-sm leading-snug font-semibold text-ink-900">{{ $s->perihal ?: $s->nomor_surat }}</p>
+                                    <p class="mt-1 text-xs text-stone-500"><span class="font-mono text-[11px]">{{ $s->nomor_surat }}</span>@if ($s->tanggal_surat) · {{ $s->tanggal_surat->translatedFormat('j M Y') }}@endif</p>
+                                </div>
+                                @if ($s->file_url)
+                                    <a href="{{ $s->file_url }}" target="_blank" rel="noopener" class="grid size-8 shrink-0 place-items-center rounded-lg text-stone-500 hover:bg-violet-50 hover:text-violet-700" title="Buka berkas surat" aria-label="Buka berkas surat {{ $s->nomor_surat }}"><x-icon name="file-down" class="size-4" /></a>
+                                @endif
+                            </li>
+                        @empty
+                            <li class="px-5 py-8 text-center text-sm text-stone-500">Belum ada arsip surat.</li>
+                        @endforelse
+                    </ul>
+                </section>
+            @endif
+        </div>
+        @endsection
+    @endif
+
+    <div class="mt-6 grid gap-6 xl:grid-cols-3">
+        <div class="min-w-0 space-y-6 xl:col-span-2">
+            {{-- ===== Perlu tindakan ===== --}}
+            @if ($bisaChat || $bisaKonsultasi)
+                <section id="perlu-tindakan" class="card scroll-mt-24 overflow-hidden">
+                    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-700 ring-1 ring-gold-100"><x-icon name="bell-ring" class="size-5" /></span>
+                            <div class="min-w-0">
+                                <h3 class="text-[15px] font-bold text-ink-900">Perlu tindakan</h3>
+                                <p class="text-xs text-stone-500">Antrian layanan umat yang menunggu tanggapan Anda</p>
+                            </div>
+                        </div>
+                        @if ($perluRespon > 0)
+                            <span class="badge badge-red">{{ $perluRespon }} menunggu</span>
                         @endif
-                    </div>
-                </div>
+                    </header>
 
-                {{-- Sesi Chat Aktif yang Ditangani Saya --}}
-                @if(isset($operatorData['my_active_chats']) && count($operatorData['my_active_chats']) > 0)
-                    <div class="panel-card">
-                        <div class="panel-header">
-                            <h5>
-                                <i class="mdi mdi-account-voice text-success"></i>
-                                Obrolan yang Sedang Anda Tangani
-                            </h5>
-                        </div>
-                        <div class="panel-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-modern">
-                                    <thead>
-                                        <tr>
-                                            <th>Nama Jamaah</th>
-                                            <th>Dimulai</th>
-                                            <th>Status</th>
-                                            <th class="text-right">Masuk Room</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($operatorData['my_active_chats'] as $myChat)
-                                            <tr>
-                                                <td>
-                                                    <strong>{{ $myChat->nama_pengunjung }}</strong>
-                                                    <div class="small text-muted">{{ $myChat->email_pengunjung }}</div>
-                                                </td>
-                                                <td>
-                                                    <span class="small text-muted">{{ $myChat->created_at->format('H:i') }} WIB</span>
-                                                </td>
-                                                <td>
-                                                    <span class="badge-active-chat">
-                                                        <i class="mdi mdi-circle font-size-10"></i> Terhubung
+                    @if ($bisaChat)
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-stone-50/70 px-5 py-2.5">
+                                <p class="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-600 uppercase"><x-icon name="messages-square" class="size-4 text-red-600" /> Antrian live chat <span class="badge badge-gray normal-case">{{ $stats['chat_menunggu'] }}</span></p>
+                                <a href="{{ route('admin.livechat.index') }}" class="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-900">Buka panel live chat <x-icon name="arrow-right" class="size-3.5" /></a>
+                            </div>
+                            @if ($waitingChats->isEmpty())
+                                <p class="flex items-center gap-2 px-5 py-4 text-sm text-stone-500"><x-icon name="circle-check-big" class="size-4 text-brand-600" /> Tidak ada antrian chat saat ini. Semua obrolan masyarakat telah ditangani.</p>
+                            @else
+                                <ul class="divide-y divide-stone-100">
+                                    @foreach ($waitingChats as $chat)
+                                        <li class="flex items-center gap-3 px-5 py-3.5 transition hover:bg-brand-50/40 sm:gap-4">
+                                            <span class="grid size-10 shrink-0 place-items-center rounded-full bg-red-50 text-sm font-bold text-red-600 ring-1 ring-red-100">{{ $inisial($chat->nama_pengunjung) }}</span>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                    <p class="truncate font-semibold text-ink-900">{{ $chat->nama_pengunjung }}</p>
+                                                    <span class="badge badge-red">Antrian #{{ $chat->antrian_nomor }}</span>
+                                                </div>
+                                                <p class="mt-0.5 line-clamp-1 text-sm text-stone-600">Topik: {{ $chat->topik ?: 'Layanan umum' }}</p>
+                                                <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-stone-500">
+                                                    <span class="inline-flex items-center gap-1 whitespace-nowrap font-medium text-red-600"><x-icon name="clock" class="size-3.5" /> {{ $chat->created_at->diffForHumans() }}</span>
+                                                    @if ($chat->email_pengunjung)<span class="inline-flex min-w-0 items-center gap-1"><x-icon name="mail" class="size-3.5" /> <span class="truncate">{{ $chat->email_pengunjung }}</span></span>@endif
+                                                    @if ($chat->nohp_pengunjung)<span class="inline-flex items-center gap-1 whitespace-nowrap"><x-icon name="phone" class="size-3.5" /> {{ $chat->nohp_pengunjung }}</span>@endif
+                                                </p>
+                                            </div>
+                                            <a href="{{ route('admin.livechat.show', $chat->id) }}" class="btn btn-primary btn-sm shrink-0" aria-label="Balas chat {{ $chat->nama_pengunjung }}"><x-icon name="reply" class="size-4" /> <span class="hidden sm:inline">Balas chat</span></a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+
+                            @if ($myActiveChats->isNotEmpty())
+                                <div class="border-t border-stone-100 px-5 py-4">
+                                    <p class="flex items-center gap-2 text-[11px] font-bold tracking-wider text-stone-500 uppercase"><x-icon name="headset" class="size-3.5 text-brand-600" /> Obrolan yang sedang Anda tangani</p>
+                                    <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+                                        @foreach ($myActiveChats as $chat)
+                                            <li>
+                                                <a href="{{ route('admin.livechat.show', $chat->id) }}" class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2.5 transition hover:border-brand-300">
+                                                    <span class="relative flex size-2.5 shrink-0"><span class="absolute inline-flex size-full animate-ping rounded-full bg-brand-400 opacity-60"></span><span class="relative inline-flex size-2.5 rounded-full bg-brand-500"></span></span>
+                                                    <span class="min-w-0 flex-1">
+                                                        <span class="block truncate text-sm font-semibold text-ink-900">{{ $chat->nama_pengunjung }}</span>
+                                                        <span class="block truncate text-xs text-stone-500">Terhubung sejak {{ $tgl($chat->started_at ?? $chat->created_at, 'H:i') }} WIB{{ $chat->email_pengunjung ? ' · '.$chat->email_pengunjung : '' }}</span>
                                                     </span>
-                                                </td>
-                                                <td class="text-right">
-                                                    <a href="{{ route('admin.livechat.show', $myChat->id) }}" class="btn btn-sm btn-success px-3" style="border-radius: 6px;">
-                                                        <i class="mdi mdi-chat-processing mr-1"></i> Buka Obrolan
-                                                    </a>
-                                                </td>
-                                            </tr>
+                                                    <span class="text-xs font-semibold whitespace-nowrap text-brand-700">Buka obrolan</span>
+                                                </a>
+                                            </li>
                                         @endforeach
-                                    </tbody>
-                                </table>
+                                    </ul>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if ($bisaKonsultasi)
+                        <div @class(['border-t border-stone-100' => $bisaChat])>
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-stone-50/70 px-5 py-2.5">
+                                <p class="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-600 uppercase"><x-icon name="message-circle-question" class="size-4 text-gold-600" /> Konsultasi menunggu jawaban <span class="badge badge-gray normal-case">{{ $stats['konsultasi_pending'] }}</span></p>
+                                <a href="{{ route('operator.konsultasi.index') }}" class="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-900">Semua konsultasi <x-icon name="arrow-right" class="size-3.5" /></a>
+                            </div>
+                            @if ($pendingKonsultasi->isEmpty())
+                                <p class="flex items-center gap-2 px-5 py-4 text-sm text-stone-500"><x-icon name="check-check" class="size-4 text-brand-600" /> Tidak ada pertanyaan konsultasi yang menunggu. Semua pertanyaan masyarakat telah dijawab.</p>
+                            @else
+                                <ul class="divide-y divide-stone-100">
+                                    @foreach ($pendingKonsultasi as $kon)
+                                        <li class="flex items-center gap-3 px-5 py-3.5 transition hover:bg-brand-50/40 sm:gap-4">
+                                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-700 ring-1 ring-gold-100"><x-icon name="message-circle-question" class="size-[18px]" /></span>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                    <p class="truncate font-semibold text-ink-900">{{ $kon->nama }}</p>
+                                                    <span class="badge badge-gold">{{ $kon->kategori ?: 'Pertanyaan syariah' }}</span>
+                                                </div>
+                                                <p class="mt-0.5 line-clamp-1 text-sm text-stone-600">{{ Str::limit(strip_tags($kon->pertanyaan), 140) }}</p>
+                                                <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-stone-500">
+                                                    <span class="inline-flex items-center gap-1 whitespace-nowrap"><x-icon name="calendar-clock" class="size-3.5" /> {{ $tgl($kon->created_at, 'j M Y, H:i') }} WIB</span>
+                                                    @if ($kon->email)<span class="inline-flex min-w-0 items-center gap-1"><x-icon name="mail" class="size-3.5" /> <span class="truncate">{{ $kon->email }}</span></span>@endif
+                                                </p>
+                                            </div>
+                                            <a href="{{ route('operator.konsultasi.show', $kon->id) }}" class="btn btn-gold btn-sm shrink-0" aria-label="Jawab konsultasi {{ $kon->nama }}"><x-icon name="reply" class="size-4" /> <span class="hidden sm:inline">Jawab</span></a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    @endif
+                </section>
+            @endif
+
+            {{-- ===== Berita & artikel ===== --}}
+            @if ($bisaBerita)
+                <section class="card overflow-hidden" x-data="{ tab: @js($myBerita->isNotEmpty() ? 'saya' : 'portal') }">
+                    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100"><x-icon name="newspaper" class="size-5" /></span>
+                            <div class="min-w-0">
+                                <h3 class="text-[15px] font-bold text-ink-900">Berita & artikel</h3>
+                                <p class="text-xs text-stone-500">{{ $angka($operatorData['my_berita_count'] ?? 0) }} tulisan Anda · {{ $angka($stats['total_berita']) }} di portal</p>
                             </div>
                         </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('operator.berita.index') }}" class="btn btn-ghost btn-sm">Kelola semua <x-icon name="arrow-right" class="size-4" /></a>
+                            <a href="{{ route('operator.berita.create') }}" class="btn btn-primary btn-sm"><x-icon name="plus" class="size-4" /> Tulis Berita</a>
+                        </div>
+                    </header>
+                    <div class="flex gap-1 border-b border-stone-100 px-5" role="tablist" aria-label="Daftar berita">
+                        @foreach (['saya' => ['Ditulis saya', $myBerita->count()], 'portal' => ['Terbaru di portal', $latestBerita->count()]] as $kunci => [$label, $jumlah])
+                            <button type="button" role="tab" id="tab-berita-{{ $kunci }}" aria-controls="panel-berita-{{ $kunci }}" :aria-selected="tab === '{{ $kunci }}'" @click="tab = '{{ $kunci }}'"
+                                    class="-mb-px flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition sm:px-2"
+                                    :class="tab === '{{ $kunci }}' ? 'border-brand-600 text-brand-700' : 'border-transparent text-stone-500 hover:text-stone-700'">
+                                {{ $label }} <span class="rounded-full bg-stone-100 px-1.5 py-0.5 text-[11px] font-bold text-stone-600 tabular-nums">{{ $jumlah }}</span>
+                            </button>
+                        @endforeach
                     </div>
+
+                    @foreach (['saya' => $myBerita, 'portal' => $latestBerita] as $kunci => $daftar)
+                        <div role="tabpanel" id="panel-berita-{{ $kunci }}" aria-labelledby="tab-berita-{{ $kunci }}" x-show="tab === '{{ $kunci }}'" @if (($myBerita->isNotEmpty() ? 'saya' : 'portal') !== $kunci) x-cloak @endif>
+                            @if ($daftar->isEmpty())
+                                <div class="p-5">
+                                    @if ($kunci === 'saya')
+                                        <x-empty-state icon="file-pen-line" title="Anda belum mempublikasikan artikel berita" message="Klik tombol “Tulis Berita” untuk mulai menulis konten berita portal.">
+                                            <a href="{{ route('operator.berita.create') }}" class="btn btn-primary btn-sm mt-5"><x-icon name="pen-line" class="size-4" /> Tulis Berita</a>
+                                        </x-empty-state>
+                                    @else
+                                        <x-empty-state icon="newspaper" title="Belum ada data berita" message="Berita yang ditulis petugas akan tampil di sini." />
+                                    @endif
+                                </div>
+                            @else
+                                <div class="overflow-x-auto">
+                                    <table class="table-clean">
+                                        <thead>
+                                            <tr>
+                                                <th>Judul berita</th>
+                                                <th class="hidden md:table-cell">Kategori</th>
+                                                <th class="hidden sm:table-cell">Status</th>
+                                                <th class="hidden text-right md:table-cell">Pembaca</th>
+                                                <th class="text-right">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($daftar as $berita)
+                                                @php
+                                                    [$badgeStatus, $labelStatus] = $statusBerita[$berita->status] ?? ['badge-gray', ucfirst((string) $berita->status)];
+                                                    $kategori = $berita->kategori ?: 'Umum';
+                                                @endphp
+                                                <tr>
+                                                    <td class="align-middle">
+                                                        <div class="flex min-w-0 items-center gap-3">
+                                                            @if ($berita->gambar_url)
+                                                                <img src="{{ $berita->gambar_url }}" alt="" loading="lazy" class="size-12 shrink-0 rounded-xl object-cover ring-1 ring-stone-200">
+                                                            @else
+                                                                <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700"><x-icon name="newspaper" class="size-5" /></span>
+                                                            @endif
+                                                            <div class="min-w-0">
+                                                                <a href="{{ route('operator.berita.edit', $berita->id) }}" class="line-clamp-2 font-semibold text-ink-900 hover:text-brand-700">{{ $berita->judul }}</a>
+                                                                <p class="mt-0.5 text-xs text-stone-500">
+                                                                    {{ $tgl($berita->tanggal_terbit) }}<span class="md:hidden"> · {{ $kategori }}</span><span class="hidden sm:inline md:hidden"> · {{ $angka($berita->views) }} dibaca</span><span class="sm:hidden"> · {{ $labelStatus }}</span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="hidden align-middle md:table-cell">
+                                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-stone-700 ring-1 ring-stone-200">
+                                                            <span class="size-2 rounded-full" style="background: {{ $kategoriWarna[$berita->kategori] ?? '#a8a29e' }}"></span>{{ $kategori }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="hidden align-middle sm:table-cell"><span class="badge {{ $badgeStatus }}">{{ $labelStatus }}</span></td>
+                                                    <td class="hidden text-right align-middle whitespace-nowrap text-stone-600 tabular-nums md:table-cell"><x-icon name="eye" class="mr-1 inline size-3.5 text-stone-400" />{{ $angka($berita->views) }}</td>
+                                                    <td class="align-middle">
+                                                        <div class="flex justify-end gap-1">
+                                                            @if ($berita->status === 'published' && $berita->slug)
+                                                                <a href="{{ route('berita.detail', $berita->slug) }}" target="_blank" rel="noopener" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-sky-50 hover:text-sky-700" title="Lihat di website" aria-label="Lihat berita di website"><x-icon name="external-link" class="size-4" /></a>
+                                                            @endif
+                                                            <a href="{{ route('operator.berita.edit', $berita->id) }}" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-brand-50 hover:text-brand-700" title="Ubah berita" aria-label="Ubah berita"><x-icon name="pencil" class="size-4" /></a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </section>
+            @endif
+
+            {{-- ===== Grafik aktivitas ===== --}}
+            @if ($seri)
+                <section class="card" x-data="dashChart(@js(['months' => $bulan, 'series' => $seri]))">
+                    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-100"><x-icon name="chart-column-stacked" class="size-5" /></span>
+                            <div class="min-w-0">
+                                <h3 class="text-[15px] font-bold text-ink-900">Aktivitas portal 6 bulan terakhir</h3>
+                                <p class="text-xs text-stone-500">Sesuai menu tugas Anda, {{ $bulan[0]['long'] }} – {{ last($bulan)['long'] }}</p>
+                            </div>
+                        </div>
+                        <div class="flex rounded-xl bg-stone-100 p-1 text-xs font-semibold" role="group" aria-label="Pilih tampilan data">
+                            <button type="button" @click="table = false" :aria-pressed="!table" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition" :class="!table ? 'bg-white text-brand-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'"><x-icon name="chart-column" class="size-3.5" /> Grafik</button>
+                            <button type="button" @click="table = true" :aria-pressed="table" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition" :class="table ? 'bg-white text-brand-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'"><x-icon name="table" class="size-3.5" /> Tabel</button>
+                        </div>
+                    </header>
+
+                    <div class="p-5">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1" aria-live="polite">
+                            <p class="text-xs font-semibold tracking-wide text-stone-500 uppercase" x-text="heading">Total 6 bulan terakhir</p>
+                            <p class="text-xs text-stone-500">Jumlah <b class="text-sm text-ink-900 tabular-nums" x-text="grandTotal">{{ $grandTotal }}</b></p>
+                        </div>
+                        <ul class="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
+                            @foreach ($seri as $s)
+                                <li class="flex items-center gap-2 text-sm text-stone-600">
+                                    <span class="size-2.5 shrink-0 rounded-[3px]" style="background: {{ $s['color'] }}"></span>
+                                    {{ $s['label'] }}
+                                    <b class="font-semibold text-ink-900 tabular-nums" x-text="value({{ $loop->index }})">{{ $s['total'] }}</b>
+                                </li>
+                            @endforeach
+                        </ul>
+
+                        <div x-show="!table">
+                            <div class="mt-7 flex gap-3" @mouseleave="active = null">
+                                <div class="relative h-56 w-7 shrink-0 text-right text-[11px] text-stone-500 tabular-nums" aria-hidden="true">
+                                    @foreach ($ticks as $t)
+                                        <span class="absolute right-0 translate-y-1/2 leading-none" style="bottom: {{ $t / $sumbuMax * 100 }}%">{{ $t }}</span>
+                                    @endforeach
+                                </div>
+                                <div class="relative h-56 min-w-0 flex-1">
+                                    @foreach ($ticks as $t)
+                                        <div @class(['absolute inset-x-0 border-t', 'border-stone-300' => $t === 0, 'border-stone-100' => $t !== 0]) style="bottom: {{ $t / $sumbuMax * 100 }}%"></div>
+                                    @endforeach
+                                    <div class="absolute inset-0 grid" style="grid-template-columns: repeat({{ count($bulan) }}, minmax(0, 1fr))" role="list" aria-label="Grafik batang bertumpuk aktivitas per bulan">
+                                        @foreach ($bulan as $i => $b)
+                                            @php
+                                                $tinggi = $totalBulan[$i] / $sumbuMax * 100;
+                                                $isi = array_values(array_filter($seri, fn ($s) => $s['data'][$i] > 0));
+                                            @endphp
+                                            <div role="listitem" tabindex="0" class="relative h-full rounded-lg transition"
+                                                 :class="active === {{ $i }} && 'bg-brand-50/80'"
+                                                 @mouseenter="active = {{ $i }}" @focus="active = {{ $i }}" @blur="active = null" @click="active = {{ $i }}"
+                                                 aria-label="{{ $b['long'] }}: {{ collect($seri)->map(fn ($s) => $s['label'].' '.$s['data'][$i])->implode(', ') }}. Jumlah {{ $totalBulan[$i] }}.">
+                                                <div class="absolute bottom-0 left-1/2 flex w-6 -translate-x-1/2 flex-col-reverse transition-opacity" style="height: {{ $tinggi }}%"
+                                                     :class="active !== null && active !== {{ $i }} && 'opacity-35'">
+                                                    @foreach ($isi as $j => $s)
+                                                        <span @class(['block w-full min-h-[3px]', 'rounded-t-[4px]' => $loop->last])
+                                                              style="flex: {{ $s['data'][$i] }} 1 0%; background: {{ $s['color'] }};{{ $j > 0 ? ' box-shadow: inset 0 -2px 0 #fff;' : '' }}"></span>
+                                                    @endforeach
+                                                </div>
+                                                @if ($totalBulan[$i] > 0)
+                                                    <span class="absolute left-1/2 -translate-x-1/2 text-xs font-semibold text-stone-700 tabular-nums" style="bottom: calc({{ $tinggi }}% + 4px)">{{ $totalBulan[$i] }}</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @if ($grandTotal === 0)
+                                        <div class="pointer-events-none absolute inset-0 grid place-items-center">
+                                            <p class="rounded-full bg-white px-4 py-2 text-sm text-stone-500 ring-1 ring-stone-200">Belum ada aktivitas dalam 6 bulan terakhir</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="mt-2 flex gap-3" aria-hidden="true">
+                                <div class="w-7 shrink-0"></div>
+                                <div class="grid flex-1 text-center text-xs text-stone-500" style="grid-template-columns: repeat({{ count($bulan) }}, minmax(0, 1fr))">
+                                    @foreach ($bulan as $b)
+                                        <span @class(['font-semibold text-ink-900' => $loop->last])>{{ $b['short'] }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="table" x-cloak class="mt-5 overflow-x-auto rounded-xl ring-1 ring-stone-200">
+                            <table class="table-clean">
+                                <caption class="sr-only">Aktivitas per bulan selama 6 bulan terakhir</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Bulan</th>
+                                        @foreach ($seri as $s)
+                                            <th scope="col" class="text-right">{{ $s['label'] }}</th>
+                                        @endforeach
+                                        <th scope="col" class="text-right">Jumlah</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($bulan as $i => $b)
+                                        <tr>
+                                            <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap text-ink-900">{{ $b['long'] }}</th>
+                                            @foreach ($seri as $s)
+                                                <td class="text-right tabular-nums">{{ $s['data'][$i] }}</td>
+                                            @endforeach
+                                            <td class="text-right font-semibold text-ink-900 tabular-nums">{{ $totalBulan[$i] }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-stone-50/80 text-ink-900">
+                                        <th scope="row" class="px-4 py-3 text-left">Total</th>
+                                        @foreach ($seri as $s)
+                                            <td class="px-4 py-3 text-right font-semibold tabular-nums">{{ $s['total'] }}</td>
+                                        @endforeach
+                                        <td class="px-4 py-3 text-right font-bold tabular-nums">{{ $grandTotal }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <p class="mt-5 flex items-start gap-1.5 text-xs leading-relaxed text-stone-500">
+                            <x-icon name="info" class="mt-0.5 size-3.5" />
+                            <span>Dihitung per bulan (WIB): {{ $catatanSeri }}. Arahkan kursor atau fokus ke batang untuk melihat rincian per bulan.</span>
+                        </p>
+                    </div>
+                </section>
+            @endif
+
+            @if (($bisaFatwa || $bisaSurat) && $fatwaSuratDiUtama)
+                @yield('dasbor-fatwa-surat')
+            @endif
+
+            @if (! $bisaChat && ! $bisaKonsultasi && ! $bisaBerita && ! $seri && ! $bisaFatwa && ! $bisaSurat)
+                @if ($menuSaya->isEmpty())
+                    <x-empty-state icon="lock" title="Belum ada tugas untuk ditampilkan" message="Ringkasan antrian layanan dan konten akan muncul di sini setelah Administrator memberikan wewenang menu kepada akun Anda." />
+                @else
+                    <x-empty-state icon="layout-grid" title="Tidak ada ringkasan untuk menu Anda" message="Menu tugas Anda dapat dibuka langsung melalui daftar “Menu operasional saya”." />
                 @endif
             @endif
+        </div>
 
-            {{-- 2. KONSULTASI SYARIAH MENUNGGU JAWABAN --}}
-            @if(auth()->user()->hasMenuPermission('konsultasi'))
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <h5>
-                            <i class="mdi mdi-forum text-warning"></i>
-                            Konsultasi Syariah Menunggu Tanggapan
-                        </h5>
-                        <a href="{{ route('operator.konsultasi.index') }}" class="btn btn-sm btn-outline-warning" style="border-radius: 8px;">
-                            <i class="mdi mdi-format-list-bulleted mr-1"></i> Semua Konsultasi
+        {{-- ===== Kolom samping ===== --}}
+        <aside class="grid content-start gap-6 sm:grid-cols-2 xl:grid-cols-1" aria-label="Profil & pintasan tugas">
+            <section class="card overflow-hidden">
+                <div class="bg-gradient-brand relative h-20">
+                    <div class="pattern-islamic absolute inset-0"></div>
+                </div>
+                <div class="-mt-10 px-5 pb-5 text-center">
+                    @if ($user->foto_url)
+                        <img src="{{ $user->foto_url }}" alt="Foto {{ $user->name }}" class="relative mx-auto size-20 rounded-2xl object-cover ring-4 ring-white">
+                    @else
+                        <span class="relative mx-auto grid size-20 place-items-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 font-display text-2xl font-semibold text-gold-300 ring-4 ring-white">{{ $inisial($user->name) }}</span>
+                    @endif
+                    <h3 class="mt-3 font-display text-lg leading-snug font-semibold text-ink-900">{{ $nama }}</h3>
+                    <p class="mt-0.5 text-xs break-all text-stone-500">{{ '@'.$user->username }} · {{ $user->email }}</p>
+                    @if ($user->nohp)
+                        <p class="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700"><x-icon name="whatsapp" class="size-3.5" /> {{ $user->nohp }}</p>
+                    @endif
+                    <p class="mt-3"><span class="badge badge-green"><span class="size-1.5 rounded-full bg-brand-500"></span> Petugas aktif</span></p>
+                </div>
+                <div class="border-t border-stone-100 px-5 py-4">
+                    <p class="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-stone-500 uppercase"><x-icon name="shield-check" class="size-3.5 text-brand-600" /> Wewenang menu aktif</p>
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                        @forelse ($menuSaya as $key => $perm)
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800 ring-1 ring-brand-600/15"><x-icon :name="$ikonIzin[$key] ?? 'circle-check'" class="size-3.5" /> {{ $perm['label'] }}</span>
+                        @empty
+                            <p class="text-sm text-stone-500 italic">Belum ada wewenang menu aktif.</p>
+                        @endforelse
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="btn btn-outline btn-sm mt-4 w-full"><x-icon name="circle-user-round" class="size-4" /> Profil akun</a>
+                </div>
+            </section>
+
+            <section class="card p-5">
+                <h3 class="flex items-center gap-2 text-[15px] font-bold text-ink-900"><x-icon name="zap" class="size-[18px] text-gold-500" /> Menu operasional saya</h3>
+                <div class="mt-4 space-y-2">
+                    @forelse ($menuSaya as $key => $perm)
+                        <a href="{{ route($perm['route']) }}" class="group flex items-center gap-3 rounded-xl border border-stone-200 p-3 transition hover:border-brand-300 hover:bg-brand-50/40">
+                            <span class="grid size-10 shrink-0 place-items-center rounded-xl ring-1 transition {{ $nada[$nadaIzin[$key] ?? 'brand'] }} group-hover:bg-brand-700 group-hover:text-white group-hover:ring-brand-700"><x-icon :name="$ikonIzin[$key] ?? 'circle-check'" class="size-5" /></span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-semibold text-ink-900">{{ $perm['label'] }}</span>
+                                <span class="line-clamp-2 block text-xs leading-snug text-stone-500">{{ $perm['description'] }}</span>
+                            </span>
+                            <x-icon name="arrow-right" class="size-4 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
                         </a>
-                    </div>
-                    <div class="panel-body p-0">
-                        @if(isset($operatorData['pending_konsultasi']) && count($operatorData['pending_konsultasi']) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-modern">
-                                    <thead>
-                                        <tr>
-                                            <th>Penanya</th>
-                                            <th>Topik / Pertanyaan</th>
-                                            <th>Tanggal Masuk</th>
-                                            <th class="text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($operatorData['pending_konsultasi'] as $kon)
-                                            <tr>
-                                                <td>
-                                                    <strong class="text-dark d-block">{{ $kon->nama }}</strong>
-                                                    <small class="text-muted">{{ $kon->email }}</small>
-                                                </td>
-                                                <td>
-                                                    <div class="font-weight-bold text-dark mb-1">{{ Str::limit($kon->judul ?: 'Pertanyaan Syariah', 45) }}</div>
-                                                    <div class="text-muted small" style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                        {{ Str::limit(strip_tags($kon->pertanyaan), 65) }}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="small text-muted">{{ $kon->created_at->translatedFormat('d M Y, H:i') }}</span>
-                                                </td>
-                                                <td class="text-right">
-                                                    <a href="{{ route('operator.konsultasi.show', $kon->id) }}" class="btn btn-sm btn-warning text-dark px-3 font-weight-bold" style="border-radius: 6px;">
-                                                        <i class="mdi mdi-reply mr-1"></i> Jawab
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="text-center py-4 text-muted">
-                                <i class="mdi mdi-check-all text-success" style="font-size: 38px;"></i>
-                                <p class="mb-0 mt-2 font-weight-bold">Tidak ada pertanyaan konsultasi yang pending.</p>
-                                <small>Semua pertanyaan dari masyarakat telah dijawab.</small>
-                            </div>
-                        @endif
-                    </div>
+                    @empty
+                        <div class="rounded-xl bg-stone-50 px-4 py-6 text-center">
+                            <x-icon name="lock" class="mx-auto size-6 text-stone-400" />
+                            <p class="mt-2 text-sm text-stone-500">Tidak ada menu yang dapat dibuka.</p>
+                        </div>
+                    @endforelse
                 </div>
+            </section>
+
+            @if ($bisaKonsultasi && $myAnswered->isNotEmpty())
+                <section class="card p-5">
+                    <h3 class="flex items-center gap-2 text-[15px] font-bold text-ink-900"><x-icon name="check-check" class="size-[18px] text-violet-600" /> Jawaban terakhir Anda</h3>
+                    <ul class="mt-3 divide-y divide-stone-100">
+                        @foreach ($myAnswered as $kon)
+                            <li>
+                                <a href="{{ route('operator.konsultasi.show', $kon->id) }}" class="block py-2.5 hover:text-brand-700">
+                                    <span class="line-clamp-1 text-sm font-semibold text-ink-900">{{ Str::limit(strip_tags($kon->pertanyaan), 80) }}</span>
+                                    <span class="mt-0.5 block text-xs text-stone-500">{{ $kon->nama }} · {{ $tgl($kon->answered_at ?? $kon->updated_at) }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
             @endif
 
-            {{-- 3. BERITA & ARTIKEL TERBARU SAYA --}}
-            @if(auth()->user()->hasMenuPermission('berita'))
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <h5>
-                            <i class="mdi mdi-newspaper text-success"></i>
-                            Berita & Artikel Ditulis Saya
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <a href="{{ route('operator.berita.create') }}" class="btn btn-sm btn-success" style="border-radius: 8px;">
-                                <i class="mdi mdi-plus-circle mr-1"></i> Tulis Berita
-                            </a>
-                            <a href="{{ route('operator.berita.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">
-                                Kelola Semua
-                            </a>
-                        </div>
-                    </div>
-                    <div class="panel-body p-0">
-                        @if(isset($operatorData['my_berita']) && count($operatorData['my_berita']) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-modern">
-                                    <thead>
-                                        <tr>
-                                            <th>Judul Berita</th>
-                                            <th>Kategori</th>
-                                            <th>Status</th>
-                                            <th>Pembaca</th>
-                                            <th class="text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($operatorData['my_berita'] as $berita)
-                                            <tr>
-                                                <td>
-                                                    <strong class="text-dark d-block">{{ Str::limit($berita->judul, 45) }}</strong>
-                                                    <small class="text-muted">{{ $berita->created_at->translatedFormat('d M Y') }}</small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge badge-light border text-dark">{{ $berita->kategori ?: 'Umum' }}</span>
-                                                </td>
-                                                <td>
-                                                    @if($berita->status === 'published')
-                                                        <span class="badge badge-success font-weight-bold">Terbit</span>
-                                                    @else
-                                                        <span class="badge badge-warning text-dark font-weight-bold">Draft</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <span class="text-muted small"><i class="mdi mdi-eye mr-1"></i>{{ number_format($berita->views ?? 0) }}</span>
-                                                </td>
-                                                <td class="text-right">
-                                                    <a href="{{ route('operator.berita.edit', $berita->id) }}" class="btn btn-sm btn-light border" title="Edit Berita">
-                                                        <i class="mdi mdi-pencil text-primary"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="text-center py-4 text-muted">
-                                <i class="mdi mdi-file-document-edit-outline text-muted" style="font-size: 38px;"></i>
-                                <p class="mb-0 mt-2 font-weight-bold">Anda belum mempublikasikan artikel berita.</p>
-                                <small>Klik tombol "Tulis Berita" untuk mulai menulis konten berita portal.</small>
-                            </div>
-                        @endif
-                    </div>
+            <section class="card relative overflow-hidden p-5">
+                <div class="pattern-islamic-dark absolute inset-0"></div>
+                <div class="relative">
+                    <h3 class="flex items-center gap-2 text-[15px] font-bold text-ink-900"><x-icon name="lightbulb" class="size-[18px] text-gold-500" /> Petunjuk pelayanan</h3>
+                    <ul class="mt-3 space-y-2.5 text-sm leading-relaxed text-stone-600">
+                        <li class="flex gap-2.5"><x-icon name="circle-check" class="mt-0.5 size-4 text-brand-600" /> <span>Prioritaskan menjawab <b class="font-semibold text-ink-900">Live Chat</b> dan <b class="font-semibold text-ink-900">Konsultasi Syariah</b> dengan bahasa santun dan islami.</span></li>
+                        <li class="flex gap-2.5"><x-icon name="circle-check" class="mt-0.5 size-4 text-brand-600" /> <span>Pastikan setiap berita yang dipublikasikan telah terverifikasi sumber dan kategorinya.</span></li>
+                        <li class="flex gap-2.5"><x-icon name="circle-check" class="mt-0.5 size-4 text-brand-600" /> <span>Jaga kerahasiaan data pribadi masyarakat yang melakukan konsultasi ataupun live chat.</span></li>
+                    </ul>
                 </div>
-            @endif
-
-            {{-- 4. ARSIP FATWA & SURAT (JIKA DIBERI AKSES) --}}
-            @if(auth()->user()->hasMenuPermission('fatwa') || auth()->user()->hasMenuPermission('surat'))
-                <div class="row g-3">
-                    @if(auth()->user()->hasMenuPermission('fatwa'))
-                        <div class="col-md-{{ auth()->user()->hasMenuPermission('surat') ? '6' : '12' }}">
-                            <div class="panel-card mb-0">
-                                <div class="panel-header">
-                                    <h5><i class="mdi mdi-book-open-variant text-warning"></i> Fatwa Terkini</h5>
-                                    <a href="{{ route('operator.fatwa.index') }}" class="btn btn-xs btn-outline-secondary" style="font-size: 11px;">Lihat</a>
-                                </div>
-                                <div class="panel-body p-2">
-                                    @if(isset($operatorData['latest_fatwa']) && count($operatorData['latest_fatwa']) > 0)
-                                        <div class="list-group list-group-flush">
-                                            @foreach($operatorData['latest_fatwa'] as $fatwa)
-                                                <div class="list-group-item px-2 py-2 border-0 border-bottom d-flex align-items-center justify-content-between">
-                                                    <div style="min-width: 0;" class="mr-2">
-                                                        <span class="d-block font-weight-bold text-dark text-truncate" style="font-size: 13px;">{{ $fatwa->judul }}</span>
-                                                        <small class="text-muted">{{ $fatwa->kategori?->nama ?: 'Fatwa' }} · {{ $fatwa->created_at->format('d/m/Y') }}</small>
-                                                    </div>
-                                                    @if($fatwa->filepdf)
-                                                        <a href="{{ asset('uploads/fatwa/'.$fatwa->filepdf) }}" target="_blank" class="btn btn-xs btn-outline-danger" title="Unduh PDF">
-                                                            <i class="mdi mdi-file-pdf-box"></i>
-                                                        </a>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <p class="text-muted small text-center my-3">Belum ada data fatwa.</p>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if(auth()->user()->hasMenuPermission('surat'))
-                        <div class="col-md-{{ auth()->user()->hasMenuPermission('fatwa') ? '6' : '12' }}">
-                            <div class="panel-card mb-0">
-                                <div class="panel-header">
-                                    <h5><i class="mdi mdi-email-outline text-primary"></i> Arsip Surat Terkini</h5>
-                                    <a href="{{ route('operator.surat.index') }}" class="btn btn-xs btn-outline-secondary" style="font-size: 11px;">Lihat</a>
-                                </div>
-                                <div class="panel-body p-2">
-                                    @if(isset($operatorData['latest_surat']) && count($operatorData['latest_surat']) > 0)
-                                        <div class="list-group list-group-flush">
-                                            @foreach($operatorData['latest_surat'] as $surat)
-                                                <div class="list-group-item px-2 py-2 border-0 border-bottom d-flex align-items-center justify-content-between">
-                                                    <div style="min-width: 0;" class="mr-2">
-                                                        <span class="d-block font-weight-bold text-dark text-truncate" style="font-size: 13px;">{{ $surat->perihal ?: $surat->nomor_surat }}</span>
-                                                        <small class="text-muted">{{ $surat->nomor_surat }}</small>
-                                                    </div>
-                                                    <span class="badge badge-light border">{{ $surat->jenis ?? 'Surat' }}</span>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <p class="text-muted small text-center my-3">Belum ada arsip surat.</p>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            @endif
-
-        </div>
-
-        {{-- KOLOM SAMPING: PROFIL OPERATOR & PINTASAN TUGAS --}}
-        <div class="col-lg-4">
-
-            {{-- 1. KARTU PROFIL OPERATOR --}}
-            <div class="panel-card">
-                <div class="panel-header">
-                    <h5><i class="mdi mdi-account-circle text-primary"></i> Identitas Petugas</h5>
-                    <span class="badge badge-success font-weight-bold" style="font-size: 11px;">Aktif</span>
-                </div>
-                <div class="panel-body text-center pt-4">
-                    <div class="mb-3 d-flex justify-content-center">
-                        @if(auth()->user()->foto_url)
-                            <img src="{{ auth()->user()->foto_url }}" alt="Foto" class="user-avatar-lg">
-                        @else
-                            <div class="user-avatar-initials-lg">
-                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-                            </div>
-                        @endif
-                    </div>
-                    <h5 class="font-weight-bold mb-1 text-dark">{{ auth()->user()->name_gelar ?: auth()->user()->name }}</h5>
-                    <p class="text-muted small mb-2"><i class="mdi mdi-at"></i> {{ auth()->user()->username }} · {{ auth()->user()->email }}</p>
-
-                    @if(auth()->user()->no_hp)
-                        <div class="d-inline-flex align-items-center gap-1 text-success small font-weight-bold mb-3">
-                            <i class="mdi mdi-whatsapp"></i> {{ auth()->user()->no_hp }}
-                        </div>
-                    @endif
-
-                    <hr style="border-top: 1px dashed #e2e8f0; margin: 16px 0;">
-
-                    <div class="text-left">
-                        <label class="font-weight-bold font-size-12 text-uppercase text-muted d-block mb-2">
-                            <i class="mdi mdi-shield-check mr-1 text-success"></i> Wewenang Menu Aktif:
-                        </label>
-                        <div class="d-flex flex-wrap">
-                            @foreach(\App\Models\User::OPERATOR_PERMISSIONS as $pKey => $pVal)
-                                @if(auth()->user()->hasMenuPermission($pKey))
-                                    <span class="duty-chip active">
-                                        <i class="{{ $pVal['icon'] }}"></i> {{ $pVal['label'] }}
-                                    </span>
-                                @endif
-                            @endforeach
-                            @if(count($assignedPerms) === 0)
-                                <span class="text-muted small font-italic">Belum ada wewenang menu aktif.</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 2. PINTASAN TUGAS OPERASIONAL (QUICK ACCESS) --}}
-            <div class="panel-card">
-                <div class="panel-header">
-                    <h5><i class="mdi mdi-lightning-bolt text-warning"></i> Menu Operasional Saya</h5>
-                </div>
-                <div class="panel-body">
-                    @php $hasMenu = false; @endphp
-                    @foreach(\App\Models\User::OPERATOR_PERMISSIONS as $permKey => $perm)
-                        @if(auth()->user()->hasMenuPermission($permKey))
-                            @php $hasMenu = true; @endphp
-                            <a href="{{ route($perm['route']) }}" class="quick-link-box">
-                                <div class="ql-icon"><i class="{{ $perm['icon'] }}"></i></div>
-                                <div class="ql-info">
-                                    <span class="ql-title">{{ $perm['label'] }}</span>
-                                    <span class="ql-desc">{{ $perm['description'] }}</span>
-                                </div>
-                                <i class="mdi mdi-arrow-right text-muted" style="font-size: 18px;"></i>
-                            </a>
-                        @endif
-                    @endforeach
-
-                    @if(! $hasMenu)
-                        <div class="text-center py-3 text-muted">
-                            <i class="mdi mdi-lock-outline text-muted" style="font-size: 32px;"></i>
-                            <p class="small mb-0 mt-1">Tidak ada menu yang dapat dibuka.</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- 3. PANDUAN RINGKAS PETUGAS --}}
-            <div class="panel-card" style="background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);">
-                <div class="panel-header">
-                    <h5><i class="mdi mdi-information-outline text-info"></i> Petunjuk Pelayanan</h5>
-                </div>
-                <div class="panel-body" style="font-size: 13px; line-height: 1.6; color: #475569;">
-                    <div class="d-flex align-items-start mb-2">
-                        <i class="mdi mdi-check-circle text-success mr-2 mt-1"></i>
-                        <span>Prioritaskan menjawab <strong>Live Chat</strong> dan <strong>Konsultasi Syariah</strong> dengan bahasa santun dan islami.</span>
-                    </div>
-                    <div class="d-flex align-items-start mb-2">
-                        <i class="mdi mdi-check-circle text-success mr-2 mt-1"></i>
-                        <span>Pastikan setiap berita yang dipublikasikan telah terverifikasi sumber dan kategorinya.</span>
-                    </div>
-                    <div class="d-flex align-items-start">
-                        <i class="mdi mdi-check-circle text-success mr-2 mt-1"></i>
-                        <span>Jaga kerahasiaan data pribadi masyarakat yang melakukan konsultasi ataupun live chat.</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
+            </section>
+        </aside>
     </div>
 
-</div>
-@endsection
+    @if (($bisaFatwa || $bisaSurat) && ! $fatwaSuratDiUtama)
+        <div class="mt-6">
+            @yield('dasbor-fatwa-surat')
+        </div>
+    @endif
+
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                // Jam WIB (Asia/Jakarta) — tidak bergantung pada zona waktu perangkat.
+                Alpine.data('wibClock', (seconds = false) => ({
+                    text: '',
+                    timer: null,
+                    init() {
+                        const opts = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false, ...(seconds ? { second: '2-digit' } : {}) };
+                        const tick = () => { this.text = new Date().toLocaleTimeString('id-ID', opts).replace(/\./g, ':'); };
+                        tick();
+                        this.timer = setInterval(tick, seconds ? 1000 : 15000);
+                    },
+                    destroy() {
+                        clearInterval(this.timer);
+                    },
+                }));
+
+                // Grafik aktivitas: legenda menampilkan total periode, atau rincian bulan yang disorot/difokus.
+                Alpine.data('dashChart', ({ months, series }) => ({
+                    months,
+                    series,
+                    active: null,
+                    table: false,
+                    get heading() {
+                        return this.active === null ? `Total ${this.months.length} bulan terakhir` : this.months[this.active].long;
+                    },
+                    value(i) {
+                        const s = this.series[i];
+                        return this.active === null ? s.total : s.data[this.active];
+                    },
+                    get grandTotal() {
+                        return this.series.reduce((sum, s, i) => sum + this.value(i), 0);
+                    },
+                }));
+            });
+        </script>
+    @endpush
+</x-layouts.admin>

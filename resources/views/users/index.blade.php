@@ -1,602 +1,285 @@
-@extends('layouts.master')
+@php
+    $base = route('admin.users.index');
+    $permBase = url('admin/operator-permissions');
+    $permLabels = collect(\App\Models\User::OPERATOR_PERMISSIONS)->only(\App\Models\User::DEFAULT_OPERATOR_PERMISSIONS)->pluck('label')->implode(', ');
+@endphp
 
-@section('css')
-    <style>
-        /* ===== DASHBOARD VARIABLES ===== */
-        :root {
-            --green: #007f5f;
-            --green-dark: #005f47;
-            --green-light: #00a878;
-            --green-pale: #e8f5f1;
-            --yellow: #f0a500;
-            --blue: #2563eb;
-            --red: #ef4444;
-            --text: #1a1a2e;
-            --gray: #6b7280;
-            --bg: #f4f7f6;
-            --white: #ffffff;
-            --radius: 14px;
-            --shadow: 0 2px 16px rgba(0, 0, 0, .07);
-            --shadow-hover: 0 8px 32px rgba(0, 127, 95, .16);
-            --transition: .22s cubic-bezier(.4, 0, .2, 1);
-        }
+<x-layouts.admin title="Pengguna" header="Kelola akun administrator & operator panel">
+    <div x-data="usersPage({ url: @js($base), permBase: @js($permBase), authId: @js(auth()->id()), defaults: @js(\App\Models\User::DEFAULT_OPERATOR_PERMISSIONS), permTotal: @js(count(\App\Models\User::OPERATOR_PERMISSIONS)) })">
+        <div x-data="serverTable({ url: @js($base), columns: ['id', 'name', 'username', 'email', 'role', 'created_at'], order: [5, 'desc'] })">
+            <x-admin.page-header eyebrow="Sistem" title="Pengguna Panel" description="Akun yang dapat masuk ke panel admin. Administrator memiliki akses penuh, sedangkan operator hanya membuka menu yang dibagikan kepadanya.">
+                <x-slot:actions>
+                    <a href="{{ route('admin.operator-permissions.index') }}" class="btn btn-outline"><x-icon name="shield-check" class="size-4" /> Hak Akses Operator</a>
+                    <button type="button" @click="$dispatch('pengguna:open')" class="btn btn-primary"><x-icon name="user-plus" class="size-4" /> Tambah Pengguna</button>
+                </x-slot:actions>
+            </x-admin.page-header>
 
-        body {
-            background: var(--bg) !important;
-        }
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <x-stat-card label="Total pengguna" icon="users" bind="stats.total ?? '–'" note="Seluruh akun yang terdaftar" />
+                <x-stat-card label="Administrator" icon="shield-check" tone="gold" bind="stats.admin ?? '–'" note="Akses penuh ke semua menu" />
+                <x-stat-card label="Operator" icon="user-round-cog" tone="blue" bind="stats.operator ?? '–'" note="Akses sesuai pembagian tugas" />
+            </div>
 
-        /* ===== PAGE HEADER ===== */
-        .page-header {
-            background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
-            border-radius: var(--radius);
-            padding: 28px 30px;
-            margin-bottom: 28px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
+            <x-admin.table class="mt-6" colspan="7" empty="Belum ada pengguna" empty-icon="users" search-placeholder="Cari nama, username, email, atau peran…">
+                <x-slot:filters>
+                    <span x-show="search.trim().length > 0 && search.trim().length < 3" x-cloak class="badge badge-gold py-1"><x-icon name="info" class="size-3.5" /> Ketik minimal 3 huruf</span>
+                </x-slot:filters>
+                <x-slot:head>
+                    <th class="w-12">#</th>
+                    <x-admin.th col="1">Pengguna</x-admin.th>
+                    <x-admin.th col="2">Username</x-admin.th>
+                    <x-admin.th col="3">Kontak</x-admin.th>
+                    <x-admin.th col="4">Peran</x-admin.th>
+                    <x-admin.th col="5">Bergabung</x-admin.th>
+                    <th class="text-right">Aksi</th>
+                </x-slot:head>
+                <x-slot:row>
+                    <tr class="[&>td]:align-middle">
+                        <td class="text-stone-400 tabular-nums" x-text="rowNumber(index)"></td>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-xl text-xs font-bold" :class="row.role === 'admin' ? 'bg-brand-700 text-gold-300' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-100'" x-text="initials(row.name)"></span>
+                                <div class="min-w-0">
+                                    <p class="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-ink-900">
+                                        <span x-text="row.name"></span>
+                                        <span x-show="row.id === authId" class="badge badge-gold">Anda</span>
+                                    </p>
+                                    <p class="text-xs text-stone-500" x-show="row.name_gelar" x-text="row.name_gelar"></p>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="font-mono text-[13px] text-stone-600" x-text="'@' + row.username"></span></td>
+                        <td>
+                            <p class="flex items-center gap-1.5 text-stone-700"><x-icon name="mail" class="size-3.5 text-stone-400" /> <span x-text="row.email"></span></p>
+                            <p class="mt-1 flex items-center gap-1.5 text-xs text-stone-500" x-show="row.nohp"><x-icon name="phone" class="size-3.5 text-stone-400" /> <span x-text="row.nohp"></span></p>
+                        </td>
+                        <td>
+                            <span class="badge" :class="row.role === 'admin' ? 'badge-gold' : 'badge-green'">
+                                <x-icon name="shield-check" class="size-3" x-show="row.role === 'admin'" />
+                                <x-icon name="user-round-cog" class="size-3" x-show="row.role !== 'admin'" />
+                                <span x-text="row.role === 'admin' ? 'Administrator' : 'Operator'"></span>
+                            </span>
+                            <p class="mt-1.5 text-[11px] text-stone-500" x-text="row.role === 'admin' ? 'Akses penuh' : permCount(row) + ' dari ' + permTotal + ' menu'"></p>
+                        </td>
+                        <td class="whitespace-nowrap text-stone-500" x-text="MUIAdmin.formatDate(row.created_at)"></td>
+                        <td>
+                            <div class="flex justify-end gap-1.5">
+                                <a x-show="row.role === 'operator'" :href="permBase + '/' + row.id + '/edit'" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-gold-50 hover:text-gold-700" title="Atur tugas & hak akses" aria-label="Atur hak akses operator"><x-icon name="shield-check" class="size-4" /></a>
+                                <button type="button" @click="$dispatch('pengguna:open', row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-brand-50 hover:text-brand-700" title="Ubah" aria-label="Ubah pengguna"><x-icon name="pencil" class="size-4" /></button>
+                                <button type="button" :disabled="row.id === authId"
+                                        @click="MUIAdmin.destroy(url + '/' + row.id, { title: 'Hapus pengguna?', message: `Akun “${row.name}” (@${row.username}) akan dihapus permanen dan tidak dapat lagi masuk ke panel.` })"
+                                        class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-stone-500"
+                                        :title="row.id === authId ? 'Akun yang sedang digunakan tidak dapat dihapus' : 'Hapus'" aria-label="Hapus pengguna"><x-icon name="trash-2" class="size-4" /></button>
+                            </div>
+                        </td>
+                    </tr>
+                </x-slot:row>
+            </x-admin.table>
+        </div>
 
-        .page-header h4 {
-            font-size: 22px;
-            font-weight: 800;
-            margin: 0;
-            color: #fff;
-        }
+        {{-- Formulir tambah / ubah pengguna --}}
+        <div x-data="crudForm({ name: 'pengguna', storeUrl: @js($base), updateUrl: @js($base.'/:id'), defaults: { name: '', name_gelar: '', username: '', email: '', role: 'operator', jk: '', nohp: '', alamat: '', password: '', password_confirmation: '' } })"
+             @pengguna:open.window="$nextTick(() => { data.jk = normalizeJk(data.jk); showPass = false })">
+            <x-admin.modal title="mode === 'edit' ? 'Ubah Pengguna' : 'Tambah Pengguna'" icon="user-round-cog" size="max-w-3xl">
+                <form x-ref="form" @submit.prevent="submit()" class="flex min-h-0 flex-1 flex-col" autocomplete="off">
+                    <div class="scrollbar-thin flex-1 space-y-7 overflow-y-auto p-6">
+                        {{-- Identitas --}}
+                        <section>
+                            <h3 class="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-500 uppercase"><x-icon name="id-card" class="size-4 text-gold-500" /> Identitas</h3>
+                            <div class="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <div>
+                                    <label for="u-name" class="label">Nama lengkap <span class="text-red-500">*</span></label>
+                                    <input id="u-name" x-ref="first" name="name" x-model="data.name" type="text" maxlength="100" required placeholder="cth: Ahmad Fauzi" class="input" :class="error('name') && 'input-error'">
+                                    <p class="field-error" x-show="error('name')" x-text="error('name')"></p>
+                                </div>
+                                <div>
+                                    <label for="u-gelar" class="label">Nama beserta gelar <span class="font-normal text-stone-400">(opsional)</span></label>
+                                    <input id="u-gelar" name="name_gelar" x-model="data.name_gelar" type="text" maxlength="100" placeholder="cth: Dr. H. Ahmad Fauzi, M.Ag." class="input" :class="error('name_gelar') && 'input-error'">
+                                    <p class="field-error" x-show="error('name_gelar')" x-text="error('name_gelar')"></p>
+                                </div>
+                                <div>
+                                    <label for="u-jk" class="label">Jenis kelamin</label>
+                                    <select id="u-jk" name="jk" x-model="data.jk" class="input" :class="error('jk') && 'input-error'">
+                                        <option value="">Pilih jenis kelamin</option>
+                                        <option value="L">Laki-laki</option>
+                                        <option value="P">Perempuan</option>
+                                    </select>
+                                    <p class="field-error" x-show="error('jk')" x-text="error('jk')"></p>
+                                </div>
+                                <div>
+                                    <label for="u-nohp" class="label">No. HP / WhatsApp</label>
+                                    <input id="u-nohp" name="nohp" x-model="data.nohp" type="tel" maxlength="15" inputmode="tel" placeholder="cth: 081234567890" class="input" :class="error('nohp') && 'input-error'">
+                                    <p class="field-error" x-show="error('nohp')" x-text="error('nohp')"></p>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label for="u-alamat" class="label">Alamat <span class="font-normal text-stone-400">(opsional)</span></label>
+                                    <textarea id="u-alamat" name="alamat" x-model="data.alamat" rows="2" placeholder="Alamat domisili atau kantor" class="input resize-none" :class="error('alamat') && 'input-error'"></textarea>
+                                    <p class="field-error" x-show="error('alamat')" x-text="error('alamat')"></p>
+                                </div>
+                            </div>
+                        </section>
 
-        .page-header p {
-            margin: 4px 0 0;
-            font-size: 13px;
-            opacity: .85;
-            color: #fff;
-        }
+                        {{-- Akun & peran --}}
+                        <section class="border-t border-stone-100 pt-6">
+                            <h3 class="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-500 uppercase"><x-icon name="key-round" class="size-4 text-gold-500" /> Akun &amp; peran</h3>
+                            <div class="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <div>
+                                    <label for="u-username" class="label">Username <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-stone-400">@</span>
+                                        <input id="u-username" name="username" x-model="data.username" type="text" maxlength="20" required autocapitalize="none" spellcheck="false" placeholder="username_login" class="input pl-8" :class="error('username') && 'input-error'">
+                                    </div>
+                                    <p class="field-error" x-show="error('username')" x-text="error('username')"></p>
+                                    <p class="mt-1.5 text-xs text-stone-500" x-show="!error('username')">Dipakai untuk masuk. Maksimal 20 karakter &amp; harus unik.</p>
+                                </div>
+                                <div>
+                                    <label for="u-email" class="label">Email <span class="text-red-500">*</span></label>
+                                    <input id="u-email" name="email" x-model="data.email" type="email" maxlength="255" required placeholder="nama@email.com" class="input" :class="error('email') && 'input-error'">
+                                    <p class="field-error" x-show="error('email')" x-text="error('email')"></p>
+                                </div>
+                            </div>
 
-        .page-header .badge-role {
-            background: rgba(255, 255, 255, .2);
-            border: 1px solid rgba(255, 255, 255, .35);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 6px 16px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+                            <fieldset class="mt-5">
+                                <legend class="label">Peran <span class="text-red-500">*</span></legend>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand-500/20"
+                                           :class="data.role === 'operator' ? 'border-brand-500 bg-brand-50/60' : 'border-stone-200 hover:border-brand-300'">
+                                        <input type="radio" name="role" value="operator" x-model="data.role" class="sr-only">
+                                        <span class="grid size-9 shrink-0 place-items-center rounded-lg" :class="data.role === 'operator' ? 'bg-brand-700 text-white' : 'bg-stone-100 text-stone-500'"><x-icon name="user-round-cog" class="size-4" /></span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block text-sm font-semibold text-ink-900">Operator</span>
+                                            <span class="mt-0.5 block text-xs text-stone-500">Hanya membuka menu yang dibagikan admin.</span>
+                                        </span>
+                                        <x-icon name="circle-check" class="size-5 text-brand-600" x-show="data.role === 'operator'" />
+                                    </label>
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand-500/20"
+                                           :class="data.role === 'admin' ? 'border-gold-400 bg-gold-50/70' : 'border-stone-200 hover:border-gold-300'">
+                                        <input type="radio" name="role" value="admin" x-model="data.role" class="sr-only">
+                                        <span class="grid size-9 shrink-0 place-items-center rounded-lg" :class="data.role === 'admin' ? 'bg-gold-500 text-white' : 'bg-stone-100 text-stone-500'"><x-icon name="shield-check" class="size-4" /></span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block text-sm font-semibold text-ink-900">Administrator</span>
+                                            <span class="mt-0.5 block text-xs text-stone-500">Akses penuh, termasuk pengguna &amp; pengaturan.</span>
+                                        </span>
+                                        <x-icon name="circle-check" class="size-5 text-gold-600" x-show="data.role === 'admin'" />
+                                    </label>
+                                </div>
+                                <p class="field-error" x-show="error('role')" x-text="error('role')"></p>
+                            </fieldset>
 
-        /* ===== STAT CARDS ===== */
-        .stat-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            transition: all var(--transition);
-            border: 1px solid transparent;
-            margin-bottom: 0;
-        }
+                            <p x-show="mode === 'create' && data.role === 'operator'" x-cloak class="mt-4 flex gap-2.5 rounded-xl bg-sky-50 px-4 py-3 text-xs leading-relaxed text-sky-800 ring-1 ring-sky-100">
+                                <x-icon name="info" class="mt-0.5 size-4 shrink-0" />
+                                <span>Operator baru otomatis mendapat akses bawaan: <b>{{ $permLabels }}</b>. Pembagian tugas dapat diubah di menu Hak Akses Operator.</span>
+                            </p>
+                            <p x-show="mode === 'edit' && data.id === authId && data.role !== 'admin'" x-cloak class="mt-4 flex gap-2.5 rounded-xl bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-700 ring-1 ring-red-100">
+                                <x-icon name="triangle-alert" class="mt-0.5 size-4 shrink-0" />
+                                <span>Anda sedang mengubah peran akun Anda sendiri. Setelah disimpan, akses administrator Anda akan hilang.</span>
+                            </p>
+                        </section>
 
-        .stat-card:hover {
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-3px);
-            border-color: var(--green-pale);
-        }
-
-        .stat-icon {
-            width: 58px;
-            height: 58px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            flex-shrink: 0;
-        }
-
-        .stat-icon.green {
-            background: var(--green-pale);
-            color: var(--green);
-        }
-
-        .stat-icon.yellow {
-            background: #fff8e6;
-            color: var(--yellow);
-        }
-
-        .stat-icon.blue {
-            background: #eff6ff;
-            color: var(--blue);
-        }
-
-        .stat-icon.red {
-            background: #fef2f2;
-            color: var(--red);
-        }
-
-        .stat-info {
-            flex: 1;
-        }
-
-        .stat-info .stat-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-
-        .stat-info .stat-label {
-            font-size: 13px;
-            color: var(--gray);
-            font-weight: 500;
-        }
-
-        .stat-info .stat-sub {
-            font-size: 11px;
-            color: var(--green);
-            font-weight: 600;
-            margin-top: 4px;
-        }
-
-        /* ===== PANEL CARDS ===== */
-        .panel-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            height: 100%;
-        }
-
-        .panel-card .panel-header {
-            padding: 18px 22px;
-            border-bottom: 1px solid #f0f4f3;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .panel-card .panel-header h5 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .panel-card .panel-header h5 i {
-            color: var(--green);
-            font-size: 18px;
-        }
-
-        .panel-card .panel-body {
-            padding: 20px 22px;
-        }
-
-        /* ===== WELCOME ALERT ===== */
-        .welcome-alert {
-            background: var(--green-pale);
-            border-left: 4px solid var(--green);
-            border-radius: 10px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .welcome-alert i {
-            font-size: 22px;
-            color: var(--green);
-            flex-shrink: 0;
-        }
-
-        .welcome-alert p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--text);
-        }
-
-        .welcome-alert strong {
-            color: var(--green);
-        }
-
-        /* ===== USER TABLE ===== */
-        .user-table {
-            width: 100%;
-        }
-
-        .user-table th {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gray);
-            padding: 10px 12px;
-            border-bottom: 2px solid #f0f4f3;
-            background: #fafcfb;
-        }
-
-        .user-table td {
-            padding: 12px 12px;
-            border-bottom: 1px solid #f4f6f5;
-            font-size: 13.5px;
-            color: var(--text);
-            vertical-align: middle;
-        }
-
-        .user-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .user-table tr:hover td {
-            background: #fafcfb;
-        }
-
-        .role-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .role-badge.admin {
-            background: var(--green-pale);
-            color: var(--green);
-        }
-
-        .role-badge.operator {
-            background: #fff8e6;
-            color: var(--yellow);
-        }
-
-        /* ===== ACTIVITY ITEM ===== */
-        .activity-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f4f3;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .activity-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-top: 4px;
-            flex-shrink: 0;
-        }
-
-        .activity-dot.green {
-            background: var(--green);
-        }
-
-        .activity-dot.yellow {
-            background: var(--yellow);
-        }
-
-        .activity-dot.blue {
-            background: var(--blue);
-        }
-
-        .activity-text {
-            flex: 1;
-        }
-
-        .activity-text p {
-            margin: 0;
-            font-size: 13.5px;
-            color: var(--text);
-        }
-
-        .activity-text span {
-            font-size: 11px;
-            color: var(--gray);
-        }
-    </style>
-@endsection
-
-@section('content')
-    <div class="container-fluid" style="padding: 24px 30px;">
-        <div class="row g-3">
-            <div class="col-lg-12">
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <h5><i class="mdi mdi-account-multiple"></i> Daftar Pengguna</h5>
-                        <button type="button" class="btn btn-success btn-sm" id="btn-create-user">
-                            <i class="mdi mdi-account-plus"></i> Tambah Pengguna
+                        {{-- Kata sandi --}}
+                        <section class="border-t border-stone-100 pt-6">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="flex items-center gap-2 text-xs font-bold tracking-wider text-stone-500 uppercase"><x-icon name="lock-keyhole" class="size-4 text-gold-500" /> Kata sandi</h3>
+                                <button type="button" @click="showPass = !showPass" class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-900">
+                                    <x-icon name="eye" class="size-3.5" x-show="!showPass" /><x-icon name="eye-off" class="size-3.5" x-show="showPass" x-cloak />
+                                    <span x-text="showPass ? 'Sembunyikan' : 'Tampilkan'"></span>
+                                </button>
+                            </div>
+                            <p class="mt-1 text-xs text-stone-500" x-text="mode === 'edit' ? 'Kosongkan kedua kolom bila kata sandi tidak ingin diubah.' : 'Minimal 8 karakter. Sampaikan kata sandi awal kepada pemilik akun secara pribadi.'"></p>
+                            <div class="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                <div>
+                                    <label for="u-password" class="label">Kata sandi <span class="text-red-500" x-show="mode === 'create'">*</span></label>
+                                    <input id="u-password" name="password" x-model="data.password" :type="showPass ? 'text' : 'password'" minlength="8" :required="mode === 'create'" autocomplete="new-password" placeholder="Minimal 8 karakter" class="input" :class="error('password') && 'input-error'">
+                                    <p class="field-error" x-show="error('password')" x-text="error('password')"></p>
+                                    <div x-show="data.password" x-cloak class="mt-2 flex items-center gap-2">
+                                        <div class="flex flex-1 gap-1">
+                                            <template x-for="i in 4" :key="i">
+                                                <span class="h-1.5 flex-1 rounded-full transition" :class="i <= strength(data.password) ? ['bg-red-500', 'bg-gold-500', 'bg-brand-500', 'bg-brand-700'][strength(data.password) - 1] : 'bg-stone-200'"></span>
+                                            </template>
+                                        </div>
+                                        <span class="w-16 text-right text-[11px] font-semibold text-stone-500" x-text="['Lemah', 'Cukup', 'Baik', 'Kuat'][Math.max(strength(data.password), 1) - 1]"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="u-password2" class="label">Konfirmasi kata sandi <span class="text-red-500" x-show="mode === 'create'">*</span></label>
+                                    <input id="u-password2" name="password_confirmation" x-model="data.password_confirmation" :type="showPass ? 'text' : 'password'" minlength="8" :required="mode === 'create' || !!data.password" autocomplete="new-password" placeholder="Ulangi kata sandi" class="input">
+                                    <p x-show="data.password_confirmation" x-cloak class="mt-1.5 flex items-center gap-1 text-xs font-medium" :class="data.password === data.password_confirmation ? 'text-brand-700' : 'text-red-600'">
+                                        <x-icon name="circle-check" class="size-3.5" x-show="data.password === data.password_confirmation" />
+                                        <x-icon name="circle-alert" class="size-3.5" x-show="data.password !== data.password_confirmation" />
+                                        <span x-text="data.password === data.password_confirmation ? 'Kata sandi cocok' : 'Belum cocok dengan kata sandi'"></span>
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+                        <p class="mr-auto hidden text-xs text-stone-500 sm:block"><span class="text-red-500">*</span> wajib diisi</p>
+                        <button type="button" @click="close()" class="btn btn-outline">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="saving">
+                            <x-icon name="loader-circle" class="size-4 animate-spin" x-show="saving" x-cloak />
+                            <x-icon name="save" class="size-4" x-show="!saving" />
+                            <span x-text="mode === 'edit' ? 'Simpan Perubahan' : 'Tambah Pengguna'"></span>
                         </button>
-                    </div>
-                    <div class="panel-body" style="padding:0;">
-                        <div class="table-responsive">
-                            <table class="user-table" id="users-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Nama</th>
-                                        <th>Username</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Bergabung</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="user-modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="user-modal-title">Tambah Pengguna</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <form id="user-form">
-                    <div class="modal-body">
-                        <div id="user-form-errors" class="alert alert-danger d-none"></div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
-                                <label for="user-name">Nama <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="user-name" name="name" maxlength="100" required>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-name-gelar">Nama Gelar</label>
-                                <input type="text" class="form-control" id="user-name-gelar" name="name_gelar" maxlength="100">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-username">Username <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="user-username" name="username" maxlength="20" required>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-email">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="user-email" name="email" maxlength="255" required>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-role">Role <span class="text-danger">*</span></label>
-                                <select class="form-control" id="user-role" name="role" required>
-                                    <option value="operator">Operator</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-jk">Jenis Kelamin</label>
-                                <select class="form-control" id="user-jk" name="jk">
-                                    <option value="">Pilih jenis kelamin</option>
-                                    <option value="Laki-laki">Laki-laki</option>
-                                    <option value="Perempuan">Perempuan</option>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-nohp">No. HP</label>
-                                <input type="text" class="form-control" id="user-nohp" name="nohp" maxlength="15">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-password">Password <span class="password-required text-danger">*</span></label>
-                                <input type="password" class="form-control" id="user-password" name="password" minlength="8" autocomplete="new-password">
-                                <small class="form-text text-muted" id="password-help">Minimal 8 karakter.</small>
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="user-password-confirmation">Konfirmasi Password <span class="password-required text-danger">*</span></label>
-                                <input type="password" class="form-control" id="user-password-confirmation" name="password_confirmation" minlength="8" autocomplete="new-password">
-                            </div>
-                            <div class="form-group col-md-12">
-                                <label for="user-alamat">Alamat</label>
-                                <textarea class="form-control" id="user-alamat" name="alamat" rows="3"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success" id="btn-save-user"><i class="mdi mdi-content-save"></i> Simpan</button>
-                    </div>
+                    </footer>
                 </form>
-            </div>
+            </x-admin.modal>
         </div>
     </div>
-@endsection
 
-@section('javascript')
-    <script>
-        $(function() {
-            var users = {};
-            var userUrl = @json(route('admin.users.index'));
-            var editingId = null;
-            var usersTable;
-
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'Accept': 'application/json'
-                }
-            });
-
-            function resetForm() {
-                editingId = null;
-                $('#user-form')[0].reset();
-                $('#user-role').val('operator');
-                $('#user-form-errors').addClass('d-none').empty();
-                $('.password-required').show();
-                $('#user-password, #user-password-confirmation').prop('required', true);
-                $('#password-help').text('Minimal 8 karakter.');
-                $('#user-modal-title').text('Tambah Pengguna');
-            }
-
-            function showErrors(xhr) {
-                var messages = [];
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    $.each(xhr.responseJSON.errors, function(fieldErrors) {
-                        messages = messages.concat(fieldErrors);
-                    });
-                }
-                $('#user-form-errors').html(messages.length ? messages.join('<br>') : 'Terjadi kesalahan. Silakan coba lagi.').removeClass('d-none');
-            }
-
-            function initializeDataTable() {
-                $('#users-table').on('preXhr.dt', function(event, settings, request) {
-                    var search = $.trim(request.search.value || '');
-
-                    if (search.length > 0 && search.length < 3) {
-                        $(settings.nTableWrapper).find('.dataTables_processing').hide();
-                        return false;
-                    }
-                });
-
-                usersTable = $('#users-table').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: {
-                        url: userUrl,
-                        data: function(request) {
-                            request.search.value = $.trim(request.search.value);
-                        },
-                        dataSrc: function(response) {
-                            users = {};
-                            $.each(response.data, function(index, user) {
-                                users[user.id] = user;
-                            });
-                            return response.data;
-                        }
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('usersPage', (config) => ({
+                    url: config.url,
+                    permBase: config.permBase,
+                    authId: config.authId,
+                    permTotal: config.permTotal,
+                    defaultPerms: config.defaults,
+                    stats: { total: null, admin: null, operator: null },
+                    showPass: false,
+                    init() {
+                        this.loadStats();
+                        window.addEventListener('table:reload', () => this.loadStats());
                     },
-                    pageLength: 10,
-                    lengthMenu: [[10, 25, 50], [10, 25, 50]],
-                    searchDelay: 500,
-                    order: [[5, 'desc']],
-                    columns: [
-                        { data: null, orderable: false, searchable: false, render: function(data, type, row, meta) {
-                            return meta.settings._iDisplayStart + meta.row + 1;
-                        }},
-                        { data: 'name', render: function(data, type, row) {
-                            return '<div style="display:flex;align-items:center;gap:10px;"><div style="width:34px;height:34px;border-radius:10px;background:var(--green-pale);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--green);">' +
-                                $('<div>').text(data.charAt(0).toUpperCase()).html() + '</div><span style="font-weight:600;">' + $('<div>').text(data).html() + '</span></div>';
-                        }},
-                        { data: 'username', render: $.fn.dataTable.render.text() },
-                        { data: 'email', render: $.fn.dataTable.render.text() },
-                        { data: 'role', render: function(data) {
-                            return '<span class="role-badge ' + data + '"><i class="mdi ' +
-                                (data === 'admin' ? 'mdi-shield-account' : 'mdi-account-edit') + '"></i> ' + data + '</span>';
-                        }},
-                        { data: 'created_at', render: function(data, type) {
-                            if (type === 'sort' || type === 'type') return new Date(data).getTime();
-                            return new Date(data).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                        }},
-                        { data: null, orderable: false, searchable: false, render: function(data, type, row) {
-                            let actions = '';
-                            if (row.role === 'operator') {
-                                actions += '<a href="/admin/operator-permissions?search=' + encodeURIComponent(row.username) + '" class="btn btn-outline-info btn-sm mr-1" title="Atur Tugas & Hak Akses"><i class="mdi mdi-shield-account"></i></a> ';
+                    /** Hitung jumlah akun per peran dari seluruh data (dibaca per 100 baris). */
+                    async loadStats() {
+                        try {
+                            let all = [];
+                            let total = 1;
+                            while (all.length < total) {
+                                const q = new URLSearchParams({ draw: '1', start: String(all.length), length: '100', 'order[0][column]': '0', 'order[0][dir]': 'asc' });
+                                const res = await MUIAdmin.http(`${this.url}?${q}`);
+                                total = res.recordsTotal ?? 0;
+                                if (!res.data?.length) break;
+                                all = all.concat(res.data);
                             }
-                            actions += '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-user mr-1" data-user="' + row.id + '" title="Edit Pengguna"><i class="mdi mdi-pencil"></i></button>' +
-                                '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-user" data-user="' + row.id + '" title="Hapus Pengguna"><i class="mdi mdi-delete"></i></button>';
-                            return actions;
-                        }}
-                    ],
-                    language: {
-                        search: 'Cari:',
-                        processing: 'Memproses...',
-                        lengthMenu: 'Tampilkan _MENU_ data',
-                        info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ pengguna',
-                        infoEmpty: 'Tidak ada pengguna',
-                        infoFiltered: '(difilter dari _MAX_ pengguna)',
-                        zeroRecords: 'Pengguna tidak ditemukan',
-                        emptyTable: 'Belum ada data pengguna',
-                        paginate: {
-                            first: 'Pertama',
-                            last: 'Terakhir',
-                            next: 'Berikutnya',
-                            previous: 'Sebelumnya'
-                        }
+                            this.stats = {
+                                total: all.length,
+                                admin: all.filter((u) => u.role === 'admin').length,
+                                operator: all.filter((u) => u.role === 'operator').length,
+                            };
+                        } catch { /* biarkan tanda strip */ }
                     },
-                    responsive: true
-                });
-
-                $('#users-table').on('processing.dt', function(event, settings, processing) {
-                    var search = $.trim($(settings.nTableWrapper).find('input[type="search"]').val() || '');
-
-                    if (processing && search.length > 0 && search.length < 3) {
-                        $(settings.nTableWrapper).find('.dataTables_processing').hide();
-                    }
-                });
-
-                $('#users-table_filter input').attr('placeholder', 'Minimal 3 huruf');
-            }
-
-            function refreshRows() {
-                usersTable.ajax.reload(null, false);
-            }
-
-            initializeDataTable();
-
-            $('#btn-create-user').on('click', function() {
-                resetForm();
-                $('#user-modal').modal('show');
+                    initials(name) {
+                        return String(name || '?').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+                    },
+                    permCount(row) {
+                        return Array.isArray(row.menu_permissions) ? row.menu_permissions.length : this.defaultPerms.length;
+                    },
+                    /** Nilai lama "Laki-laki"/"Perempuan" diseragamkan dengan formulir profil (L/P). */
+                    normalizeJk(value) {
+                        return ({ 'Laki-laki': 'L', 'Perempuan': 'P' })[value] ?? (value || '');
+                    },
+                    strength(value = '') {
+                        let score = 0;
+                        if (value.length >= 8) score++;
+                        if (value.length >= 12) score++;
+                        if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+                        if (/\d/.test(value) && /[^A-Za-z0-9]/.test(value)) score++;
+                        return Math.min(Math.max(score, value ? 1 : 0), 4);
+                    },
+                }));
             });
-
-            $(document).on('click', '.btn-edit-user', function() {
-                var user = users[$(this).data('user')];
-                if (!user) return;
-                resetForm();
-                editingId = user.id;
-                $('#user-modal-title').text('Edit Pengguna');
-                $('#user-name').val(user.name);
-                $('#user-name-gelar').val(user.name_gelar);
-                $('#user-username').val(user.username);
-                $('#user-email').val(user.email);
-                $('#user-role').val(user.role);
-                $('#user-jk').val(user.jk);
-                $('#user-nohp').val(user.nohp);
-                $('#user-alamat').val(user.alamat);
-                $('.password-required').hide();
-                $('#user-password, #user-password-confirmation').prop('required', false);
-                $('#password-help').text('Kosongkan jika password tidak ingin diubah.');
-                $('#user-modal').modal('show');
-            });
-
-            $('#user-form').on('submit', function(event) {
-                event.preventDefault();
-                var $button = $('#btn-save-user').prop('disabled', true);
-                $.ajax({
-                    url: editingId ? userUrl + '/' + editingId : userUrl,
-                    method: editingId ? 'PUT' : 'POST',
-                    data: $(this).serialize()
-                }).done(function(response) {
-                    $('#user-modal').modal('hide');
-                    alertify.success(response.message);
-                    refreshRows();
-                }).fail(showErrors).always(function() {
-                    $button.prop('disabled', false);
-                });
-            });
-
-            $(document).on('click', '.btn-delete-user', function() {
-                var id = $(this).data('user');
-                if (!confirm('Hapus pengguna ini?')) return;
-                $.ajax({
-                    url: userUrl + '/' + id,
-                    method: 'DELETE'
-                }).done(function(response) {
-                    alertify.success(response.message);
-                    refreshRows();
-                }).fail(showErrors);
-            });
-        });
-    </script>
-@endsection
+        </script>
+    @endpush
+</x-layouts.admin>

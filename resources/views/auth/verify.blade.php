@@ -1,28 +1,17 @@
-@extends('layouts.app')
+<x-layouts.auth title="Verifikasi Email">
+    <p class="eyebrow">Verifikasi</p>
+    <h1 class="mt-3 font-display text-3xl font-semibold">Periksa email Anda</h1>
+    <p class="mt-3 text-sm leading-relaxed text-stone-500">Sebelum melanjutkan, silakan buka tautan verifikasi yang telah kami kirimkan ke alamat email Anda.</p>
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Verify Your Email Address') }}</div>
-
-                <div class="card-body">
-                    @if (session('resent'))
-                        <div class="alert alert-success" role="alert">
-                            {{ __('A fresh verification link has been sent to your email address.') }}
-                        </div>
-                    @endif
-
-                    {{ __('Before proceeding, please check your email for a verification link.') }}
-                    {{ __('If you did not receive the email') }},
-                    <form class="d-inline" method="POST" action="{{ route('verification.resend') }}">
-                        @csrf
-                        <button type="submit" class="btn btn-link p-0 m-0 align-baseline">{{ __('click here to request another') }}</button>.
-                    </form>
-                </div>
-            </div>
+    @if (session('resent'))
+        <div class="mt-6 flex items-start gap-3 rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-200" role="status">
+            <x-icon name="mail-check" class="mt-0.5 size-4" /> Tautan verifikasi baru telah dikirim ke email Anda.
         </div>
-    </div>
-</div>
-@endsection
+    @endif
+
+    <form method="POST" action="{{ route('verification.resend') }}" class="mt-8">
+        @csrf
+        <p class="text-sm text-stone-600">Belum menerima email?</p>
+        <button type="submit" class="btn btn-outline mt-3"><x-icon name="refresh-cw" class="size-4" /> Kirim ulang tautan verifikasi</button>
+    </form>
+</x-layouts.auth>

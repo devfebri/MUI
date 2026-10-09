@@ -1,86 +1,34 @@
-<!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- Tata letak sederhana untuk halaman bawaan autentikasi lama; mengikuti desain portal pengurus. --}}
+<!DOCTYPE html>
+<html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ config('app.name', 'Laravel') }}</title>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('gambar/mui.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('gambar/mui.png') }}">
-
-    <!-- Fonts -->
-    <link rel="dns-prefetch" href="//fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
-
-    <!-- Scripts -->
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ $site['site_short'] }}</title>
+    <link rel="icon" type="image/png" href="{{ $site['logo_url'] }}">
+    <script>document.documentElement.classList.add('js')</script>
+    @fonts
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
-    <div id="app">
-        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-            <div class="container">
-                <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
-                    <img src="{{ asset('gambar/mui.png') }}" alt="Logo MUI" width="32" height="32" class="d-inline-block align-text-top">
-                    <span>{{ config('app.name', 'MUI Batanghari') }}</span>
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <!-- Left Side Of Navbar -->
-                    <ul class="navbar-nav me-auto">
-
-                    </ul>
-
-                    <!-- Right Side Of Navbar -->
-                    <ul class="navbar-nav ms-auto">
-                        <!-- Authentication Links -->
-                        @guest
-                            @if (Route::has('login'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                                </li>
-                            @endif
-
-                            @if (Route::has('register'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
-                                </li>
-                            @endif
-                        @else
-                            <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                    {{ Auth::user()->name }}
-                                </a>
-
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                        {{ __('Logout') }}
-                                    </a>
-
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                        @csrf
-                                    </form>
-                                </div>
-                            </li>
-                        @endguest
-                    </ul>
-                </div>
-            </div>
-        </nav>
-
-        <main class="py-4">
+<body class="min-h-screen bg-sand-50">
+    <header class="bg-gradient-brand relative overflow-hidden">
+        <div class="pattern-islamic absolute inset-0"></div>
+        <div class="container-x relative flex h-[72px] items-center justify-between">
+            <a href="{{ url('/') }}"><x-logo light /></a>
+            @auth
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="btn btn-glass btn-sm"><x-icon name="log-out" class="size-4" /> Keluar</button>
+                </form>
+            @endauth
+        </div>
+    </header>
+    <main class="container-x py-12">
+        <div class="mx-auto max-w-2xl">
             @yield('content')
-        </main>
-    </div>
+        </div>
+    </main>
 </body>
 </html>

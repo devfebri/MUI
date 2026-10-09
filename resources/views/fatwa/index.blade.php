@@ -1,1318 +1,447 @@
-@extends('layouts.master')
-
-@section('css')
-    <style>
-        :root {
-            --green: #007f5f;
-            --green-dark: #005f47;
-            --green-light: #00a878;
-            --green-pale: #e8f5f1;
-            --gold: #c9a84c;
-            --gold-pale: #fff8e6;
-            --red: #ef4444;
-            --text: #1a1a2e;
-            --gray: #6b7280;
-            --bg: #f4f7f6;
-            --white: #ffffff;
-            --border: #e5e7eb;
-            --radius: 14px;
-            --shadow: 0 2px 16px rgba(0, 0, 0, .07);
-            --shadow-hov: 0 8px 32px rgba(0, 127, 95, .14);
-            --tr: .22s cubic-bezier(.4, 0, .2, 1);
-        }
-
-        body {
-            background: var(--bg) !important;
-        }
-
-        /* ── PAGE HEADER ── */
-        .page-header {
-            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 60%, var(--green-light) 100%);
-            border-radius: var(--radius);
-            padding: 22px 28px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .page-header::before {
-            content: 'فتوى';
-            position: absolute;
-            right: 28px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-family: 'serif';
-            font-size: 80px;
-            color: rgba(255, 255, 255, .06);
-            pointer-events: none;
-            line-height: 1;
-        }
-
-        .page-header h4 {
-            font-size: 20px;
-            font-weight: 800;
-            margin: 0;
-            color: #fff;
-            position: relative;
-        }
-
-        .page-header p {
-            margin: 3px 0 0;
-            font-size: 13px;
-            color: rgba(255, 255, 255, .8);
-            position: relative;
-        }
-
-        /* ── STAT CARDS ── */
-        .stat-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: all var(--tr);
-            border: 1px solid transparent;
-        }
-
-        .stat-card:hover {
-            box-shadow: var(--shadow-hov);
-            transform: translateY(-2px);
-            border-color: var(--green-pale);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .stat-icon.green {
-            background: var(--green-pale);
-            color: var(--green);
-        }
-
-        .stat-icon.gold {
-            background: var(--gold-pale);
-            color: var(--gold);
-        }
-
-        .stat-icon.red {
-            background: #fef2f2;
-            color: var(--red);
-        }
-
-        .stat-value {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: 12.5px;
-            color: var(--gray);
-            margin-top: 3px;
-        }
-
-        /* ── FILTER BAR ── */
-        .filter-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            background: var(--white);
-            border-radius: var(--radius);
-            padding: 12px 16px;
-            box-shadow: var(--shadow);
-            margin-bottom: 20px;
-        }
-
-        .filter-bar label {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--gray);
-            margin: 0;
-            white-space: nowrap;
-        }
-
-        .filter-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 14px;
-            border-radius: 22px;
-            font-size: 13px;
-            font-weight: 600;
-            border: 1.5px solid var(--border);
-            background: var(--white);
-            color: var(--gray);
-            cursor: pointer;
-            transition: all var(--tr);
-            user-select: none;
-        }
-
-        .filter-pill:hover {
-            border-color: var(--green);
-            color: var(--green);
-            background: var(--green-pale);
-        }
-
-        .filter-pill.active {
-            background: var(--green);
-            color: #fff;
-            border-color: var(--green);
-        }
-
-        .filter-pill.active-red {
-            background: var(--red);
-            color: #fff;
-            border-color: var(--red);
-        }
-
-        /* ── PANEL ── */
-        .panel-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .panel-header {
-            padding: 16px 22px;
-            border-bottom: 1px solid #f0f4f3;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .panel-header h5 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .panel-header h5 i {
-            color: var(--green);
-            font-size: 18px;
-        }
-
-        /* ── TABLE ── */
-        .fatwa-table {
-            width: 100%;
-        }
-
-        .fatwa-table th {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gray);
-            padding: 10px 14px;
-            border-bottom: 2px solid #f0f4f3;
-            background: #fafcfb;
-            white-space: nowrap;
-        }
-
-        .fatwa-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #f4f6f5;
-            font-size: 13.5px;
-            color: var(--text);
-            vertical-align: middle;
-        }
-
-        .fatwa-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .fatwa-table tr:hover td {
-            background: #fafcfb;
-        }
-
-        /* ── JUDUL CELL ── */
-        .judul-cell {
-            font-weight: 700;
-            color: var(--text);
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            max-width: 320px;
-        }
-
-        /* ── STATUS BADGE ── */
-        .pub-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 11px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all var(--tr);
-            border: 1.5px solid transparent;
-            white-space: nowrap;
-        }
-
-        .pub-badge.published {
-            background: var(--green-pale);
-            color: var(--green);
-            border-color: rgba(0, 127, 95, .15);
-        }
-
-        .pub-badge.published:hover {
-            background: var(--green);
-            color: #fff;
-        }
-
-        .pub-badge.draft {
-            background: #fef2f2;
-            color: #dc2626;
-            border-color: rgba(239, 68, 68, .15);
-        }
-
-        .pub-badge.draft:hover {
-            background: var(--red);
-            color: #fff;
-        }
-
-        /* ── PDF LINK ── */
-        .pdf-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 6px 13px;
-            border-radius: 8px;
-            font-size: 12.5px;
-            font-weight: 600;
-            background: #fff0f0;
-            color: #dc2626;
-            border: 1px solid rgba(220, 38, 38, .15);
-            text-decoration: none;
-            transition: all var(--tr);
-            max-width: 200px;
-        }
-
-        .pdf-link:hover {
-            background: #dc2626;
-            color: #fff;
-            border-color: #dc2626;
-        }
-
-        .pdf-link i {
-            font-size: 17px;
-            flex-shrink: 0;
-        }
-
-        .pdf-link-name {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .pdf-none {
-            color: var(--gray);
-            font-style: italic;
-            font-size: 12px;
-        }
-
-        /* ── MODAL ── */
-        .modal-header {
-            background: linear-gradient(135deg, var(--green-dark), var(--green-light));
-            color: #fff;
-            padding: 16px 22px;
-        }
-
-        .modal-title {
-            font-weight: 800;
-            font-size: 16px;
-        }
-
-        .modal-header .close {
-            color: #fff;
-            opacity: .8;
-            text-shadow: none;
-            font-size: 22px;
-        }
-
-        .modal-header .close:hover {
-            opacity: 1;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text);
-            margin-bottom: 5px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(0, 127, 95, .12);
-        }
-
-        /* ── PDF UPLOAD AREA ── */
-        .pdf-upload-area {
-            border: 2px dashed #fca5a5;
-            border-radius: 10px;
-            padding: 30px 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--tr);
-            position: relative;
-            background: #fff8f8;
-        }
-
-        .pdf-upload-area:hover,
-        .pdf-upload-area.dragover {
-            border-color: #dc2626;
-            background: #fff0f0;
-        }
-
-        .pdf-upload-area .pdf-icon {
-            font-size: 40px;
-            color: #dc2626;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .pdf-upload-area p {
-            font-size: 13px;
-            color: var(--gray);
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        .pdf-upload-area small {
-            display: block;
-            margin-top: 5px;
-            font-size: 11.5px;
-            color: #aaa;
-        }
-
-        .pdf-upload-area input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* File terpilih */
-        .pdf-chosen {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: #fff0f0;
-            border: 1px solid rgba(220, 38, 38, .2);
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 13px;
-            color: #991b1b;
-        }
-
-        .pdf-chosen.show {
-            display: flex;
-        }
-
-        .pdf-chosen i {
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .pdf-chosen-name {
-            font-weight: 700;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .pdf-chosen-size {
-            font-size: 11px;
-            color: var(--gray);
-            white-space: nowrap;
-        }
-
-        .pdf-chosen-remove {
-            background: none;
-            border: none;
-            color: var(--red);
-            cursor: pointer;
-            font-size: 15px;
-            padding: 0 4px;
-        }
-
-        /* File saat ini */
-        .current-pdf {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: #fff8f8;
-            border: 1px solid rgba(220, 38, 38, .15);
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .current-pdf i {
-            font-size: 22px;
-            color: #dc2626;
-            flex-shrink: 0;
-        }
-
-        .current-pdf span {
-            flex: 1;
-            font-weight: 600;
-            font-size: 13px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .current-pdf small {
-            color: var(--gray);
-            font-size: 11px;
-            white-space: nowrap;
-        }
-
-        /* ── TOGGLE SWITCH ── */
-        .toggle-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toggle-label {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text);
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 48px;
-            height: 26px;
-            flex-shrink: 0;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            inset: 0;
-            background: #d1d5db;
-            border-radius: 26px;
-            transition: background .2s;
-            cursor: pointer;
-        }
-
-        .toggle-slider::before {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: #fff;
-            border-radius: 50%;
-            left: 3px;
-            top: 3px;
-            transition: transform .2s;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
-        }
-
-        .toggle-switch input:checked+.toggle-slider {
-            background: var(--green);
-        }
-
-        .toggle-switch input:checked+.toggle-slider::before {
-            transform: translateX(22px);
-        }
-    </style>
-@endsection
-
-@section('content')
-    <div class="container-fluid" style="padding:24px 28px;">
-
-        {{-- PAGE HEADER --}}
-        <div class="page-header">
-            <div>
-                <h4><i class="mdi mdi-book-open-variant" style="margin-right:8px;"></i>Manajemen Fatwa</h4>
-                <p>Kelola koleksi fatwa MUI Batanghari — upload & publikasikan PDF fatwa</p>
+@php
+    $user = auth()->user();
+    $p = $user->isAdmin() ? 'admin' : 'operator';
+    $base = route($p.'.fatwa.index');
+    $kategoriUrl = $user->hasMenuPermission('kategori-fatwa') ? route($p.'.kategori-fatwa.index') : null;
+    // Pratinjau filter kategori dari tautan halaman Kategori Fatwa (?kategori=ID), hanya untuk kategori aktif.
+    $presetKategori = (int) request()->query('kategori');
+    $presetKategori = $kategoriFatwas->contains('id', $presetKategori) ? (string) $presetKategori : '';
+    // [ikon, keterangan, gaya terpilih]
+    $statusMeta = [
+        'aktif' => ['circle-check-big', 'Fatwa berlaku dan menjadi rujukan saat ini.', 'has-checked:border-brand-500 has-checked:bg-brand-50 has-checked:text-brand-800'],
+        'direvisi' => ['pencil', 'Sebagian ketentuan fatwa telah diperbarui oleh fatwa lain.', 'has-checked:border-gold-400 has-checked:bg-gold-50 has-checked:text-gold-800'],
+        'digantikan' => ['history', 'Fatwa tidak berlaku lagi karena digantikan oleh fatwa yang lebih baru.', 'has-checked:border-stone-400 has-checked:bg-stone-100 has-checked:text-stone-800'],
+    ];
+    $statusHints = collect($statuses)->mapWithKeys(fn ($label, $key) => [$key => $statusMeta[$key][1] ?? $label]);
+@endphp
+
+<x-layouts.admin title="Fatwa MUI" header="Kelola koleksi fatwa MUI Batanghari — unggah & publikasikan PDF fatwa">
+    <div x-data="fatwaPage({ base: @js($base), kategoriIds: @js($kategoriFatwas->pluck('id')), statusHints: @js($statusHints) })">
+        <div x-data="serverTable({ url: @js($base), columns: ['id', 'judul', 'kategori_fatwa_id', 'status_fatwa', 'keterangan', 'filepdf', 'publikasi', 'created_at'], order: [7, 'desc'], filters: { filter_publikasi: '', filter_status_fatwa: '', filter_kategori_fatwa: @js($presetKategori) } })">
+            <x-admin.page-header eyebrow="Arsip Digital" title="Fatwa MUI" description="Unggah PDF fatwa, atur status keberlakuan, lalu publikasikan ke website.">
+                <x-slot:actions>
+                    <a href="{{ route('fatwa') }}" target="_blank" rel="noopener" class="btn btn-outline" title="Lihat halaman publik" aria-label="Lihat halaman publik fatwa"><x-icon name="external-link" class="size-4" /><span class="hidden sm:inline">Halaman publik</span></a>
+                    @if ($kategoriUrl)
+                        <a href="{{ $kategoriUrl }}" class="btn btn-outline" title="Kelola kategori fatwa" aria-label="Kelola kategori fatwa"><x-icon name="tags" class="size-4" /><span class="hidden sm:inline">Kelola Kategori</span></a>
+                    @endif
+                    <button type="button" @click="$dispatch('fatwa:open')" class="btn btn-primary"><x-icon name="plus" class="size-4" /> Tambah Fatwa</button>
+                </x-slot:actions>
+            </x-admin.page-header>
+
+            <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                <x-stat-card label="Total fatwa" icon="scale" bind="stats.total ?? '–'" note="Seluruh koleksi fatwa" />
+                <x-stat-card label="Dipublikasikan" icon="globe" tone="gold" bind="stats.publik ?? '–'" bind-note="stats.total ? percent(stats.publik) + '% tampil di website' : 'Tampil di website'" />
+                <x-stat-card label="Draf" icon="eye-off" tone="stone" bind="stats.draft ?? '–'" note="Disembunyikan dari halaman publik" />
             </div>
-            <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-fatwa">
-                <i class="mdi mdi-plus-circle"></i> Tambah Fatwa
-            </button>
-        </div>
 
-        {{-- STAT CARDS --}}
-        <div class="row g-3 mb-3">
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon green"><i class="mdi mdi-book-multiple"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-total">–</div>
-                        <div class="stat-label">Total Fatwa</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon gold"><i class="mdi mdi-eye-check"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-published">–</div>
-                        <div class="stat-label">Dipublikasikan</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon red"><i class="mdi mdi-eye-off"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-draft">–</div>
-                        <div class="stat-label">Tidak Aktif</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- FILTER BAR --}}
-        <div class="filter-bar">
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                <label class="mb-0"><i class="mdi mdi-filter-outline mr-1"></i> Filter:</label>
-                <span class="filter-pill active" data-filter="">Semua</span>
-                <span class="filter-pill" data-filter="1">
-                    <i class="mdi mdi-eye-check" style="font-size:14px;"></i> Aktif
-                </span>
-                <span class="filter-pill" data-filter="0">
-                    <i class="mdi mdi-eye-off" style="font-size:14px;"></i> Tidak Aktif
-                </span>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <label for="select-status-fatwa" class="mb-0 text-muted small font-weight-bold">Status Fatwa:</label>
-                <select id="select-status-fatwa" class="form-control form-control-sm" style="width: auto; min-width: 140px; border-radius: 8px;">
-                    <option value="">Semua Status</option>
-                    <option value="aktif">Aktif</option>
-                    <option value="direvisi">Direvisi</option>
-                    <option value="digantikan">Digantikan</option>
-                </select>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <label for="select-kategori-fatwa" class="mb-0 text-muted small font-weight-bold">Kategori:</label>
-                <select id="select-kategori-fatwa" class="form-control form-control-sm" style="width: auto; min-width: 170px; border-radius: 8px;">
-                    <option value="">Semua Kategori</option>
-                    @foreach ($kategoriFatwas as $kf)
-                        <option value="{{ $kf->id }}">{{ $kf->nama }}</option>
-                    @endforeach
-                </select>
-                <a href="{{ auth()->user()->isAdmin() ? route('admin.kategori-fatwa.index') : route('operator.kategori-fatwa.index') }}" class="btn btn-outline-success btn-sm font-weight-bold" title="Kelola Kategori Fatwa">
-                    <i class="mdi mdi-tag-multiple-outline mr-1"></i> Kelola Kategori
-                </a>
-            </div>
-        </div>
-
-        {{-- TABLE --}}
-        <div class="panel-card">
-            <div class="panel-header">
-                <h5><i class="mdi mdi-format-list-bulleted"></i> Daftar Fatwa</h5>
-            </div>
-            <div class="table-responsive" style="padding:0;">
-                <table class="fatwa-table" id="fatwa-table">
-                    <thead>
-                        <tr>
-                            <th style="width:44px;">#</th>
-                            <th>Judul Fatwa</th>
-                            <th>Kategori</th>
-                            <th>Status Fatwa</th>
-                            <th>Keterangan</th>
-                            <th>File PDF</th>
-                            <th>Publikasi</th>
-                            <th>Tgl Dibuat</th>
-                            <th style="width:110px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    {{-- ── MODAL CRUD ── --}}
-    <div class="modal fade" id="fatwa-modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="fatwa-modal-title">Tambah Fatwa</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <form id="fatwa-form" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <div id="fatwa-form-errors" class="alert alert-danger d-none"></div>
-                        <div class="row">
-
-                            {{-- Judul --}}
-                            <div class="form-group col-12">
-                                <label>Judul Fatwa <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="f-judul" name="judul" maxlength="255"
-                                    required placeholder="cth: Fatwa MUI No. 1 Tahun 2024 Tentang ...">
+            <x-admin.table class="mt-6" colspan="7" empty="Tidak ada fatwa untuk ditampilkan" empty-icon="scale" search-placeholder="Cari judul atau keterangan fatwa…">
+                <x-slot:filters>
+                    <select x-model="filters.filter_publikasi" class="input w-auto" aria-label="Filter publikasi">
+                        <option value="">Semua publikasi</option>
+                        <option value="1">Dipublikasikan</option>
+                        <option value="0">Draf</option>
+                    </select>
+                    <select x-model="filters.filter_status_fatwa" class="input w-auto" aria-label="Filter status keberlakuan">
+                        <option value="">Semua status</option>
+                        @foreach ($statuses as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <select x-model="filters.filter_kategori_fatwa" class="input w-auto max-w-60" aria-label="Filter kategori fatwa">
+                        <option value="">Semua kategori</option>
+                        @foreach ($kategoriFatwas as $kf)
+                            <option value="{{ $kf->id }}">{{ $kf->nama }}</option>
+                        @endforeach
+                    </select>
+                </x-slot:filters>
+                <x-slot:actions>
+                    <button type="button" x-show="search || Object.values(filters).some((v) => v !== '')" x-cloak @click="search = ''; filters = { filter_publikasi: '', filter_status_fatwa: '', filter_kategori_fatwa: '' }" class="btn btn-ghost btn-sm"><x-icon name="x" class="size-4" /> Reset</button>
+                </x-slot:actions>
+                <x-slot:head>
+                    <th class="w-12">#</th>
+                    <x-admin.th col="1">Fatwa</x-admin.th>
+                    <x-admin.th col="2">Kategori</x-admin.th>
+                    <x-admin.th col="3">Status</x-admin.th>
+                    <x-admin.th col="6">Publikasi</x-admin.th>
+                    <x-admin.th col="7">Dibuat</x-admin.th>
+                    <th class="text-right">Aksi</th>
+                </x-slot:head>
+                <x-slot:row>
+                    <tr>
+                        <td class="text-stone-400 tabular-nums" x-text="rowNumber(index)"></td>
+                        <td>
+                            <div class="min-w-64">
+                                <button type="button" @click="$dispatch('fatwa:view', row)" class="line-clamp-2 text-left font-semibold text-ink-900 transition hover:text-brand-700" :title="row.judul" x-text="row.judul"></button>
+                                <p x-show="row.keterangan" class="mt-0.5 line-clamp-1 text-xs text-stone-500" :title="row.keterangan" x-text="row.keterangan"></p>
+                                <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-stone-500">
+                                    <button x-show="row.file_url" type="button" @click="$dispatch('fatwa:view', row)" class="inline-flex items-center gap-1 font-semibold text-red-600 hover:underline" :title="'Pratinjau ' + row.file_name"><x-icon name="file-text" class="size-3.5" /> PDF</button>
+                                    <span x-show="!row.file_url" class="inline-flex items-center gap-1 text-stone-400"><x-icon name="file-x" class="size-3.5" /> Belum ada PDF</span>
+                                    <span class="inline-flex items-center gap-1"><x-icon name="eye" class="size-3.5" /> <span x-text="views(row.views) + ' kali dilihat'"></span></span>
+                                </div>
                             </div>
+                        </td>
+                        <td>
+                            <div class="max-w-44">
+                                <span x-show="row.kategori_nama" class="inline-flex items-start gap-1.5 text-[13px] leading-snug font-medium text-brand-800"><x-icon name="tag" class="mt-0.5 size-3.5 text-gold-600" /><span x-text="row.kategori_nama"></span></span>
+                                <span x-show="!row.kategori_nama" class="text-xs text-stone-400 italic">Tanpa kategori</span>
+                            </div>
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <span class="badge" :class="statusBadge(row.status_fatwa)">
+                                <x-icon name="circle-check-big" class="size-3" x-show="row.status_fatwa === 'aktif'" />
+                                <x-icon name="pencil" class="size-3" x-show="row.status_fatwa === 'direvisi'" x-cloak />
+                                <x-icon name="history" class="size-3" x-show="row.status_fatwa === 'digantikan'" x-cloak />
+                                <span x-text="row.status_fatwa_label"></span>
+                            </span>
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <button type="button" role="switch" :aria-checked="row.publikasi ? 'true' : 'false'" @click="togglePublikasi(row)" :disabled="!!busy[row.id]"
+                                    class="inline-flex items-center gap-2.5 rounded-full disabled:cursor-wait disabled:opacity-60"
+                                    :aria-label="(row.publikasi ? 'Sembunyikan fatwa dari publik: ' : 'Publikasikan fatwa: ') + row.judul" :title="row.publikasi ? 'Klik untuk menyembunyikan dari halaman publik' : 'Klik untuk memublikasikan'">
+                                <span class="relative h-5 w-9 shrink-0 rounded-full transition" :class="row.publikasi ? 'bg-brand-600' : 'bg-stone-300'">
+                                    <span class="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow transition" :class="row.publikasi && 'translate-x-4'"></span>
+                                </span>
+                                <span class="text-xs font-semibold" :class="row.publikasi ? 'text-brand-700' : 'text-stone-500'" x-text="row.publikasi ? 'Publik' : 'Draf'"></span>
+                            </button>
+                        </td>
+                        <td class="whitespace-nowrap text-stone-500" x-text="MUIAdmin.formatDate(row.created_at)"></td>
+                        <td>
+                            <div class="flex justify-end gap-1.5">
+                                <button type="button" @click="$dispatch('fatwa:view', row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-sky-50 hover:text-sky-700" title="Detail & PDF" aria-label="Lihat detail fatwa"><x-icon name="eye" class="size-4" /></button>
+                                <button type="button" @click="$dispatch('fatwa:open', row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-brand-50 hover:text-brand-700" title="Ubah" aria-label="Ubah fatwa"><x-icon name="pencil" class="size-4" /></button>
+                                <button type="button" @click="remove(row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600" title="Hapus" aria-label="Hapus fatwa"><x-icon name="trash-2" class="size-4" /></button>
+                            </div>
+                        </td>
+                    </tr>
+                </x-slot:row>
+            </x-admin.table>
+        </div>
 
-                            {{-- Kategori Fatwa --}}
-                            <div class="form-group col-12">
-                                <label>Kategori Fatwa <small class="text-muted">(opsional)</small></label>
-                                <select class="form-control" id="f-kategori-fatwa-id" name="kategori_fatwa_id" style="border-radius: 8px;">
-                                    <option value="">— Tanpa Kategori —</option>
+        {{-- Formulir tambah / ubah --}}
+        <div x-data="crudForm({ name: 'fatwa', storeUrl: @js($base), updateUrl: @js($base.'/:id'), defaults: { judul: '', kategori_fatwa_id: '', status_fatwa: 'aktif', keterangan: '', publikasi: true } })">
+            <x-admin.modal title="mode === 'edit' ? 'Ubah Fatwa' : 'Tambah Fatwa'" icon="scale" size="max-w-3xl">
+                <form x-ref="form" @submit.prevent="submit()" class="flex min-h-0 flex-1 flex-col">
+                    <div class="scrollbar-thin flex-1 space-y-5 overflow-y-auto p-6">
+                        <div>
+                            <label for="f-judul" class="label">Judul fatwa <span class="text-red-500">*</span></label>
+                            <input id="f-judul" x-ref="first" name="judul" x-model="data.judul" type="text" maxlength="255" required placeholder="cth: Fatwa MUI No. 1 Tahun 2024 tentang …" class="input" :class="error('judul') && 'input-error'">
+                            <p class="field-error" x-show="error('judul')" x-text="error('judul')"></p>
+                        </div>
+
+                        <div class="grid gap-5 sm:grid-cols-5">
+                            <div class="sm:col-span-2">
+                                <label for="f-kategori" class="label">Kategori <span class="font-normal text-stone-400">(opsional)</span></label>
+                                <select id="f-kategori" name="kategori_fatwa_id" x-model="data.kategori_fatwa_id" class="input" :class="error('kategori_fatwa_id') && 'input-error'">
+                                    <option value="">— Tanpa kategori —</option>
                                     @foreach ($kategoriFatwas as $kf)
                                         <option value="{{ $kf->id }}">{{ $kf->nama }}</option>
                                     @endforeach
+                                    <template x-if="data.kategori_fatwa_id && !kategoriIds.includes(Number(data.kategori_fatwa_id))">
+                                        <option :value="data.kategori_fatwa_id" x-text="(data.kategori_nama || 'Kategori #' + data.kategori_fatwa_id) + ' (nonaktif)'"></option>
+                                    </template>
                                 </select>
+                                @if ($kategoriFatwas->isEmpty())
+                                    <p class="mt-1.5 text-xs text-stone-500">Belum ada kategori fatwa yang aktif.@if ($kategoriUrl) <a href="{{ $kategoriUrl }}" class="font-semibold text-brand-700 hover:underline">Kelola kategori</a>@endif</p>
+                                @endif
+                                <p class="field-error" x-show="error('kategori_fatwa_id')" x-text="error('kategori_fatwa_id')"></p>
                             </div>
 
-                            {{-- Keterangan --}}
-                            <div class="form-group col-12">
-                                <label>Keterangan <small class="text-muted">(opsional)</small></label>
-                                <textarea class="form-control" id="f-keterangan" name="keterangan" rows="3" maxlength="1000"
-                                    placeholder="Ringkasan atau catatan mengenai fatwa ini..."></textarea>
-                                <div class="text-right" style="font-size:11px;color:var(--gray);margin-top:3px;">
-                                    <span id="ket-count">0</span>/1000
+                            <fieldset class="sm:col-span-3">
+                                <legend class="label">Status keberlakuan <span class="text-red-500">*</span></legend>
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach ($statuses as $value => $label)
+                                        @php [$icon, , $tone] = $statusMeta[$value] ?? ['info', '', 'has-checked:border-brand-500 has-checked:bg-brand-50 has-checked:text-brand-800']; @endphp
+                                        <label class="flex h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-2 text-center text-stone-500 transition hover:border-brand-300 has-focus-visible:ring-4 has-focus-visible:ring-brand-500/20 {{ $tone }}">
+                                            <input type="radio" name="status_fatwa" value="{{ $value }}" x-model="data.status_fatwa" required class="sr-only">
+                                            <x-icon :name="$icon" class="hidden size-4 min-[420px]:block" />
+                                            <span class="text-[13px] font-semibold">{{ $label }}</span>
+                                        </label>
+                                    @endforeach
                                 </div>
-                            </div>
-
-                            {{-- Status Publikasi --}}
-                            <div class="form-group col-md-6">
-                                <label>Status Publikasi</label>
-                                <div class="toggle-wrap mt-1">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="f-publikasi" value="1" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                    <span class="toggle-label" id="toggle-label-text">Aktif (Ditampilkan)</span>
-                                </div>
-                                <input type="hidden" id="f-publikasi-hidden" name="publikasi" value="1">
-                            </div>
-
-                            {{-- Status Fatwa --}}
-                            <div class="form-group col-md-6">
-                                <label>Status Keberlakuan <span class="text-danger">*</span></label>
-                                <select class="form-control" id="f-status-fatwa" name="status_fatwa" required style="border-radius: 8px;">
-                                    <option value="aktif">Aktif</option>
-                                    <option value="direvisi">Direvisi</option>
-                                    <option value="digantikan">Digantikan</option>
-                                </select>
-                                <small class="text-muted">Keberlakuan hukum fatwa.</small>
-                            </div>
-
-                            {{-- PDF Upload --}}
-                            <div class="form-group col-12">
-                                <label>
-                                    File PDF Fatwa
-                                    <span class="text-danger" id="pdf-required-star">*</span>
-                                    <small class="text-muted d-none" id="pdf-optional-note">(biarkan kosong jika tidak
-                                        diganti)</small>
-                                </label>
-
-                                {{-- File saat ini (edit mode) --}}
-                                <div class="current-pdf d-none" id="current-pdf-info">
-                                    <i class="mdi mdi-file-pdf-box"></i>
-                                    <span id="current-pdf-name">—</span>
-                                    <small>File saat ini</small>
-                                </div>
-
-                                <div class="pdf-upload-area" id="pdf-upload-area">
-                                    <input type="file" id="f-filepdf" name="filepdf" accept=".pdf,application/pdf">
-                                    <i class="mdi mdi-file-pdf-box pdf-icon"></i>
-                                    <p>
-                                        <strong>Klik atau seret file PDF ke sini</strong><br>
-                                        <span style="font-size:12px;">Hanya format PDF yang diterima</span>
-                                    </p>
-                                    <small>Maks 10 MB</small>
-                                </div>
-
-                                <div class="pdf-chosen" id="pdf-chosen">
-                                    <i class="mdi mdi-file-pdf-box"></i>
-                                    <span class="pdf-chosen-name" id="pdf-chosen-name">—</span>
-                                    <span class="pdf-chosen-size" id="pdf-chosen-size"></span>
-                                    <button type="button" class="pdf-chosen-remove" id="pdf-remove-btn"
-                                        title="Batal pilih">
-                                        <i class="mdi mdi-close"></i>
-                                    </button>
-                                </div>
-                            </div>
-
+                                <p class="mt-1.5 text-xs text-stone-500" x-text="statusHints[data.status_fatwa] ?? ''"></p>
+                                <p class="field-error" x-show="error('status_fatwa')" x-text="error('status_fatwa')"></p>
+                            </fieldset>
                         </div>
+
+                        <div>
+                            <label for="f-keterangan" class="label">Keterangan <span class="font-normal text-stone-400">(opsional)</span></label>
+                            <textarea id="f-keterangan" name="keterangan" x-model="data.keterangan" rows="3" maxlength="1000" placeholder="Ringkasan atau catatan mengenai fatwa ini…" class="input resize-none" :class="error('keterangan') && 'input-error'"></textarea>
+                            <div class="mt-1 flex items-start gap-3">
+                                <p class="field-error mt-0" x-show="error('keterangan')" x-text="error('keterangan')"></p>
+                                <p class="ml-auto shrink-0 text-xs text-stone-400 tabular-nums"><span x-text="(data.keterangan || '').length"></span>/1000</p>
+                            </div>
+                        </div>
+
+                        <div x-data="dropFile({ field: 'filepdf', maxMb: 10, exts: ['pdf'] })" @fatwa:open.window="reset()">
+                            <p class="label">
+                                Berkas PDF fatwa
+                                <span x-show="mode === 'create'" class="text-red-500">*</span>
+                                <span x-show="mode === 'edit'" x-cloak class="font-normal text-stone-400">(biarkan kosong jika tidak diganti)</span>
+                            </p>
+
+                            <div x-show="mode === 'edit' && data.file_url && !name" x-cloak class="mb-3 flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600 ring-1 ring-red-100"><x-icon name="file-text" class="size-5" /></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-semibold text-ink-900" x-text="data.file_name"></p>
+                                    <p class="text-xs text-stone-500">Berkas PDF saat ini</p>
+                                </div>
+                                <a :href="data.file_url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><x-icon name="external-link" class="size-4" /><span class="hidden sm:inline">Lihat</span></a>
+                            </div>
+
+                            <label for="f-file" x-show="!name" class="relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-6 text-center transition focus-within:ring-4 focus-within:ring-brand-500/15"
+                                   :class="dragging ? 'border-brand-500 bg-brand-50' : ((problem || error('filepdf')) ? 'border-red-300 bg-red-50/40' : 'border-stone-300 bg-sand-50 hover:border-brand-400 hover:bg-brand-50/50')"
+                                   @dragenter="dragging = true" @dragover="dragging = true" @dragleave="dragging = false" @drop="dragging = false">
+                                <input id="f-file" x-ref="file" type="file" name="filepdf" accept=".pdf,application/pdf" :required="mode === 'create'" @change="pick($event)" class="absolute inset-0 size-full cursor-pointer opacity-0" aria-describedby="f-file-hint">
+                                <span class="grid size-12 place-items-center rounded-2xl bg-white text-red-600 shadow-sm ring-1 ring-stone-200 transition" :class="dragging && 'scale-110'"><x-icon name="file-up" class="size-6" /></span>
+                                <p class="mt-3 text-sm font-semibold text-ink-900"><span class="text-brand-700 underline decoration-gold-400 decoration-2 underline-offset-4">Pilih berkas PDF</span> atau seret ke sini</p>
+                                <p id="f-file-hint" class="mt-1 text-xs text-stone-500">Hanya format PDF · maks. 10 MB</p>
+                            </label>
+
+                            <div x-show="name" x-cloak class="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-3.5 py-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand-700 ring-1 ring-brand-100"><x-icon name="file-check" class="size-5" /></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-semibold text-ink-900" x-text="name"></p>
+                                    <p class="text-xs text-stone-500"><span x-text="size"></span> · <span x-text="mode === 'edit' ? 'akan menggantikan PDF lama' : 'siap diunggah'"></span></p>
+                                </div>
+                                <a :href="url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><x-icon name="eye" class="size-4" /><span class="hidden sm:inline">Pratinjau</span></a>
+                                <button type="button" @click="reset()" class="grid size-8 shrink-0 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600" title="Batalkan pilihan" aria-label="Batalkan pilihan berkas"><x-icon name="x" class="size-4" /></button>
+                            </div>
+                            <p class="field-error" x-show="problem || error('filepdf')" x-cloak x-text="problem || error('filepdf')"></p>
+                        </div>
+
+                        <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-stone-200 p-4 hover:border-brand-300">
+                            <span>
+                                <span class="block text-sm font-semibold text-ink-900">Publikasikan di website</span>
+                                <span class="block text-xs text-stone-500" x-text="data.publikasi ? 'Fatwa tampil di halaman publik Fatwa MUI.' : 'Fatwa disimpan sebagai draf dan hanya terlihat di panel ini.'"></span>
+                            </span>
+                            <span class="relative inline-flex shrink-0">
+                                <input type="hidden" name="publikasi" value="0">
+                                <input id="f-publikasi" type="checkbox" name="publikasi" value="1" x-model="data.publikasi" class="peer sr-only">
+                                <span class="h-6 w-11 rounded-full bg-stone-300 transition peer-checked:bg-brand-600 peer-focus-visible:ring-4 peer-focus-visible:ring-brand-500/20"></span>
+                                <span class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                            </span>
+                        </label>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success" id="btn-save-fatwa">
-                            <i class="mdi mdi-content-save"></i> Simpan
+                    <footer class="flex shrink-0 justify-end gap-2 border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+                        <button type="button" @click="close()" class="btn btn-outline">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="saving">
+                            <x-icon name="loader-circle" class="size-4 animate-spin" x-show="saving" x-cloak />
+                            <x-icon name="save" class="size-4" x-show="!saving" />
+                            <span x-text="saving ? 'Menyimpan…' : (mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Fatwa')"></span>
                         </button>
-                    </div>
+                    </footer>
                 </form>
-            </div>
+            </x-admin.modal>
+        </div>
+
+        {{-- Detail & pratinjau PDF --}}
+        <div x-data="fatwaViewer">
+            <x-admin.modal title="'Detail Fatwa'" icon="scale" size="max-w-6xl">
+                <div class="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+                    <aside class="scrollbar-thin shrink-0 space-y-5 border-b border-stone-100 p-6 lg:w-[22rem] lg:overflow-y-auto lg:border-r lg:border-b-0">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="badge" :class="statusBadge(doc?.status_fatwa)">
+                                    <x-icon name="circle-check-big" class="size-3" x-show="doc?.status_fatwa === 'aktif'" />
+                                    <x-icon name="pencil" class="size-3" x-show="doc?.status_fatwa === 'direvisi'" x-cloak />
+                                    <x-icon name="history" class="size-3" x-show="doc?.status_fatwa === 'digantikan'" x-cloak />
+                                    <span x-text="doc?.status_fatwa_label"></span>
+                                </span>
+                                <span class="badge" :class="doc?.publikasi ? 'badge-blue' : 'badge-gray'">
+                                    <x-icon name="globe" class="size-3" x-show="doc?.publikasi" />
+                                    <x-icon name="eye-off" class="size-3" x-show="!doc?.publikasi" x-cloak />
+                                    <span x-text="doc?.publikasi ? 'Dipublikasikan' : 'Draf'"></span>
+                                </span>
+                            </div>
+                            <h3 class="mt-3 font-display text-xl leading-snug font-semibold text-ink-900" x-text="doc?.judul"></h3>
+                            <p class="mt-2 text-sm leading-relaxed whitespace-pre-line text-stone-600" x-show="doc?.keterangan" x-text="doc?.keterangan"></p>
+                        </div>
+                        <dl class="divide-y divide-stone-100 rounded-2xl border border-stone-200 text-sm">
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="tag" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Kategori</dt><dd class="font-semibold text-ink-900" x-text="doc?.kategori_nama || 'Tanpa kategori'"></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="eye" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Dilihat</dt><dd class="font-semibold text-ink-900" x-text="views(doc?.views) + ' kali'"></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="calendar-days" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Dibuat</dt><dd class="font-semibold text-ink-900" x-text="MUIAdmin.formatDate(doc?.created_at, { day: 'numeric', month: 'long', year: 'numeric' })"></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="calendar-clock" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Terakhir diperbarui</dt><dd class="font-semibold text-ink-900" x-text="MUIAdmin.formatDate(doc?.updated_at, { day: 'numeric', month: 'long', year: 'numeric' })"></dd></div>
+                            </div>
+                        </dl>
+                        <button type="button" role="switch" :aria-checked="doc?.publikasi ? 'true' : 'false'" @click="togglePublikasi(doc)" :disabled="!doc || !!busy[doc.id]"
+                                class="flex w-full items-center justify-between gap-4 rounded-xl border border-stone-200 p-4 text-left transition hover:border-brand-300 disabled:cursor-wait disabled:opacity-60">
+                            <span>
+                                <span class="block text-sm font-semibold text-ink-900">Publikasi</span>
+                                <span class="block text-xs text-stone-500" x-text="doc?.publikasi ? 'Tampil di halaman publik' : 'Disembunyikan dari halaman publik'"></span>
+                            </span>
+                            <span class="relative h-6 w-11 shrink-0 rounded-full transition" :class="doc?.publikasi ? 'bg-brand-600' : 'bg-stone-300'">
+                                <span class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition" :class="doc?.publikasi && 'translate-x-5'"></span>
+                            </span>
+                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="edit()" class="btn btn-outline btn-sm"><x-icon name="pencil" class="size-4" /> Ubah fatwa</button>
+                            <a x-show="doc?.file_url" :href="doc?.file_url" :download="doc ? downloadName(doc) : null" class="btn btn-primary btn-sm"><x-icon name="download" class="size-4" /> Unduh PDF</a>
+                        </div>
+                    </aside>
+
+                    <section class="flex min-h-[65vh] flex-1 flex-col bg-stone-100 lg:min-h-[74vh]">
+                        <header class="flex items-center gap-3 border-b border-stone-200 bg-sand-100/70 px-4 py-3">
+                            <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600 ring-1 ring-red-100"><x-icon name="file-text" class="size-5" /></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-semibold text-ink-900">Dokumen PDF fatwa</p>
+                                <p class="truncate font-mono text-[11px] text-stone-500" x-text="doc?.file_name ?? 'Belum ada berkas'"></p>
+                            </div>
+                            <a x-show="doc?.file_url" :href="doc?.file_url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" title="Buka di tab baru"><x-icon name="external-link" class="size-4" /><span class="hidden sm:inline">Buka</span></a>
+                        </header>
+                        <div class="relative flex-1">
+                            <template x-if="open && doc?.file_url">
+                                <div class="absolute inset-0">
+                                    <div x-show="!loaded" class="absolute inset-0 grid place-items-center text-sm text-stone-500">
+                                        <span class="flex items-center gap-2"><x-icon name="loader-circle" class="size-5 animate-spin text-brand-600" /> Memuat dokumen…</span>
+                                    </div>
+                                    <iframe :src="doc.file_url + '#view=FitH'" :title="'PDF ' + doc.judul" class="relative size-full" @load="loaded = true"></iframe>
+                                </div>
+                            </template>
+                            <template x-if="open && doc && !doc.file_url">
+                                <div class="absolute inset-0 grid place-items-center p-6">
+                                    <div class="max-w-sm text-center">
+                                        <span class="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-red-500 shadow-sm ring-1 ring-stone-200"><x-icon name="file-x" class="size-7" /></span>
+                                        <p class="mt-4 font-semibold text-ink-900">Fatwa ini belum memiliki berkas PDF</p>
+                                        <p class="mt-1.5 text-sm text-stone-500">Unggah PDF melalui tombol <b>Ubah fatwa</b>.</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <p x-show="doc?.file_url" class="border-t border-stone-200 bg-white px-5 py-3 text-xs leading-relaxed text-stone-500 sm:hidden">Pratinjau PDF mungkin tidak tampil di sebagian peramban ponsel. Gunakan tombol <b>Buka</b> atau <b>Unduh PDF</b>.</p>
+                    </section>
+                </div>
+            </x-admin.modal>
         </div>
     </div>
 
-    {{-- ── MODAL DETAIL ── --}}
-    <div class="modal fade" id="fatwa-detail-modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="mdi mdi-book-open-variant mr-2"></i>Detail Fatwa</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <div class="modal-body" id="fatwa-detail-body"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
-                    <a href="#" id="detail-pdf-link" target="_blank" class="btn btn-danger btn-sm d-none">
-                        <i class="mdi mdi-file-pdf-box"></i> Buka PDF
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-@endsection
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                const slug = (text) => String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+                const short = (text, n = 80) => (String(text || '').length > n ? String(text).slice(0, n).trimEnd() + '…' : String(text || ''));
 
-@section('javascript')
-    <script>
-        $(function() {
-            'use strict';
-
-            /* ── CONFIG ── */
-            var role = @json(auth()->user()->role);
-            var baseUrl = @json(auth()->user()->isAdmin() ? route('admin.fatwa.index') : route('operator.fatwa.index'));
-            var crudBase = @json(auth()->user()->isAdmin() ? url('admin/fatwa') : url('operator/fatwa'));
-            var toggleBase = crudBase; // /{id}/toggle-publikasi
-
-            var rows = {};
-            var editingId = null;
-            var table;
-            var filterVal = '';
-            var filterKategoriVal = '';
-            var filterStatusFatwaVal = '';
-
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'Accept': 'application/json'
-                }
-            });
-
-            /* ── STATS ── */
-            function loadStats() {
-                $.get(baseUrl, {
-                    draw: 1,
-                    start: 0,
-                    length: 9999
-                }, function(res) {
-                    var pub = 0,
-                        draft = 0;
-                    $.each(res.data, function(i, r) {
-                        if (r.publikasi === 1) pub++;
-                        else draft++;
-                    });
-                    $('#stat-total').text(res.recordsTotal);
-                    $('#stat-published').text(pub);
-                    $('#stat-draft').text(draft);
-                });
-            }
-            loadStats();
-
-            /* ── SIZE HELPER ── */
-            function humanSize(bytes) {
-                if (!bytes) return '';
-                if (bytes < 1024) return bytes + ' B';
-                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-                return (bytes / 1048576).toFixed(1) + ' MB';
-            }
-
-            /* ── DATATABLE ── */
-            table = $('#fatwa-table').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: baseUrl,
-                    data: function(d) {
-                        d.filter_publikasi = filterVal;
-                        d.filter_kategori_fatwa = filterKategoriVal;
-                        d.filter_status_fatwa = filterStatusFatwaVal;
+                /** Data & aksi halaman Fatwa (statistik, toggle publikasi, hapus). */
+                Alpine.data('fatwaPage', ({ base, kategoriIds, statusHints }) => ({
+                    base,
+                    kategoriIds,
+                    statusHints,
+                    stats: { total: null, publik: null, draft: null },
+                    busy: {},
+                    init() {
+                        this.loadStats();
+                        window.addEventListener('table:reload', () => this.loadStats());
                     },
-                    dataSrc: function(res) {
-                        rows = {};
-                        $.each(res.data, function(i, r) {
-                            rows[r.id] = r;
+                    async loadStats() {
+                        try {
+                            // Hitungan publikasi memakai filter bawaan endpoint DataTables (cukup 1 baris).
+                            const res = await MUIAdmin.http(`${base}?draw=1&start=0&length=1&filter_publikasi=1`);
+                            const total = Number(res.recordsTotal ?? 0);
+                            const publik = Number(res.recordsFiltered ?? 0);
+                            this.stats = { total, publik, draft: Math.max(0, total - publik) };
+                        } catch {
+                            /* statistik bersifat pelengkap */
+                        }
+                    },
+                    percent(value) {
+                        return this.stats.total ? Math.round((Number(value) / this.stats.total) * 100) : 0;
+                    },
+                    views: (value) => Number(value || 0).toLocaleString('id-ID'),
+                    statusBadge: (status) => ({ aktif: 'badge-green', direvisi: 'badge-gold' })[status] ?? 'badge-gray',
+                    downloadName: (row) => `Fatwa-${slug(row.judul) || row.id}.pdf`,
+                    async togglePublikasi(row) {
+                        if (!row || this.busy[row.id]) return;
+                        this.busy[row.id] = true;
+                        try {
+                            const res = await MUIAdmin.http(`${base}/${row.id}/toggle-publikasi`, { method: 'PATCH' });
+                            row.publikasi = res.publikasi ? 1 : 0;
+                            MUIAdmin.toast(row.publikasi ? 'Fatwa dipublikasikan ke halaman publik.' : 'Fatwa disembunyikan dari halaman publik.');
+                            MUIAdmin.reloadTables();
+                        } catch (e) {
+                            MUIAdmin.toast(e.message || 'Gagal mengubah status publikasi.', 'error');
+                        } finally {
+                            delete this.busy[row.id];
+                        }
+                    },
+                    remove(row) {
+                        return MUIAdmin.destroy(`${base}/${row.id}`, {
+                            title: 'Hapus fatwa?',
+                            message: `Fatwa “${short(row.judul)}” beserta berkas PDF-nya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`,
                         });
-                        return res.data;
-                    }
-                },
-                pageLength: 10,
-                lengthMenu: [
-                    [10, 25, 50],
-                    [10, 25, 50]
-                ],
-                searchDelay: 400,
-                order: [
-                    [7, 'desc']
-                ],
-                columns: [{
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, r, meta) {
-                            return meta.settings._iDisplayStart + meta.row + 1;
-                        }
                     },
-                    {
-                        data: 'judul',
-                        render: function(data) {
-                            return '<div class="judul-cell">' + $('<div>').text(data).html() +
-                                '</div>';
-                        }
+                }));
+
+                /** Penampil detail & PDF fatwa. */
+                Alpine.data('fatwaViewer', () => ({
+                    open: false,
+                    doc: null,
+                    loaded: false,
+                    init() {
+                        window.addEventListener('fatwa:view', (e) => {
+                            this.doc = { ...e.detail };
+                            this.loaded = false;
+                            this.open = true;
+                        });
                     },
-                    {
-                        data: 'kategori_nama',
-                        orderable: true,
-                        render: function(data) {
-                            if (!data) return '<span class="text-muted" style="font-size:12px;">—</span>';
-                            return '<span class="badge" style="background:var(--green-pale);color:var(--green-dark);font-weight:700;padding:4px 8px;border-radius:6px;font-size:11.5px;">' +
-                                $('<div>').text(data).html() + '</span>';
-                        }
+                    close() {
+                        this.open = false;
                     },
-                    {
-                        data: 'status_fatwa',
-                        orderable: true,
-                        render: function(data) {
-                            var val = data || 'aktif';
-                            if (val === 'aktif') {
-                                return '<span class="badge" style="background:#e8f5f1;color:#007f5f;border:1px solid #a7f3d0;font-weight:700;padding:4px 8px;border-radius:6px;font-size:11.5px;"><i class="mdi mdi-check-circle mr-1"></i>Aktif</span>';
-                            } else if (val === 'direvisi') {
-                                return '<span class="badge" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;font-weight:700;padding:4px 8px;border-radius:6px;font-size:11.5px;"><i class="mdi mdi-alert mr-1"></i>Direvisi</span>';
-                            } else if (val === 'digantikan') {
-                                return '<span class="badge" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-weight:700;padding:4px 8px;border-radius:6px;font-size:11.5px;"><i class="mdi mdi-close-circle mr-1"></i>Digantikan</span>';
-                            }
-                            return $('<div>').text(val).html();
-                        }
+                    edit() {
+                        const row = this.doc;
+                        this.open = false;
+                        this.$dispatch('fatwa:open', row);
                     },
-                    {
-                        data: 'keterangan',
-                        render: function(data) {
-                            if (!data)
-                            return '<span class="text-muted" style="font-size:12px;">—</span>';
-                            var safe = $('<div>').text(data).html();
-                            return '<div style="max-width:260px;font-size:13px;color:var(--gray);' +
-                                'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' +
-                                safe + '">' +
-                                (safe.length > 70 ? safe.substring(0, 70) + '…' : safe) + '</div>';
-                        }
+                }));
+
+                /** Area unggah berkas (klik / seret & lepas) dengan validasi jenis & ukuran di sisi klien. */
+                Alpine.data('dropFile', ({ field, maxMb, exts }) => ({
+                    name: null,
+                    size: null,
+                    ext: null,
+                    url: null,
+                    dragging: false,
+                    problem: null,
+                    human: (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`),
+                    forget() {
+                        if (this.url) URL.revokeObjectURL(this.url);
+                        Object.assign(this, { name: null, size: null, ext: null, url: null, dragging: false });
                     },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, row) {
-                            if (!row.file_url) return '<span class="pdf-none">Belum ada PDF</span>';
-                            return '<a href="' + row.file_url +
-                                '" target="_blank" class="pdf-link">' +
-                                '<i class="mdi mdi-file-pdf-box"></i>' +
-                                '<span class="pdf-link-name">' + $('<div>').text(row.file_name ||
-                                    'fatwa.pdf').html() + '</span>' +
-                                '</a>';
-                        }
+                    reset() {
+                        this.forget();
+                        this.problem = null;
+                        if (this.$refs.file) this.$refs.file.value = '';
                     },
-                    {
-                        data: 'publikasi',
-                        orderable: true,
-                        render: function(data, type, row) {
-                            if (type !== 'display') return data;
-                            var cls = data === 1 ? 'published' : 'draft';
-                            var icon = data === 1 ? 'mdi-eye-check' : 'mdi-eye-off';
-                            var label = data === 1 ? 'Aktif' : 'Nonaktif';
-                            return '<span class="pub-badge ' + cls + ' btn-toggle-pub" data-id="' +
-                                row.id + '">' +
-                                '<i class="mdi ' + icon + '"></i>' + label + '</span>';
+                    pick(e) {
+                        const file = e.target.files?.[0];
+                        this.forget();
+                        // Tanpa berkas (mis. dialog dibatalkan): pertahankan pesan validasi sebelumnya.
+                        if (!file) return;
+                        const ext = (file.name.includes('.') ? file.name.split('.').pop() : '').toLowerCase();
+                        if (!exts.includes(ext)) {
+                            this.reset();
+                            this.problem = `Format ${ext ? '.' + ext : 'berkas ini'} tidak didukung. Hanya berkas ${exts.map((x) => x.toUpperCase()).join(', ')} yang diterima.`;
+                            return;
                         }
+                        if (file.size > maxMb * 1048576) {
+                            this.reset();
+                            this.problem = `Ukuran berkas ${this.human(file.size)} melebihi batas ${maxMb} MB.`;
+                            return;
+                        }
+                        Object.assign(this, { name: file.name, size: this.human(file.size), ext, url: URL.createObjectURL(file), problem: null });
+                        if (this.errors?.[field]) delete this.errors[field];
                     },
-                    {
-                        data: 'created_at',
-                        render: function(data, type) {
-                            if (type === 'sort' || type === 'type') return new Date(data).getTime();
-                            return new Date(data).toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                            });
-                        }
-                    },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, row) {
-                            return '<button class="btn btn-outline-info btn-sm mr-1 btn-detail-fatwa" data-id="' +
-                                row.id + '" title="Detail">' +
-                                '<i class="mdi mdi-eye"></i></button>' +
-                                '<button class="btn btn-outline-primary btn-sm mr-1 btn-edit-fatwa" data-id="' +
-                                row.id + '" title="Edit">' +
-                                '<i class="mdi mdi-pencil"></i></button>' +
-                                '<button class="btn btn-outline-danger btn-sm btn-delete-fatwa" data-id="' +
-                                row.id + '" title="Hapus">' +
-                                '<i class="mdi mdi-delete"></i></button>';
-                        }
-                    }
-                ],
-                language: {
-                    search: 'Cari:',
-                    processing: 'Memuat...',
-                    lengthMenu: 'Tampilkan _MENU_ fatwa',
-                    info: 'Menampilkan _START_–_END_ dari _TOTAL_ fatwa',
-                    infoEmpty: 'Tidak ada fatwa',
-                    infoFiltered: '(difilter dari _MAX_ fatwa)',
-                    zeroRecords: 'Fatwa tidak ditemukan',
-                    emptyTable: 'Belum ada data fatwa',
-                    paginate: {
-                        first: '«',
-                        last: '»',
-                        next: '›',
-                        previous: '‹'
-                    }
-                },
-                responsive: true
+                }));
             });
-
-            /* ── FILTER PILLS ── */
-            $(document).on('click', '.filter-pill', function() {
-                $('.filter-pill').removeClass('active active-red');
-                var raw = $(this).attr('data-filter');
-                filterVal = (raw !== undefined && raw !== null) ? raw.toString() : '';
-                if (filterVal === '0') $(this).addClass('active-red');
-                else $(this).addClass('active');
-                table.ajax.reload(null, false);
-            });
-
-            /* ── FILTER KATEGORI FATWA ── */
-            $('#select-kategori-fatwa').on('change', function() {
-                filterKategoriVal = $(this).val();
-                table.ajax.reload(null, false);
-            });
-
-            /* ── FILTER STATUS FATWA ── */
-            $('#select-status-fatwa').on('change', function() {
-                filterStatusFatwaVal = $(this).val();
-                table.ajax.reload(null, false);
-            });
-
-            /* ── KETERANGAN COUNTER ── */
-            $('#f-keterangan').on('input', function() {
-                $('#ket-count').text($(this).val().length);
-            });
-
-            /* ── TOGGLE SWITCH LABEL ── */
-            $('#f-publikasi').on('change', function() {
-                var on = $(this).is(':checked');
-                $('#toggle-label-text').text(on ? 'Aktif (Ditampilkan)' : 'Nonaktif (Disembunyikan)');
-                $('#f-publikasi-hidden').val(on ? 1 : 0);
-            });
-
-            /* ── FILE PILIH ── */
-            $('#f-filepdf').on('change', function() {
-                var file = this.files[0];
-                if (!file) {
-                    resetPdfUI();
-                    return;
-                }
-
-                if (file.size > 10 * 1024 * 1024) {
-                    alert('Ukuran file maksimal 10 MB.');
-                    this.value = '';
-                    resetPdfUI();
-                    return;
-                }
-                if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-                    alert('Hanya file PDF yang diperbolehkan.');
-                    this.value = '';
-                    resetPdfUI();
-                    return;
-                }
-
-                $('#pdf-upload-area').hide();
-                $('#pdf-chosen-name').text(file.name);
-                $('#pdf-chosen-size').text(humanSize(file.size));
-                $('#pdf-chosen').addClass('show');
-            });
-
-            $('#pdf-remove-btn').on('click', function() {
-                $('#f-filepdf').val('');
-                resetPdfUI();
-            });
-
-            function resetPdfUI() {
-                $('#pdf-upload-area').show();
-                $('#pdf-chosen').removeClass('show');
-                $('#pdf-chosen-name, #pdf-chosen-size').text('');
-            }
-
-            /* ── DRAG & DROP ── */
-            var dropArea = document.getElementById('pdf-upload-area');
-            if (dropArea) {
-                dropArea.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    this.classList.add('dragover');
-                });
-                dropArea.addEventListener('dragleave', function() {
-                    this.classList.remove('dragover');
-                });
-                dropArea.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('dragover');
-                    var file = e.dataTransfer.files[0];
-                    if (file) {
-                        var input = document.getElementById('f-filepdf');
-                        var dt = new DataTransfer();
-                        dt.items.add(file);
-                        input.files = dt.files;
-                        $(input).trigger('change');
-                    }
-                });
-            }
-
-            /* ── HELPERS ── */
-            function resetForm() {
-                editingId = null;
-                $('#fatwa-form')[0].reset();
-                $('#fatwa-form-errors').addClass('d-none').empty();
-                $('#fatwa-modal-title').text('Tambah Fatwa');
-                $('#f-kategori-fatwa-id').val('');
-                $('#f-status-fatwa').val('aktif');
-                $('#pdf-required-star').show();
-                $('#pdf-optional-note').addClass('d-none');
-                $('#current-pdf-info').addClass('d-none');
-                $('#f-filepdf').prop('required', true);
-                $('#ket-count').text('0');
-                $('#f-publikasi').prop('checked', true);
-                $('#f-publikasi-hidden').val(1);
-                $('#toggle-label-text').text('Aktif (Ditampilkan)');
-                resetPdfUI();
-            }
-
-            function showErrors(xhr) {
-                var msgs = [];
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    $.each(xhr.responseJSON.errors, function(k, arr) {
-                        msgs = msgs.concat(arr);
-                    });
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msgs.push(xhr.responseJSON.message);
-                }
-                $('#fatwa-form-errors').html(msgs.join('<br>')).removeClass('d-none');
-            }
-
-            function refresh() {
-                table.ajax.reload(null, false);
-                loadStats();
-            }
-
-            /* ── CREATE ── */
-            $('#btn-create-fatwa').on('click', function() {
-                resetForm();
-                $('#fatwa-modal').modal('show');
-            });
-
-            /* ── EDIT ── */
-            $(document).on('click', '.btn-edit-fatwa', function() {
-                var item = rows[$(this).data('id')];
-                if (!item) return;
-                resetForm();
-                editingId = item.id;
-                $('#fatwa-modal-title').text('Edit Fatwa');
-
-                $('#f-judul').val(item.judul);
-                $('#f-kategori-fatwa-id').val(item.kategori_fatwa_id || '');
-                $('#f-status-fatwa').val(item.status_fatwa || 'aktif');
-                $('#f-keterangan').val(item.keterangan || '').trigger('input');
-
-                var pub = item.publikasi === 1;
-                $('#f-publikasi').prop('checked', pub);
-                $('#f-publikasi-hidden').val(pub ? 1 : 0);
-                $('#toggle-label-text').text(pub ? 'Aktif (Ditampilkan)' : 'Nonaktif (Disembunyikan)');
-
-                // File saat ini
-                if (item.file_name) {
-                    $('#current-pdf-name').text(item.file_name);
-                    $('#current-pdf-info').removeClass('d-none');
-                }
-
-                // PDF tidak wajib saat edit
-                $('#pdf-required-star').hide();
-                $('#pdf-optional-note').removeClass('d-none');
-                $('#f-filepdf').prop('required', false);
-
-                $('#fatwa-modal').modal('show');
-            });
-
-            /* ── DETAIL ── */
-            $(document).on('click', '.btn-detail-fatwa', function() {
-                var item = rows[$(this).data('id')];
-                if (!item) return;
-
-                var pub = item.publikasi === 1 ?
-                    '<span class="pub-badge published"><i class="mdi mdi-eye-check"></i> Aktif</span>' :
-                    '<span class="pub-badge draft"><i class="mdi mdi-eye-off"></i> Nonaktif</span>';
-
-                var katBadge = item.kategori_nama ?
-                    '<span class="badge" style="background:var(--green-pale);color:var(--green-dark);font-weight:700;padding:5px 10px;border-radius:6px;font-size:12px;">' + $('<div>').text(item.kategori_nama).html() + '</span>' :
-                    '<em class="text-muted">Tanpa Kategori</em>';
-
-                var sfVal = item.status_fatwa || 'aktif';
-                var statusFatwaBadge = '';
-                if (sfVal === 'aktif') {
-                    statusFatwaBadge = '<span class="badge" style="background:#e8f5f1;color:#007f5f;border:1px solid #a7f3d0;font-weight:700;padding:5px 10px;border-radius:6px;font-size:12px;"><i class="mdi mdi-check-circle mr-1"></i>Aktif</span>';
-                } else if (sfVal === 'direvisi') {
-                    statusFatwaBadge = '<span class="badge" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;font-weight:700;padding:5px 10px;border-radius:6px;font-size:12px;"><i class="mdi mdi-alert mr-1"></i>Direvisi</span>';
-                } else if (sfVal === 'digantikan') {
-                    statusFatwaBadge = '<span class="badge" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-weight:700;padding:5px 10px;border-radius:6px;font-size:12px;"><i class="mdi mdi-close-circle mr-1"></i>Digantikan</span>';
-                }
-
-                var html = '<table class="table table-sm table-bordered" style="font-size:13.5px;">' +
-                    '<tbody>' +
-                    '<tr><th style="width:35%;background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Judul</th>' +
-                    '<td><strong>' + $('<div>').text(item.judul).html() + '</strong></td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Kategori</th>' +
-                    '<td>' + katBadge + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Status Fatwa</th>' +
-                    '<td>' + statusFatwaBadge + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Keterangan</th>' +
-                    '<td style="white-space:pre-wrap;">' + (item.keterangan ? $('<div>').text(item
-                        .keterangan).html() : '<em class="text-muted">—</em>') + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Publikasi</th>' +
-                    '<td>' + pub + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Dilihat</th>' +
-                    '<td><span class="badge badge-light border text-dark font-weight-bold px-2 py-1"><i class="mdi mdi-eye mr-1 text-success"></i>' + (item.views ? Number(item.views).toLocaleString('id-ID') : 0) + ' kali</span></td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">File PDF</th>' +
-                    '<td>' + (item.file_url ?
-                        '<a href="' + item.file_url +
-                        '" target="_blank" class="pdf-link" style="display:inline-flex;">' +
-                        '<i class="mdi mdi-file-pdf-box"></i><span class="pdf-link-name">' + $('<div>')
-                        .text(item.file_name || 'fatwa.pdf').html() + '</span></a>' :
-                        '<span class="pdf-none">Belum ada PDF</span>') + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Tgl Dibuat</th>' +
-                    '<td>' + new Date(item.created_at).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                    }) + '</td></tr>' +
-                    '</tbody></table>';
-
-                $('#fatwa-detail-body').html(html);
-
-                if (item.file_url) {
-                    $('#detail-pdf-link').attr('href', item.file_url).removeClass('d-none');
-                } else {
-                    $('#detail-pdf-link').addClass('d-none');
-                }
-
-                $('#fatwa-detail-modal').modal('show');
-            });
-
-            /* ── SAVE ── */
-            $('#fatwa-form').on('submit', function(e) {
-                e.preventDefault();
-                var formData = new FormData(this);
-
-                // Sinkron hidden publikasi dengan checkbox
-                formData.set('publikasi', $('#f-publikasi').is(':checked') ? 1 : 0);
-
-                if (editingId) formData.append('_method', 'PUT');
-
-                var $btn = $('#btn-save-fatwa').prop('disabled', true).html(
-                    '<i class="mdi mdi-loading mdi-spin"></i> Menyimpan...');
-                var url = editingId ? crudBase + '/' + editingId : crudBase;
-
-                $.ajax({
-                    url: url,
-                    method: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                }).done(function(res) {
-                    $('#fatwa-modal').modal('hide');
-                    alertify.success(res.message);
-                    refresh();
-                }).fail(function(xhr) {
-                    showErrors(xhr);
-                }).always(function() {
-                    $btn.prop('disabled', false).html(
-                    '<i class="mdi mdi-content-save"></i> Simpan');
-                });
-            });
-
-            /* ── TOGGLE PUBLIKASI (inline badge klik) ── */
-            $(document).on('click', '.btn-toggle-pub', function() {
-                var id = $(this).data('id');
-                $.ajax({
-                        url: crudBase + '/' + id + '/toggle-publikasi',
-                        method: 'PATCH'
-                    })
-                    .done(function(res) {
-                        alertify.success(res.message);
-                        refresh();
-                    })
-                    .fail(function() {
-                        alertify.error('Gagal mengubah status.');
-                    });
-            });
-
-            /* ── DELETE ── */
-            $(document).on('click', '.btn-delete-fatwa', function() {
-                var id = $(this).data('id');
-                var item = rows[id];
-                var judul = item ? item.judul.substring(0, 60) : 'fatwa ini';
-                if (!confirm('Hapus fatwa:\n"' + judul +
-                        '"\n\nFile PDF juga akan dihapus. Tindakan ini tidak dapat dibatalkan.')) return;
-
-                $.ajax({
-                        url: crudBase + '/' + id,
-                        method: 'DELETE'
-                    })
-                    .done(function(res) {
-                        alertify.success(res.message);
-                        refresh();
-                    })
-                    .fail(function(xhr) {
-                        alertify.error(xhr.responseJSON ? xhr.responseJSON.message :
-                        'Gagal menghapus.');
-                    });
-            });
-
-            /* ── RESET MODAL ── */
-            $('#fatwa-modal').on('hidden.bs.modal', resetForm);
-        });
-    </script>
-@endsection
+        </script>
+    @endpush
+</x-layouts.admin>

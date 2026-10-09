@@ -33,7 +33,7 @@ class OperatorPermissionTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('admin.operator-permissions.index'));
 
         $response->assertStatus(200);
-        $response->assertSee('Hak Akses & Tugas Operator', false);
+        $response->assertSee('Hak Akses & Tugas Operator');
         $response->assertSee('operators-table');
     }
 

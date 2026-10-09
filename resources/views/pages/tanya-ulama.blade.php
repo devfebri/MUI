@@ -1,329 +1,113 @@
-@extends('layouts.frontend')
+<x-layouts.site title="Tanya Ulama" description="Layanan tanya jawab keagamaan resmi bersama para ulama Majelis Ulama Indonesia Kabupaten Batanghari.">
+    <x-page-hero title="Tanya Ulama" eyebrow="Layanan Umat" :crumbs="['Layanan' => null, 'Tanya Ulama' => null]"
+                 subtitle="Sampaikan pertanyaan seputar akidah, ibadah, muamalah, keluarga, dan persoalan keagamaan lainnya. Pertanyaan Anda akan ditinjau dan dijawab oleh ulama MUI Kabupaten Batanghari." />
 
-@section('title', 'Tanya Ulama — Konsultasi Syariah Majelis Ulama Indonesia')
-@section('meta_description',
-    'Layanan tanya jawab keagamaan dan konsultasi syariah resmi bersama para ulama Majelis
-    Ulama Indonesia (MUI).')
-
-@section('content')
-    {{-- ── HERO / BANNER ── --}}
-    <section class="page-hero">
-        <div class="mui-shell">
-            <nav class="page-breadcrumb" aria-label="Breadcrumb">
-                <a href="{{ url('/') }}"><i class="fas fa-home me-1"></i>Beranda</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span>Layanan</span>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span class="current">Tanya Ulama</span>
-            </nav>
-            <h1 class="page-hero-title">Tanya Ulama & Konsultasi Syariah</h1>
-            <p class="page-hero-desc">
-                Sampaikan pertanyaan dan kegelisahan keagamaan Anda. Tim Ulama dan Asatidz Majelis Ulama Indonesia siap
-                memberikan bimbingan dan fatwa syariah yang menentramkan.
-            </p>
-        </div>
-    </section>
-
-    {{-- ── MAIN CONTENT ── --}}
-    <div class="page-content-wrapper">
-        <div class="mui-shell">
-
-            {{-- Alert Notifikasi Sukses --}}
+    <div class="container-x mt-10 grid gap-10 lg:grid-cols-12">
+        <div class="lg:col-span-8">
             @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show mb-4 p-3 d-flex align-items-center gap-3"
-                    role="alert" style="border-radius: var(--radius); border-left: 5px solid var(--green);">
-                    <div class="icon-circle" style="background: var(--green); color: #fff; width: 36px; height: 36px;">
-                        <i class="fas fa-check"></i>
-                    </div>
+                <div class="mb-6 flex items-start gap-4 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+                    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-700 text-gold-300"><x-icon name="circle-check-big" class="size-5" /></span>
                     <div>
-                        <strong class="d-block text-success" style="font-size: 15px;">Pengiriman Berhasil!</strong>
-                        <span style="font-size: 13.5px; color: var(--text);">{{ session('success') }}</span>
+                        <p class="font-semibold text-brand-900">Pertanyaan berhasil dikirim</p>
+                        <p class="mt-1 text-sm leading-relaxed text-brand-800">{{ session('success') }}</p>
+                        <a href="{{ route('konsultasi.list') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-900">Lihat tanya jawab umat <x-icon name="arrow-right" class="size-4" /></a>
                     </div>
-                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
-            {{-- Alert Notifikasi Error Validasi --}}
-            @if ($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show mb-4 p-3" role="alert"
-                    style="border-radius: var(--radius); border-left: 5px solid #dc3545;">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="fas fa-exclamation-triangle text-danger"></i>
-                        <strong class="text-danger">Mohon periksa kembali formulir Anda:</strong>
+            <form method="POST" action="{{ route('tanya-ulama.store') }}" class="card p-6 sm:p-8" x-data="{ panjang: {{ mb_strlen((string) old('pertanyaan', '')) }} }">
+                @csrf
+                <div class="flex items-start gap-4 border-b border-stone-100 pb-6">
+                    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-700 ring-1 ring-brand-100"><x-icon name="file-pen-line" class="size-6" /></span>
+                    <div>
+                        <h2 class="font-display text-2xl font-semibold text-ink-900">Formulir Tanya Ulama</h2>
+                        <p class="mt-1 text-sm text-stone-500">Kolom bertanda <span class="text-red-500">*</span> wajib diisi.</p>
                     </div>
-                    <ul class="mb-0 ps-3 small">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
+                </div>
+
+                @if ($errors->any())
+                    <div class="mt-6 flex items-start gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700 ring-1 ring-red-100">
+                        <x-icon name="circle-alert" class="mt-0.5 size-4" /> Mohon periksa kembali isian yang ditandai.
+                    </div>
+                @endif
+
+                <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                    <x-field label="Nama lengkap" name="nama" required maxlength="150" autocomplete="name" placeholder="Nama Anda" />
+                    <x-field label="Alamat email" name="email" type="email" required maxlength="150" autocomplete="email" placeholder="nama@email.com" hint="Tidak dipublikasikan. Untuk pemberitahuan jawaban." />
+                    <div class="grid grid-cols-2 gap-4">
+                        <x-field label="Usia" name="usia" type="number" required min="5" max="120" inputmode="numeric" placeholder="Tahun" />
+                        <x-field label="Jenis kelamin" name="jenis_kelamin" type="select" required :options="['' => 'Pilih…', 'Laki-laki' => 'Laki-laki', 'Perempuan' => 'Perempuan']" />
+                    </div>
+                    <x-field label="Kabupaten / Kota" name="kab_kota" required maxlength="150" placeholder="Mis. Batanghari, Jambi" />
+                    <x-field class="sm:col-span-2" label="Kategori pertanyaan" name="kategori" type="select" required
+                             :options="['' => 'Pilih kategori…'] + array_combine($kategoriList, $kategoriList)" />
+                    <div class="sm:col-span-2">
+                        <x-field label="Pertanyaan" name="pertanyaan" type="textarea" rows="7" required minlength="10"
+                                 placeholder="Tuliskan pertanyaan Anda dengan jelas dan lengkap…" @input="panjang = $event.target.value.length" />
+                        <p class="mt-1.5 text-right text-xs text-stone-400"><span x-text="panjang">0</span> karakter · minimal 10</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-start gap-3 rounded-xl bg-sand-100 p-4 text-xs leading-relaxed text-stone-600">
+                    <x-icon name="shield-check" class="mt-0.5 size-4 text-brand-600" />
+                    <p>Pertanyaan yang telah dijawab dapat dipublikasikan sebagai pembelajaran bagi umat. Nama Anda akan <b>disamarkan</b> (mis. “Ahmad R.”) dan alamat email tidak akan ditampilkan.</p>
+                </div>
+
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+                    <p class="text-xs text-stone-500">Butuh jawaban lebih cepat? <button type="button" @click="$dispatch('open-chat')" class="font-semibold text-brand-700 hover:underline">Gunakan konsultasi online</button></p>
+                    <button type="submit" class="btn btn-primary btn-lg"><x-icon name="send" class="size-4" /> Kirim Pertanyaan</button>
+                </div>
+            </form>
+        </div>
+
+        <aside class="space-y-6 lg:col-span-4">
+            <div class="card p-6">
+                <h2 class="flex items-center gap-2 font-bold text-ink-900"><x-icon name="route" class="size-4 text-gold-500" /> Alur layanan</h2>
+                <ol class="mt-5 space-y-5">
+                    @foreach ([
+                        ['Kirim pertanyaan', 'Isi formulir dengan data dan pertanyaan yang jelas.'],
+                        ['Ditinjau ulama', 'Tim Komisi Fatwa menelaah pertanyaan sesuai dalil dan fatwa MUI.'],
+                        ['Dijawab & dipublikasikan', 'Jawaban ditampilkan di halaman Tanya Jawab Umat.'],
+                    ] as [$judul, $keterangan])
+                        <li class="flex gap-4">
+                            <span class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-700 text-xs font-bold text-gold-300">{{ $loop->iteration }}</span>
+                            <div>
+                                <p class="text-sm font-semibold text-ink-900">{{ $judul }}</p>
+                                <p class="mt-0.5 text-xs leading-relaxed text-stone-500">{{ $keterangan }}</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ol>
+            </div>
+
+            @if ($konsultasiTerjawab->isNotEmpty())
+                <div class="card overflow-hidden">
+                    <div class="flex items-center gap-3 border-b border-stone-100 bg-sand-100/60 px-6 py-4">
+                        <span class="grid size-9 place-items-center rounded-xl bg-gold-400 text-brand-950"><x-icon name="messages-square" class="size-4" /></span>
+                        <h2 class="font-bold text-ink-900">Baru dijawab</h2>
+                    </div>
+                    <ul class="divide-y divide-stone-100">
+                        @foreach ($konsultasiTerjawab->take(5) as $item)
+                            <li>
+                                <a href="{{ route('konsultasi.detail', $item) }}" class="group block px-6 py-4 hover:bg-brand-50/40">
+                                    <p class="text-[11px] font-bold tracking-wider text-gold-600 uppercase">{{ $item->kategori }}</p>
+                                    <p class="mt-1 line-clamp-2 text-sm font-semibold text-ink-900 group-hover:text-brand-700">{{ $item->pertanyaan }}</p>
+                                </a>
+                            </li>
                         @endforeach
                     </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <a href="{{ route('konsultasi.list', ['status' => 'dijawab']) }}" class="block border-t border-stone-100 px-6 py-3.5 text-center text-sm font-semibold text-brand-700 hover:bg-brand-50">Lihat semua jawaban</a>
                 </div>
             @endif
 
-            <div class="row g-4">
-                {{-- ════ KIRI: FORMULIR KONSULTASI ════ --}}
-                <div class="col-lg-8">
-                    <div class="mui-card">
-                        <h2 class="mui-card-title">
-                            <i class="fas fa-comments text-success"></i>
-                            Formulir Tanya Ulama
-                        </h2>
-                        <p class="text-muted small mb-4" style="line-height: 1.6;">
-                            Silakan lengkapi data diri dan pertanyaan Anda di bawah ini dengan jelas dan santun. Pertanyaan
-                            Anda akan dijawab oleh para ulama dan dewan pakar MUI.
-                        </p>
-
-                        <form action="{{ route('tanya-ulama.store') }}" method="POST" id="formTanyaUlama">
-                            @csrf
-
-                            {{-- Baris 1: Nama & Email --}}
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label for="nama" class="form-label small fw-bold text-dark">
-                                        Nama Lengkap <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" class="form-control @error('nama') is-invalid @enderror"
-                                        id="nama" name="nama" value="{{ old('nama') }}"
-                                        placeholder="Masukkan nama lengkap Anda" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                    @error('nama')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label small fw-bold text-dark">
-                                        Alamat Email <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                        id="email" name="email" value="{{ old('email') }}"
-                                        placeholder="contoh@email.com" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                    <small class="text-muted" style="font-size: 11px;">Notifikasi jawaban akan dikirimkan ke
-                                        email ini.</small>
-                                    @error('email')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            {{-- Baris 2: Usia & Jenis Kelamin --}}
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label for="usia" class="form-label small fw-bold text-dark">
-                                        Usia (Tahun) <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="number" class="form-control @error('usia') is-invalid @enderror"
-                                        id="usia" name="usia" value="{{ old('usia') }}" min="5"
-                                        max="120" placeholder="Contoh: 30" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                    @error('usia')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="jenis_kelamin" class="form-label small fw-bold text-dark">
-                                        Jenis Kelamin <span class="text-danger">*</span>
-                                    </label>
-                                    <select class="form-control form-select @error('jenis_kelamin') is-invalid @enderror"
-                                        id="jenis_kelamin" name="jenis_kelamin" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                        <option value="">Pilih Jenis Kelamin...</option>
-                                        <option value="Laki-laki"
-                                            {{ old('jenis_kelamin') === 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
-                                        <option value="Perempuan"
-                                            {{ old('jenis_kelamin') === 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
-                                    </select>
-                                    @error('jenis_kelamin')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            {{-- Baris 3: Provinsi/Kab. Kota & Kategori Pertanyaan --}}
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label for="kab_kota" class="form-label small fw-bold text-dark">
-                                        Provinsi / Kab. Kota <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" class="form-control @error('kab_kota') is-invalid @enderror"
-                                        id="kab_kota" name="kab_kota" value="{{ old('kab_kota') }}"
-                                        placeholder="Contoh: DKI Jakarta / Surabaya" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                    @error('kab_kota')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="kategori" class="form-label small fw-bold text-dark">
-                                        Kategori Pertanyaan <span class="text-danger">*</span>
-                                    </label>
-                                    <select class="form-control form-select @error('kategori') is-invalid @enderror"
-                                        id="kategori" name="kategori" required
-                                        style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 10px 14px;">
-                                        <option value="">Pilih Kategori...</option>
-                                        @foreach ($kategoriList as $kat)
-                                            <option value="{{ $kat }}"
-                                                {{ old('kategori') === $kat ? 'selected' : '' }}>
-                                                {{ $kat }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('kategori')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            {{-- Baris 4: Isi Pertanyaan --}}
-                            <div class="mb-4">
-                                <label for="pertanyaan" class="form-label small fw-bold text-dark">
-                                    Isi Pertanyaan & Kasus <span class="text-danger">*</span>
-                                </label>
-                                <textarea class="form-control @error('pertanyaan') is-invalid @enderror" id="pertanyaan" name="pertanyaan"
-                                    rows="6"
-                                    placeholder="Tuliskan secara lengkap detail persoalan atau pertanyaan keagamaan yang ingin Anda konsultasikan..."
-                                    required style="border-radius: var(--radius-sm); font-size: 13.5px; padding: 12px 14px; line-height: 1.6;">{{ old('pertanyaan') }}</textarea>
-                                <small class="text-muted" style="font-size: 11px;">Jelaskan kronologi dan konteks masalah
-                                    secara rinci agar memudahkan kajian fatwa.</small>
-                                @error('pertanyaan')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            {{-- Tombol Aksi --}}
-                            <div class="d-flex align-items-center justify-content-end gap-3 pt-3 border-top">
-                                <button type="reset" class="btn btn-light px-4 py-2"
-                                    style="font-size: 13.5px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-                                    Reset
-                                </button>
-                                <button type="submit"
-                                    class="btn text-white px-4 py-2 fw-bold d-inline-flex align-items-center gap-2"
-                                    style="background: var(--green); border-radius: var(--radius-sm); font-size: 14px;">
-                                    <i class="fas fa-paper-plane"></i> Kirim Pertanyaan
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {{-- Tanya Jawab / Konsultasi Terpilih (Jika Ada) --}}
-                    @if (isset($konsultasiTerjawab) && $konsultasiTerjawab->isNotEmpty())
-                        <div class="mui-card mt-4">
-                            <h2 class="mui-card-title">
-                                <i class="fas fa-book-reader text-success"></i>
-                                Tanya Jawab Terjawab Terbaru
-                            </h2>
-                            <p class="text-muted small mb-3">Berikut adalah beberapa pertanyaan jamaah yang telah dijawab
-                                oleh Dewan Ulama MUI:</p>
-                            <div class="d-flex flex-column gap-3">
-                                @foreach ($konsultasiTerjawab as $item)
-                                    <div
-                                        style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 18px;">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="badge"
-                                                style="background: var(--green); color: #fff; font-size: 10.5px;">{{ $item->kategori }}</span>
-                                            <span class="text-muted small" style="font-size: 11px;"><i
-                                                    class="fas fa-clock me-1"></i>{{ $item->answered_at?->diffForHumans() }}</span>
-                                        </div>
-                                        <h5
-                                            style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px;">
-                                            T: {{ Str::limit($item->pertanyaan, 110) }}
-                                        </h5>
-                                        <div class="p-3 bg-white rounded mt-2"
-                                            style="border-left: 3px solid var(--gold); font-size: 13.5px; color: var(--text); line-height: 1.6;">
-                                            <strong>Jawab:</strong> {{ Str::limit(strip_tags($item->jawaban), 220) }}
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- ════ KANAN: SIDEBAR INFORMASI & ALUR ════ --}}
-                <div class="col-lg-4">
-                    {{-- Alur Konsultasi --}}
-                    <div class="mui-card" style="padding: 22px;">
-                        <h3
-                            style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 16px; border-bottom: 2px solid var(--green-pale); padding-bottom: 8px;">
-                            <i class="fas fa-route text-success me-2"></i> Alur Layanan Konsultasi
-                        </h3>
-                        <div class="d-flex flex-column gap-3">
-                            <div class="d-flex gap-3 align-items-start">
-                                <div class="icon-circle"
-                                    style="width: 32px; height: 32px; font-size: 13px; font-weight: 800;">1</div>
-                                <div>
-                                    <strong style="font-size: 13.5px; color: var(--dark); display: block;">Kirim
-                                        Pertanyaan</strong>
-                                    <span class="text-muted small">Isi formulir dengan data yang valid dan uraian persoalan
-                                        yang jelas.</span>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-3 align-items-start">
-                                <div class="icon-circle"
-                                    style="width: 32px; height: 32px; font-size: 13px; font-weight: 800;">2</div>
-                                <div>
-                                    <strong style="font-size: 13.5px; color: var(--dark); display: block;">Telaah
-                                        Syariah</strong>
-                                    <span class="text-muted small">Tim Asatidz dan Dewan Fatwa MUI mengkaji rujukan dalil
-                                        Al-Qur'an, Hadits, dan kitab mu'tabarah.</span>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-3 align-items-start">
-                                <div class="icon-circle"
-                                    style="width: 32px; height: 32px; font-size: 13px; font-weight: 800;">3</div>
-                                <div>
-                                    <strong style="font-size: 13.5px; color: var(--dark); display: block;">Penerbitan
-                                        Jawaban</strong>
-                                    <span class="text-muted small">Jawaban dikirimkan via email serta dipublikasikan untuk
-                                        kemaslahatan umat luas.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Etika Bertanya --}}
-                    <div class="mui-card"
-                        style="padding: 22px; background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);">
-                        <h3
-                            style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
-                            <i class="fas fa-shield-alt text-gold me-2"></i> Ketentuan & Etika
-                        </h3>
-                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.8;">
-                            <li>Gunakan bahasa yang santun, jelas, dan tidak menyinggung SARA.</li>
-                            <li>Tidak mengajukan pertanyaan yang bersifat fitnah atau menjatuhkan pihak tertentu.</li>
-                            <li>Fokus pada permasalahan ibadah, muamalah, akidah, dan akhlak.</li>
-                            <li>Kerahasiaan identitas penanya akan tetap terjaga.</li>
-                        </ul>
-                    </div>
-
-                    {{-- Hotline Konsultasi --}}
-                    <div class="mui-card"
-                        style="background: linear-gradient(135deg, var(--green-dark), var(--green)); color: #fff; border: none; padding: 22px;">
-                        <div class="icon-circle mb-3"
-                            style="background: rgba(255,255,255,.15); color: var(--gold-light);">
-                            <i class="fas fa-headset"></i>
-                        </div>
-                        <h4 style="font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px;">Hotline Pelayanan
-                        </h4>
-                        <p style="font-size: 12.5px; color: rgba(255,255,255,.8); line-height: 1.6; margin-bottom: 14px;">
-                            Untuk permohonan bimbingan mendesak atau informasi sertifikasi halal dan fatwa khusus, hubungi
-                            sekretariat MUI:
-                        </p>
-                        <div class="d-flex flex-column gap-2 mb-3 font-monospace" style="font-size: 13px;">
-                            <div><i class="fas fa-phone-alt me-2 text-warning"></i> (021) 3917732</div>
-                            <div><i class="fab fa-whatsapp me-2 text-success"></i> +62 811-1902-666</div>
-                            <div><i class="fas fa-envelope me-2 text-info"></i> tanya@mui.or.id</div>
-                        </div>
-                        <a href="{{ route('kontak') }}" class="btn btn-sm btn-light fw-bold text-dark w-100"
-                            style="border-radius: 20px;">
-                            Lihat Kontak Lengkap
-                        </a>
-                    </div>
+            <div class="bg-gradient-brand relative overflow-hidden rounded-2xl p-6 text-white">
+                <div class="pattern-islamic absolute inset-0"></div>
+                <div class="relative">
+                    <p class="arabic text-right text-2xl text-gold-300">فَاسْأَلُوا أَهْلَ الذِّكْرِ إِنْ كُنْتُمْ لَا تَعْلَمُونَ</p>
+                    <p class="mt-3 font-display text-lg text-white italic">“Maka bertanyalah kepada orang yang mempunyai pengetahuan jika kamu tidak mengetahui.”</p>
+                    <p class="mt-1 text-xs tracking-wider text-white/50 uppercase">QS. An-Nahl [16]: 43</p>
                 </div>
             </div>
-        </div>
+        </aside>
     </div>
-@endsection
+</x-layouts.site>

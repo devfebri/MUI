@@ -5,13 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\Berita;
 use App\Models\ChatSession;
 use App\Models\Fatwa;
+use App\Models\Kategori;
 use App\Models\Konsultasi;
 use App\Models\Surat;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    /**
+     * Seri grafik aktivitas bulanan; kunci sama dengan kunci izin menu operator.
+     *
+     * @var array<int, string>
+     */
+    private const ACTIVITY_SERIES = ['berita', 'konsultasi', 'fatwa', 'surat'];
+
     /**
      * Tampilkan halaman dashboard sesuai peran (role) pengguna.
      */
@@ -40,6 +50,13 @@ class DashboardController extends Controller
             'total_operator' => User::where('role', 'operator')->count(),
         ];
 
+        // Warna badge kategori berita (nama => warna) & rekap aktivitas bulanan untuk grafik.
+        $kategoriWarna = Kategori::pluck('warna', 'nama');
+        $activity = $this->monthlyActivity(array_values(array_filter(
+            self::ACTIVITY_SERIES,
+            fn (string $key): bool => $user->hasMenuPermission($key)
+        )));
+
         if ($user->isAdmin()) {
             // Data untuk Dashboard Admin
             $latestBerita = Berita::with('user')->latest()->take(5)->get();
@@ -58,7 +75,9 @@ class DashboardController extends Controller
                 'activeChats',
                 'latestSurat',
                 'latestFatwa',
-                'operators'
+                'operators',
+                'kategoriWarna',
+                'activity'
             ));
         }
 
@@ -92,6 +111,47 @@ class DashboardController extends Controller
             $operatorData['latest_fatwa'] = Fatwa::with('kategoriFatwa')->latest()->take(5)->get();
         }
 
-        return view('operator.dashboard', compact('stats', 'assignedPerms', 'operatorData'));
+        return view('operator.dashboard', compact('stats', 'assignedPerms', 'operatorData', 'kategoriWarna', 'activity'));
+    }
+
+    /**
+     * Rekap jumlah konten & layanan per bulan selama enam bulan terakhir (zona WIB).
+     * Dihitung di PHP agar tidak bergantung pada fungsi tanggal khusus basis data.
+     *
+     * @param  array<int, string>  $keys
+     * @return array{months: array<int, array{key: string, short: string, long: string}>, series: array<int, array{key: string, label: string, data: array<int, int>, total: int}>}
+     */
+    private function monthlyActivity(array $keys): array
+    {
+        $tz = 'Asia/Jakarta';
+        $start = now($tz)->startOfMonth()->subMonths(5);
+        $since = $start->copy()->setTimezone(config('app.timezone'));
+        $months = collect(range(0, 5))->map(fn (int $i): Carbon => $start->copy()->addMonths($i));
+
+        $sources = [
+            'berita' => ['Berita terbit', fn (): Collection => Berita::where('status', 'published')
+                ->whereBetween('published_at', [$since, now()])
+                ->pluck('published_at')],
+            'konsultasi' => ['Konsultasi masuk', fn (): Collection => Konsultasi::where('created_at', '>=', $since)->pluck('created_at')],
+            'fatwa' => ['Fatwa ditambahkan', fn (): Collection => Fatwa::where('created_at', '>=', $since)->pluck('created_at')],
+            'surat' => ['Arsip surat', fn (): Collection => Surat::whereDate('tanggal_surat', '>=', $start->toDateString())->pluck('tanggal_surat')],
+        ];
+
+        $series = [];
+        foreach ($keys as $key) {
+            [$label, $dates] = $sources[$key];
+            $counts = $dates()->filter()->countBy(fn ($date): string => Carbon::parse($date)->setTimezone($tz)->format('Y-m'));
+            $data = $months->map(fn (Carbon $month): int => (int) ($counts[$month->format('Y-m')] ?? 0))->all();
+            $series[] = ['key' => $key, 'label' => $label, 'data' => $data, 'total' => array_sum($data)];
+        }
+
+        return [
+            'months' => $months->map(fn (Carbon $month): array => [
+                'key' => $month->format('Y-m'),
+                'short' => $month->translatedFormat('M'),
+                'long' => $month->translatedFormat('F Y'),
+            ])->all(),
+            'series' => $series,
+        ];
     }
 }

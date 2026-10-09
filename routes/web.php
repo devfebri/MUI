@@ -14,6 +14,7 @@ use App\Http\Controllers\OperatorPermissionController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SuratController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
@@ -43,8 +44,10 @@ Route::get('/konsultasi', [KonsultasiController::class, 'list'])->name('konsulta
 Route::get('/konsultasi/{konsultasi}', [KonsultasiController::class, 'detail'])->name('konsultasi.detail');
 
 Route::get('/fatwa', [FatwaController::class, 'publicList'])->name('fatwa');
+Route::get('/fatwa/{fatwa}', [FatwaController::class, 'publicDetail'])->whereNumber('fatwa')->name('fatwa.detail');
 Route::post('/fatwa/{fatwa}/baca', [FatwaController::class, 'incrementViews'])->name('fatwa.increment-views');
 Route::get('/surat', [SuratController::class, 'publicList'])->name('surat');
+Route::get('/cari', SearchController::class)->middleware('throttle:60,1')->name('search');
 
 Auth::routes(['register' => false]);
 

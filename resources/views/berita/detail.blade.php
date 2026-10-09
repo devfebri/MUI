@@ -1,301 +1,113 @@
-@extends('layouts.frontend')
+@php
+    $penulis = $berita->penulis?->name ?? 'Redaksi MUI Batanghari';
+    $inisial = collect(preg_split('/\s+/', trim($penulis)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');
+    $isiPolos = strip_tags((string) $berita->isi) === (string) $berita->isi;
+@endphp
 
-@section('title', $berita->judul . ' — MUI Batanghari')
-@section('meta_description', Str::limit(strip_tags($berita->isi), 160))
+<x-layouts.site :title="$berita->judul" :description="$berita->ringkasan(200)" :og-image="$berita->gambar_url" og-type="article">
+    @push('head')
+        <script type="application/ld+json">
+            {!! json_encode(array_filter([
+                '@context' => 'https://schema.org',
+                '@type' => 'NewsArticle',
+                'headline' => $berita->judul,
+                'datePublished' => $berita->tanggal_terbit?->toIso8601String(),
+                'dateModified' => $berita->updated_at?->toIso8601String(),
+                'image' => $berita->gambar_url,
+                'articleSection' => $berita->kategori,
+                'author' => ['@type' => 'Person', 'name' => $penulis],
+                'publisher' => ['@type' => 'Organization', 'name' => $site['site_short'], 'logo' => ['@type' => 'ImageObject', 'url' => $site['logo_url']]],
+            ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+        </script>
+    @endpush
 
-@section('content')
-    {{-- ── BREADCRUMB HERO ── --}}
-    <section class="page-hero" style="padding: 24px 0 20px;">
-        <div class="mui-shell">
-            <nav class="page-breadcrumb" aria-label="Breadcrumb">
-                <a href="{{ route('home.public') }}"><i class="fas fa-home me-1"></i>Beranda</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <a href="{{ route('berita.list') }}">Berita</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <a href="{{ route('berita.list', ['kategori' => $berita->kategori]) }}">{{ $berita->kategori }}</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span class="current">{{ Str::limit($berita->judul, 35) }}</span>
-            </nav>
+    {{-- Progres membaca --}}
+    <div x-data="readingProgress" class="fixed inset-x-0 top-0 z-[55] h-1" aria-hidden="true">
+        <div class="h-full bg-gradient-to-r from-gold-300 to-gold-500 transition-[width] duration-150" :style="`width:${progress}%`"></div>
+    </div>
+
+    <x-page-hero :title="$berita->judul" :eyebrow="$berita->kategori" :crumbs="array_filter(['Kabar' => route('berita.list'), $berita->kategori => $berita->kategori ? route('berita.list', ['kategori' => $berita->kategori]) : null]) + [Str::limit($berita->judul, 40) => null]">
+        <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/70">
+            <span class="flex items-center gap-2">
+                <span class="grid size-9 place-items-center rounded-full bg-gold-400 text-xs font-bold text-brand-950">{{ $inisial ?: 'MUI' }}</span>
+                {{ $penulis }}
+            </span>
+            <span class="flex items-center gap-1.5"><x-icon name="calendar-days" class="size-4 text-gold-400" /> {{ $berita->tanggal_terbit?->translatedFormat('l, d F Y · H:i') }} WIB</span>
+            <span class="flex items-center gap-1.5"><x-icon name="clock" class="size-4 text-gold-400" /> {{ $berita->waktuBaca() }} menit baca</span>
+            <span class="flex items-center gap-1.5"><x-icon name="eye" class="size-4 text-gold-400" /> {{ number_format($berita->views ?? 0, 0, ',', '.') }} kali dilihat</span>
         </div>
-    </section>
+    </x-page-hero>
 
-    {{-- ── ARTICLE MAIN CONTENT ── --}}
-    <div class="mui-shell">
-        <div class="article-layout">
+    <div class="container-x mt-10 grid gap-12 lg:grid-cols-12">
+        <article class="min-w-0 lg:col-span-8">
+            @if ($berita->gambar_url)
+                <figure class="-mt-2 overflow-hidden rounded-3xl shadow-[var(--shadow-lift)]">
+                    <img src="{{ $berita->gambar_url }}" alt="{{ $berita->judul }}" fetchpriority="high" class="aspect-[3/2] w-full object-cover">
+                </figure>
+            @endif
 
-            {{-- ════ KIRI: KONTEN ARTIKEL ════ --}}
-            <article>
-                {{-- Header Artikel --}}
-                <div class="article-header">
-                    <a href="{{ route('berita.list', ['kategori' => $berita->kategori]) }}" class="article-cat-badge">
-                        {{ $berita->kategori }}
-                    </a>
-                    <h1 class="article-title">{{ $berita->judul }}</h1>
-
-                    <div class="article-meta-bar">
-                        <div class="article-author-info">
-                            <div class="article-author-avatar">
-                                <i class="fas fa-user-edit"></i>
-                            </div>
-                            <div>
-                                <span class="d-block fw-bold text-dark" style="font-size: 13.5px;">
-                                    {{ $berita->penulis?->name ?? 'Tim Redaksi MUI Batanghari' }}
-                                </span>
-                                <span class="text-muted" style="font-size: 12px;">
-                                    <i class="fas fa-calendar-alt me-1 text-success"></i>
-                                    {{ $berita->published_at ? $berita->published_at->translatedFormat('l, d F Y | H:i') . ' WIB' : $berita->created_at->translatedFormat('l, d F Y | H:i') . ' WIB' }}
-                                    <span class="mx-2">•</span>
-                                    <i class="fas fa-eye me-1 text-success"></i>
-                                    {{ number_format($berita->views) }} kali dilihat
-                                </span>
-                            </div>
-                        </div>
-
-                        {{-- Tombol Share Atas --}}
-                        <div class="article-share-btns">
-                            <span class="small text-muted me-1 d-none d-sm-inline">Bagikan:</span>
-                            <a href="https://api.whatsapp.com/send?text={{ urlencode($berita->judul . ' ' . url()->current()) }}" target="_blank" class="btn-share wa" title="WhatsApp">
-                                <i class="fab fa-whatsapp"></i>
-                            </a>
-                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url()->current()) }}" target="_blank" class="btn-share fb" title="Facebook">
-                                <i class="fab fa-facebook-f"></i>
-                            </a>
-                            <a href="https://twitter.com/intent/tweet?text={{ urlencode($berita->judul) }}&url={{ urlencode(url()->current()) }}" target="_blank" class="btn-share tw" title="Twitter / X">
-                                <i class="fab fa-twitter"></i>
-                            </a>
-                            <button type="button" class="btn-share copy" onclick="navigator.clipboard.writeText(window.location.href); alert('Tautan berhasil disalin ke clipboard!');" title="Salin Tautan">
-                                <i class="fas fa-link"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Gambar Utama Berita --}}
-                @if($berita->gambar)
-                <div class="article-featured-img">
-                    <img src="{{ asset('uploads/berita/' . basename($berita->gambar)) }}" alt="{{ $berita->judul }}" loading="eager">
-                    <div class="article-img-caption">
-                        <i class="fas fa-camera me-1"></i> Dokumentasi MUI Batanghari — {{ $berita->judul }}
-                    </div>
-                </div>
+            <div class="prose-mui mt-8">
+                @if ($isiPolos)
+                    <p>{!! nl2br(e($berita->isi)) !!}</p>
+                @else
+                    {!! $berita->isi !!}
                 @endif
+            </div>
 
-                {{-- Isi Teks Berita --}}
-                <div class="article-body">
-                    @if(strip_tags($berita->isi) === $berita->isi)
-                        {!! nl2br(e($berita->isi)) !!}
-                    @else
-                        {!! $berita->isi !!}
-                    @endif
+            @if ($berita->kategori)
+                <div class="mt-10 flex flex-wrap items-center gap-2">
+                    <x-icon name="tag" class="size-4 text-stone-400" />
+                    <a href="{{ route('berita.list', ['kategori' => $berita->kategori]) }}" class="rounded-full bg-sand-100 px-3 py-1 text-xs font-semibold text-stone-600 hover:bg-brand-700 hover:text-white">#{{ Str::slug($berita->kategori, '') }}</a>
                 </div>
+            @endif
 
-                {{-- Share Footer Bar --}}
-                <div class="article-share-footer">
-                    <div>
-                        <strong class="text-dark d-block mb-1" style="font-size: 14px;">Suka dengan berita ini?</strong>
-                        <span class="text-muted small">Bagikan informasi bermanfaat ini kepada kerabat dan keluarga Anda:</span>
-                    </div>
-                    <div class="article-share-btns">
-                        <a href="https://api.whatsapp.com/send?text={{ urlencode($berita->judul . ' ' . url()->current()) }}" target="_blank" class="btn-share wa" title="WhatsApp">
-                            <i class="fab fa-whatsapp"></i>
-                        </a>
-                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url()->current()) }}" target="_blank" class="btn-share fb" title="Facebook">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="https://twitter.com/intent/tweet?text={{ urlencode($berita->judul) }}&url={{ urlencode(url()->current()) }}" target="_blank" class="btn-share tw" title="Twitter / X">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <button type="button" class="btn-share copy" onclick="navigator.clipboard.writeText(window.location.href); alert('Tautan berhasil disalin ke clipboard!');" title="Salin Tautan">
-                            <i class="fas fa-link"></i>
-                        </button>
-                    </div>
-                </div>
+            {{-- Bagikan --}}
+            <div x-data="share(@js($berita->judul), @js(route('berita.detail', $berita->slug)))" class="mt-10 flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200 bg-white p-5">
+                <p class="mr-auto text-sm font-semibold text-ink-900">Bagikan kebaikan ini</p>
+                <a :href="link('whatsapp')" target="_blank" rel="noopener" class="grid size-10 place-items-center rounded-xl bg-[#25D366]/10 text-[#128C4B] hover:bg-[#25D366] hover:text-white" aria-label="Bagikan ke WhatsApp"><x-icon name="whatsapp" class="size-4" /></a>
+                <a :href="link('facebook')" target="_blank" rel="noopener" class="grid size-10 place-items-center rounded-xl bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2] hover:text-white" aria-label="Bagikan ke Facebook"><x-icon name="facebook" class="size-4" /></a>
+                <a :href="link('x')" target="_blank" rel="noopener" class="grid size-10 place-items-center rounded-xl bg-stone-100 text-stone-800 hover:bg-stone-900 hover:text-white" aria-label="Bagikan ke X"><x-icon name="x-twitter" class="size-4" /></a>
+                <a :href="link('telegram')" target="_blank" rel="noopener" class="grid size-10 place-items-center rounded-xl bg-sky-100 text-sky-600 hover:bg-sky-500 hover:text-white" aria-label="Bagikan ke Telegram"><x-icon name="send" class="size-4" /></a>
+                <button type="button" @click="copy()" class="flex h-10 items-center gap-2 rounded-xl bg-stone-100 px-4 text-sm font-semibold text-stone-700 hover:bg-stone-200">
+                    <x-icon name="link" class="size-4" /> <span x-text="copied ? 'Tersalin!' : 'Salin tautan'">Salin tautan</span>
+                </button>
+            </div>
 
-                {{-- Author Box --}}
-                <div class="article-author-card">
-                    <div class="article-author-avatar" style="width: 50px; height: 50px; font-size: 20px;">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div>
-                        <span class="text-muted small text-uppercase fw-bold" style="letter-spacing: .5px;">Ditulis & Diterbitkan Oleh</span>
-                        <h4 class="mb-1" style="font-size: 16px; font-weight: 800; color: var(--green-dark);">
-                            {{ $berita->penulis?->name ?? 'Redaksi MUI Batanghari' }}
-                        </h4>
-                        <p class="mb-0 text-muted small" style="line-height: 1.5;">
-                            Bagian dari komitmen Majelis Ulama Indonesia dalam menyebarkan informasi keislaman, bimbingan syariah, dan dakwah wasathiyah yang mencerahkan.
-                        </p>
-                    </div>
-                </div>
+            <a href="{{ route('berita.list') }}" class="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-900"><x-icon name="arrow-left" class="size-4" /> Kembali ke daftar berita</a>
+        </article>
 
-                {{-- Berita Terkait --}}
-                @if(isset($beritaTerkait) && $beritaTerkait->isNotEmpty())
-                <div class="mt-5">
-                    <div class="mui-section-head">
-                        <h2 class="mui-section-title">
-                            Berita Terkait
-                        </h2>
-                        <div class="mui-section-line"></div>
-                        <a href="{{ route('berita.list', ['kategori' => $berita->kategori]) }}" style="font-size: 12.5px; color: var(--green); font-weight: 700; text-decoration: none;">
-                            Lihat Semua →
-                        </a>
-                    </div>
-
-                    <div class="row g-3">
-                        @foreach($beritaTerkait as $terkait)
-                        <div class="col-md-6">
-                            <a href="{{ route('berita.detail', $terkait->slug ?? $terkait->id) }}" class="related-card">
-                                <div class="related-card-thumb">
-                                    @if($terkait->gambar)
-                                        <img src="{{ asset('uploads/berita/' . basename($terkait->gambar)) }}" alt="{{ $terkait->judul }}" loading="lazy">
-                                    @else
-                                        <div class="news-card-thumb-placeholder">
-                                            <i class="fas fa-newspaper"></i>
-                                            <span>MUI Batanghari</span>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="related-card-body">
-                                    <span class="news-cat" style="align-self: flex-start; margin-bottom: 6px;">{{ $terkait->kategori }}</span>
-                                    <h4 class="related-card-title">{{ $terkait->judul }}</h4>
-                                    <div class="related-card-date">
-                                        <i class="fas fa-clock me-1"></i> {{ $terkait->published_at?->diffForHumans() }}
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
+        <aside class="lg:col-span-4">
+            <div class="sticky top-24 space-y-6">
+                <div class="card p-6">
+                    <h2 class="flex items-center gap-2 font-bold text-ink-900"><x-icon name="trending-up" class="size-4 text-gold-500" /> Terpopuler</h2>
+                    <div class="mt-5 space-y-5">
+                        @foreach ($terpopuler as $item)
+                            <x-post-card :berita="$item" horizontal />
                         @endforeach
                     </div>
                 </div>
-                @endif
-            </article>
-
-            {{-- ════ KANAN: SIDEBAR ════ --}}
-            <aside>
-                {{-- Form Pencarian --}}
-                <div class="sidebar-widget">
-                    <div class="widget-title">
-                        <i class="fas fa-search"></i> Cari Berita
+                <div class="bg-gradient-brand relative overflow-hidden rounded-2xl p-6 text-white">
+                    <div class="pattern-islamic absolute inset-0"></div>
+                    <div class="relative">
+                        <x-icon name="file-pen-line" class="size-8 text-gold-300" />
+                        <h3 class="mt-3 font-display text-xl font-semibold text-white">Butuh jawaban ulama?</h3>
+                        <p class="mt-2 text-sm text-white/70">Ajukan pertanyaan keagamaan kepada Komisi Fatwa MUI Kabupaten Batanghari.</p>
+                        <a href="{{ route('tanya-ulama') }}" class="btn btn-gold btn-sm mt-5">Ajukan Pertanyaan</a>
                     </div>
-                    <form method="GET" action="{{ route('berita.list') }}">
-                        <div style="position:relative;">
-                            <input type="search" name="q" placeholder="Cari topik berita..."
-                                style="width:100%;padding:10px 44px 10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;outline:none;font-family:'Inter',sans-serif;color:var(--text);"
-                                autocomplete="off">
-                            <button type="submit"
-                                style="position:absolute;right:0;top:0;bottom:0;padding:0 14px;background:var(--green);color:#fff;border:none;border-radius:0 8px 8px 0;cursor:pointer;">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
                 </div>
-
-                {{-- Berita Terpopuler --}}
-                @if(isset($terpopuler) && $terpopuler->isNotEmpty())
-                <div class="sidebar-widget">
-                    <div class="widget-title">
-                        <i class="fas fa-fire-alt"></i> Berita Pilihan
-                    </div>
-                    @foreach($terpopuler as $idx => $pop)
-                    <a href="{{ route('berita.detail', $pop->slug ?? $pop->id) }}" class="pop-item d-flex">
-                        <span class="pop-rank">{{ $idx + 1 }}</span>
-                        <div>
-                            <div class="pop-title">{{ $pop->judul }}</div>
-                            <div class="pop-date">
-                                <i class="fas fa-clock"></i> {{ $pop->published_at?->translatedFormat('d M Y') }}
-                            </div>
-                        </div>
-                    </a>
-                    @endforeach
-                </div>
-                @endif
-
-                {{-- Widget Kategori --}}
-                <div class="sidebar-widget">
-                    <div class="widget-title">
-                        <i class="fas fa-tag"></i> Kategori Lainnya
-                    </div>
-                    @foreach(array_slice($kategoriList, 0, 7) as $kat)
-                    <a href="{{ route('berita.list', ['kategori' => $kat]) }}" class="kat-widget-item {{ $berita->kategori === $kat ? 'active' : '' }}">
-                        <span><i class="fas fa-chevron-right me-2 text-muted" style="font-size: 11px;"></i>{{ $kat }}</span>
-                    </a>
-                    @endforeach
-                </div>
-
-                {{-- Kembali ke Berita --}}
-                <div class="sidebar-widget" style="background: linear-gradient(135deg, var(--green-dark), var(--green)); color: #fff; border: none; text-align: center;">
-                    <div style="font-family: 'Amiri', serif; font-size: 22px; color: var(--gold-light); margin-bottom: 8px;">
-                        بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيم
-                    </div>
-                    <h4 style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;">Portal MUI Batanghari</h4>
-                    <p style="font-size: 12.5px; color: rgba(255,255,255,.8); line-height: 1.6; margin-bottom: 14px;">
-                        Dapatkan kabar terkini, fatwa, dan bimbingan keislaman langsung dari sumber terpercaya.
-                    </p>
-                    <a href="{{ route('berita.list') }}" style="display:block;padding:9px 14px;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.2);text-decoration:none;">
-                        ← Kembali ke Indeks Berita
-                    </a>
-                </div>
-            </aside>
-        </div>
+            </div>
+        </aside>
     </div>
-@endsection
 
-@push('styles')
-<style>
-    .article-body {
-        font-size: 16px;
-        line-height: 1.85;
-        color: #2b2b2b;
-        word-break: break-word;
-    }
-    .article-body p {
-        margin-bottom: 18px;
-    }
-    .article-body h1, .article-body h2, .article-body h3, .article-body h4, .article-body h5, .article-body h6 {
-        color: var(--green-dark, #004b38);
-        font-weight: 700;
-        margin-top: 24px;
-        margin-bottom: 12px;
-        line-height: 1.35;
-    }
-    .article-body h1 { font-size: 24px; }
-    .article-body h2 { font-size: 21px; }
-    .article-body h3 { font-size: 18px; }
-    .article-body h4 { font-size: 16px; }
-    .article-body ul, .article-body ol {
-        margin-bottom: 18px;
-        padding-left: 24px;
-    }
-    .article-body ul { list-style-type: disc; }
-    .article-body ol { list-style-type: decimal; }
-    .article-body li {
-        margin-bottom: 6px;
-        line-height: 1.7;
-    }
-    .article-body img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin: 16px 0;
-        display: block;
-    }
-    .article-body a {
-        color: var(--green, #007f5f);
-        text-decoration: underline;
-    }
-    .article-body a:hover {
-        color: var(--green-dark, #004b38);
-    }
-    .article-body blockquote {
-        background: var(--green-pale, #e8f5f1);
-        border-left: 4px solid var(--green, #007f5f);
-        padding: 14px 18px;
-        border-radius: 0 8px 8px 0;
-        margin: 20px 0;
-        font-style: italic;
-        color: var(--green-dark, #004b38);
-    }
-    .article-body .ql-align-center { text-align: center; }
-    .article-body .ql-align-right { text-align: right; }
-    .article-body .ql-align-justify { text-align: justify; }
-</style>
-@endpush
+    @if ($beritaTerkait->isNotEmpty())
+        <section class="container-x mt-20">
+            <p class="eyebrow">{{ $berita->kategori }}</p>
+            <h2 class="section-title mt-3">Baca juga</h2>
+            <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($beritaTerkait as $item)
+                    <x-post-card :berita="$item" />
+                @endforeach
+            </div>
+        </section>
+    @endif
+</x-layouts.site>

@@ -7,11 +7,40 @@ use App\Models\Kategori;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class BeritaTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** @var array<int, string> Berkas di folder unggahan berita sebelum test berjalan. */
+    private array $existingUploads = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->existingUploads = File::isDirectory(public_path('uploads/berita'))
+            ? array_map(fn ($file) => $file->getPathname(), File::files(public_path('uploads/berita')))
+            : [];
+    }
+
+    /**
+     * Hapus gambar yang diunggah selama test agar folder publik tidak dipenuhi berkas uji.
+     */
+    protected function tearDown(): void
+    {
+        if (File::isDirectory(public_path('uploads/berita'))) {
+            foreach (File::files(public_path('uploads/berita')) as $file) {
+                if (! in_array($file->getPathname(), $this->existingUploads, true)) {
+                    File::delete($file->getPathname());
+                }
+            }
+        }
+
+        parent::tearDown();
+    }
 
     public function test_berita_list_page_loads(): void
     {

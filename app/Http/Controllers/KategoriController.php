@@ -6,6 +6,7 @@ use App\Models\Kategori;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class KategoriController extends Controller
 {
@@ -30,7 +31,7 @@ class KategoriController extends Controller
             'urutan' => 'nullable|integer|min:0',
         ]);
 
-        $validated['slug'] = Str::slug($validated['nama']);
+        $validated['slug'] = $this->slugFor($validated['nama']);
         $validated['aktif'] = $request->boolean('aktif', true);
         $validated['urutan'] = $validated['urutan'] ?? 0;
 
@@ -53,7 +54,7 @@ class KategoriController extends Controller
             'urutan' => 'nullable|integer|min:0',
         ]);
 
-        $validated['slug'] = Str::slug($validated['nama']);
+        $validated['slug'] = $this->slugFor($validated['nama'], $kategori);
         $validated['aktif'] = $request->boolean('aktif', true);
         $validated['urutan'] = $validated['urutan'] ?? 0;
 
@@ -77,6 +78,31 @@ class KategoriController extends Controller
 
     /* ── Private ─────────────────────────────────────── */
 
+    /**
+     * Bentuk slug dari nama dan pastikan belum dipakai kategori lain (kolom slug unik),
+     * agar nama berbeda yang menghasilkan slug sama (mis. "Halal!" dan "Halal") tidak memicu galat SQL.
+     *
+     * @throws ValidationException
+     */
+    private function slugFor(string $nama, ?Kategori $except = null): string
+    {
+        $slug = Str::slug($nama);
+
+        $taken = Kategori::where('slug', $slug)
+            ->when($except, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->exists();
+
+        if ($slug === '' || $taken) {
+            throw ValidationException::withMessages([
+                'nama' => $slug === ''
+                    ? 'Nama kategori harus mengandung huruf atau angka.'
+                    : 'Nama kategori terlalu mirip dengan kategori yang sudah ada.',
+            ]);
+        }
+
+        return $slug;
+    }
+
     private function datatableResponse(Request $request): JsonResponse
     {
         $query = Kategori::query();
@@ -86,6 +112,11 @@ class KategoriController extends Controller
                 $q->where('nama', 'like', "%{$search}%")
                     ->orWhere('deskripsi', 'like', "%{$search}%");
             });
+        }
+
+        $filterAktif = $request->input('filter_aktif');
+        if ($filterAktif !== null && $filterAktif !== '') {
+            $query->where('aktif', (bool) $filterAktif);
         }
 
         $total = Kategori::count();
@@ -107,6 +138,11 @@ class KategoriController extends Controller
             'recordsTotal' => $total,
             'recordsFiltered' => $filtered,
             'data' => $data,
+            'stats' => [
+                'total' => $total,
+                'aktif' => Kategori::where('aktif', true)->count(),
+                'nonaktif' => Kategori::where('aktif', false)->count(),
+            ],
         ]);
     }
 }

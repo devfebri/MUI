@@ -69,6 +69,12 @@ class UserController extends Controller
     public function update(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate($this->rules($user));
+
+        // Password kosong saat mengubah data berarti password lama dipertahankan.
+        if (blank($validated['password'] ?? null)) {
+            unset($validated['password']);
+        }
+
         $user->update($validated);
 
         return response()->json([

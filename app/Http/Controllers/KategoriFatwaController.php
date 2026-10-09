@@ -7,6 +7,7 @@ use App\Models\KategoriFatwa;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class KategoriFatwaController extends Controller
@@ -44,7 +45,7 @@ class KategoriFatwaController extends Controller
             'deskripsi.max' => 'Deskripsi maksimal 500 karakter.',
         ]);
 
-        $validated['slug'] = Str::slug($validated['nama']);
+        $validated['slug'] = $this->slugFor($validated['nama']);
 
         $kategori = KategoriFatwa::create($validated);
 
@@ -70,7 +71,7 @@ class KategoriFatwaController extends Controller
             'deskripsi.max' => 'Deskripsi maksimal 500 karakter.',
         ]);
 
-        $validated['slug'] = Str::slug($validated['nama']);
+        $validated['slug'] = $this->slugFor($validated['nama'], $kategoriFatwa);
 
         $kategoriFatwa->update($validated);
 
@@ -103,6 +104,31 @@ class KategoriFatwaController extends Controller
         return response()->json([
             'message' => 'Kategori fatwa berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * Bentuk slug dari nama dan pastikan belum dipakai kategori lain (kolom slug unik di database),
+     * agar nama yang berbeda tetapi menghasilkan slug sama tidak memicu galat SQL 500.
+     *
+     * @throws ValidationException
+     */
+    private function slugFor(string $nama, ?KategoriFatwa $except = null): string
+    {
+        $slug = Str::slug($nama);
+
+        $taken = KategoriFatwa::where('slug', $slug)
+            ->when($except, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->exists();
+
+        if ($slug === '' || $taken) {
+            throw ValidationException::withMessages([
+                'nama' => $slug === ''
+                    ? 'Nama kategori fatwa harus mengandung huruf atau angka.'
+                    : 'Nama kategori fatwa terlalu mirip dengan kategori yang sudah ada.',
+            ]);
+        }
+
+        return $slug;
     }
 
     /* ── Private Datatable Response ───────────────── */

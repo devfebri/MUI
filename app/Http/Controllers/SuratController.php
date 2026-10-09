@@ -197,6 +197,11 @@ class SuratController extends Controller
             'recordsTotal' => $total,
             'recordsFiltered' => $filtered,
             'data' => $data,
+            'stats' => [
+                'total' => $total,
+                'bulan_ini' => Surat::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count(),
+                'saya' => Surat::where('user_id', auth()->id())->count(),
+            ],
         ]);
     }
 }

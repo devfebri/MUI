@@ -189,6 +189,26 @@ class FatwaController extends Controller
     /**
      * Tambah jumlah dibaca / dilihat pada dokumen fatwa.
      */
+    /**
+     * Halaman publik detail fatwa beserta penampil PDF.
+     */
+    public function publicDetail(Fatwa $fatwa): View
+    {
+        abort_unless($fatwa->publikasi, 404);
+
+        $fatwa->increment('views');
+        $fatwa->load('kategori');
+
+        $terkait = Fatwa::where('publikasi', 1)
+            ->where('id', '!=', $fatwa->id)
+            ->when($fatwa->kategori_fatwa_id, fn ($query) => $query->where('kategori_fatwa_id', $fatwa->kategori_fatwa_id))
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view('pages.fatwa-detail', compact('fatwa', 'terkait'));
+    }
+
     public function incrementViews(Fatwa $fatwa): JsonResponse
     {
         $fatwa->increment('views');

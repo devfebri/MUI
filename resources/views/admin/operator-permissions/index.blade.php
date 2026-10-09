@@ -1,956 +1,425 @@
-@extends('layouts.master')
+@php
+    // Ikon pada User::OPERATOR_PERMISSIONS memakai kelas MDI; dipetakan ke ikon Lucide (selaras dengan menu samping).
+    $mdiToLucide = [
+        'mdi mdi-newspaper' => 'newspaper',
+        'mdi mdi-tag-multiple' => 'tag',
+        'mdi mdi-email-outline' => 'folder-archive',
+        'mdi mdi-book-open-variant' => 'scale',
+        'mdi mdi-label-outline' => 'tags',
+        'mdi mdi-chat-processing-outline' => 'messages-square',
+        'mdi mdi-forum' => 'message-circle-question',
+    ];
+    $groupMeta = ['Konten' => ['file-pen-line', 'Konten Website'], 'Arsip' => ['archive', 'Arsip Digital'], 'Layanan' => ['headset', 'Layanan Umat']];
+    $perms = collect($allPermissions)->map(fn ($p) => $p + ['lucide' => $mdiToLucide[$p['icon']] ?? 'circle-check']);
+    $groups = $perms->groupBy('group', true);
+    $keys = $perms->keys()->all();
+    $defaults = \App\Models\User::DEFAULT_OPERATOR_PERMISSIONS;
+    $base = route('admin.operator-permissions.index');
+    $initialSearch = is_string(request('search')) ? trim(request('search')) : '';
+@endphp
 
-@section('title', 'Hak Akses & Tugas Operator')
+<x-layouts.admin title="Hak Akses Operator" header="Pembagian tugas & menu operasional untuk setiap operator">
+    <div x-data="opOverview({ base: @js($base), keys: @js($keys), defaultKeys: @js($defaults) })">
+        <div x-data="serverTable({ url: @js($base), columns: ['id', 'name', 'username', 'email', 'created_at'], order: [1, 'asc'], perPage: 10 })" x-init="search = @js($initialSearch)">
+            <x-admin.page-header eyebrow="Sistem" title="Hak Akses & Tugas Operator" description="Tentukan menu operasional yang dapat dibuka setiap operator. Klik menu pada kartu untuk menyalakan atau mematikannya, lalu simpan. Administrator selalu memiliki akses penuh.">
+                <x-slot:actions>
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-outline"><x-icon name="users" class="size-4" /> Kelola Pengguna</a>
+                    <button type="button" @click="$dispatch('operator:open')" class="btn btn-primary"><x-icon name="user-plus" class="size-4" /> Tambah Operator</button>
+                </x-slot:actions>
+            </x-admin.page-header>
 
-@section('css')
-<style>
-    :root {
-        --green: #007f5f;
-        --green-dark: #005f47;
-        --green-light: #00a878;
-        --green-pale: #e8f5f1;
-        --yellow: #f0a500;
-        --yellow-pale: #fffbeb;
-        --blue: #2563eb;
-        --blue-pale: #eff6ff;
-        --red: #ef4444;
-        --red-pale: #fef2f2;
-        --text: #1a1a2e;
-        --gray: #6b7280;
-        --bg: #f4f7f6;
-        --white: #ffffff;
-        --radius: 14px;
-        --radius-sm: 8px;
-        --shadow: 0 2px 16px rgba(0,0,0,.07);
-        --shadow-hover: 0 8px 32px rgba(0,127,95,.16);
-        --transition: .22s cubic-bezier(.4,0,.2,1);
-    }
-
-    body { background: var(--bg) !important; }
-
-    /* Page Header */
-    .page-header {
-        background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
-        border-radius: var(--radius);
-        padding: 26px 30px;
-        margin-bottom: 24px;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .page-header h4 {
-        font-size: 22px;
-        font-weight: 800;
-        margin: 0;
-        color: #fff;
-    }
-
-    .page-header p {
-        margin: 4px 0 0;
-        font-size: 13px;
-        opacity: .85;
-        color: #fff;
-    }
-
-    .page-header .badge-role {
-        background: rgba(255, 255, 255, .2);
-        border: 1px solid rgba(255, 255, 255, .35);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 700;
-        padding: 6px 16px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-    }
-
-    /* Panel Card */
-    .panel-card {
-        background: var(--white);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-        margin-bottom: 20px;
-    }
-
-    .panel-card .panel-header {
-        padding: 18px 22px;
-        border-bottom: 1px solid #f0f4f3;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .panel-card .panel-header h5 {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .panel-card .panel-header h5 i {
-        color: var(--green);
-        font-size: 18px;
-    }
-
-    .panel-card .panel-body {
-        padding: 20px 22px;
-    }
-
-    /* Info Alert */
-    .welcome-alert {
-        background: var(--green-pale);
-        border-left: 4px solid var(--green);
-        border-radius: 10px;
-        padding: 14px 18px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-
-    .welcome-alert i {
-        font-size: 22px;
-        color: var(--green);
-        flex-shrink: 0;
-    }
-
-    .welcome-alert p {
-        margin: 0;
-        font-size: 13.5px;
-        color: var(--text);
-    }
-
-    .welcome-alert strong {
-        color: var(--green);
-    }
-
-    /* Table Styling (Identical to user.blade.php) */
-    .user-table {
-        width: 100% !important;
-    }
-
-    .user-table th {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--gray);
-        padding: 12px 14px;
-        border-bottom: 2px solid #f0f4f3;
-        background: #fafcfb;
-        white-space: nowrap;
-    }
-
-    .user-table td {
-        padding: 14px 14px;
-        border-bottom: 1px solid #f4f6f5;
-        font-size: 13.5px;
-        color: var(--text);
-        vertical-align: middle;
-    }
-
-    .user-table tr:last-child td {
-        border-bottom: none;
-    }
-
-    .user-table tr:hover td {
-        background: #fafcfb;
-    }
-
-    /* Badges */
-    .task-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 600;
-        margin: 2px;
-        white-space: nowrap;
-    }
-
-    .task-badge.berita { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-    .task-badge.kategori { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
-    .task-badge.surat { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .task-badge.fatwa { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
-    .task-badge.kategori-fatwa { background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; }
-    .task-badge.livechat { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .task-badge.konsultasi { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
-
-    .task-badge.empty {
-        background: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-        font-style: italic;
-    }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-badge.full { background: #dcfce7; color: #166534; }
-    .status-badge.partial { background: #e0f2fe; color: #0369a1; }
-    .status-badge.none { background: #fee2e2; color: #991b1b; }
-
-    /* Modal Permissions Styling */
-    .permission-group-title {
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--green-dark);
-        margin: 16px 0 8px;
-        padding-bottom: 5px;
-        border-bottom: 1.5px solid #eef3f1;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .permission-card {
-        background: #ffffff;
-        border: 1.5px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .permission-card:hover {
-        border-color: #86efac;
-        background: #fcfdfd;
-    }
-
-    .permission-card.selected {
-        border-color: var(--green);
-        background: #f0fdf4;
-    }
-
-    .permission-checkbox {
-        width: 17px;
-        height: 17px;
-        margin-top: 2px;
-        cursor: pointer;
-        accent-color: var(--green);
-    }
-
-    .permission-info { flex: 1; }
-
-    .perm-title {
-        font-size: 13.5px;
-        font-weight: 700;
-        color: var(--text);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 2px;
-    }
-
-    .perm-desc {
-        font-size: 11.5px;
-        color: var(--gray);
-        margin: 0;
-        line-height: 1.3;
-    }
-
-    .quick-selector-bar {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 8px 14px;
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    /* Responsive Portal Container & Breakpoints */
-    .portal-container {
-        padding: 24px 28px;
-    }
-
-    @media (max-width: 991.98px) {
-        .portal-container {
-            padding: 18px 20px;
-        }
-        .page-header {
-            padding: 20px 22px;
-            margin-bottom: 20px;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .portal-container {
-            padding: 14px 14px;
-        }
-        .page-header {
-            padding: 18px 16px;
-            margin-bottom: 16px;
-        }
-        .page-header h4 {
-            font-size: 18px;
-        }
-        .page-header p {
-            font-size: 12.5px;
-        }
-        .panel-card .panel-header {
-            padding: 14px 16px;
-        }
-        .perm-grid {
-            grid-template-columns: 1fr;
-        }
-        .quick-selector-bar {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-    }
-</style>
-@endsection
-
-@section('content')
-<div class="container-fluid portal-container">
-
-    {{-- ===== PAGE HEADER ===== --}}
-    <div class="page-header">
-        <div>
-            <h4><i class="mdi mdi-shield-account mr-1"></i> Hak Akses & Tugas Operator</h4>
-            <p>Kelola pembagian tugas dan menu akses operator secara realtime via DataTables AJAX.</p>
-        </div>
-        <span class="badge-role">
-            <i class="mdi mdi-account-group mr-1"></i> Total: <span id="header-total-operators">{{ $totalOperators }}</span> Operator
-        </span>
-    </div>
-
-    {{-- ===== WELCOME TIP ===== --}}
-    <div class="welcome-alert">
-        <i class="mdi mdi-information-outline"></i>
-        <p>
-            <strong>Pencarian DataTables Cerdas:</strong> Ketik minimal <strong>3 huruf</strong> untuk mencari operator berdasarkan Nama, Username, Email, atau No. WhatsApp. Pembagian hak akses langsung diperbarui tanpa reload halaman.
-        </p>
-    </div>
-
-    {{-- ===== TABLE PANEL CARD ===== --}}
-    <div class="panel-card">
-        <div class="panel-header">
-            <h5><i class="mdi mdi-format-list-checks"></i> Daftar Pembagian Tugas Operator</h5>
-            <div>
-                <button type="button" class="btn btn-success btn-sm font-weight-bold" id="btn-create-operator">
-                    <i class="mdi mdi-account-plus mr-1"></i> Tambah Operator
-                </button>
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <x-stat-card label="Total operator" icon="users" :value="$totalOperators" bind="stats.total ?? {{ (int) $totalOperators }}" note="Akun dengan peran operator" />
+                <x-stat-card label="Akses penuh" icon="shield-check" bind="stats.full ?? '–'" :note="'Memegang seluruh '.count($keys).' menu'" />
+                <x-stat-card label="Akses sebagian" icon="sliders-horizontal" tone="gold" bind="stats.partial ?? '–'" note="Sesuai pembagian tugas" />
+                <x-stat-card label="Belum ada tugas" icon="shield-off" tone="red" bind="stats.none ?? '–'" note="Hanya Dashboard & Profil Akun" />
             </div>
-        </div>
-        <div class="panel-body" style="padding: 0;">
-            <div class="table-responsive">
-                <table class="user-table" id="operators-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px;">#</th>
-                            <th>Nama Operator</th>
-                            <th>Username</th>
-                            <th>Kontak</th>
-                            <th>Tugas & Menu Aktif</th>
-                            <th style="width: 130px;">Status</th>
-                            <th style="width: 140px; text-align: right;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 
-</div>
-
-{{-- ===== MODAL ATUR HAK AKSES ===== --}}
-<div class="modal fade" id="modalPermission" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.18);">
-            <form id="form-update-permission" method="POST" action="">
-                @csrf
-                @method('PUT')
-                <div class="modal-header" style="background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%); color: #fff; padding: 20px 24px;">
-                    <div>
-                        <h5 class="modal-title font-weight-bold text-white mb-1" id="modalOpTitle">
-                            <i class="mdi mdi-account-key mr-1"></i> Atur Hak Akses Operator
-                        </h5>
-                        <p class="mb-0 text-white-50 small" id="modalOpSubtitle">Tentukan menu operasional yang aktif untuk akun ini.</p>
+            <div class="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+                <div class="min-w-0 xl:col-span-8">
+                    {{-- Bilah alat --}}
+                    <div class="card flex flex-wrap items-center gap-3 p-4">
+                        <div class="relative min-w-52 flex-1">
+                            <x-icon name="search" class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-stone-400" />
+                            <input type="search" x-model="search" placeholder="Cari nama, username, email, atau no. HP…" aria-label="Cari operator" class="input pl-10">
+                        </div>
+                        <select class="input w-auto" aria-label="Urutkan operator" @change="const [c, d] = $event.target.value.split(':'); sort = { col: Number(c), dir: d }; page = 1; load()">
+                            <option value="1:asc">Nama A–Z</option>
+                            <option value="1:desc">Nama Z–A</option>
+                            <option value="2:asc">Username A–Z</option>
+                            <option value="3:asc">Email A–Z</option>
+                            <option value="4:desc">Terbaru ditambahkan</option>
+                            <option value="4:asc">Terlama ditambahkan</option>
+                        </select>
+                        <select x-model.number="perPage" class="input w-auto" aria-label="Jumlah per halaman">
+                            <option value="10">10 / hal</option>
+                            <option value="20">20 / hal</option>
+                            <option value="50">50 / hal</option>
+                        </select>
                     </div>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: .9;">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <p x-show="search.trim().length > 0 && search.trim().length < 3" x-cloak class="mt-2 flex items-center gap-1.5 px-1 text-xs font-medium text-gold-700"><x-icon name="info" class="size-3.5" /> Ketik minimal 3 huruf untuk mulai mencari.</p>
+
+                    {{-- Kartu operator --}}
+                    <div class="relative mt-4">
+                        <div x-show="loading && rows.length" x-cloak class="absolute inset-x-0 -top-2 h-0.5 overflow-hidden rounded-full bg-brand-100">
+                            <div class="h-full w-1/3 animate-[shimmer_1.2s_linear_infinite] bg-brand-500"></div>
+                        </div>
+                        <div id="operators-table" class="grid grid-cols-1 gap-4 md:grid-cols-2" :class="loading && rows.length && 'opacity-70'">
+                            <template x-for="row in rows" :key="row.id + ':' + (row.assigned_permissions || []).join(',')">
+                                <article x-data="operatorCard(row)" :data-dirty="String(dirty)" :data-operator="row.username"
+                                         class="card flex flex-col transition" :class="dirty ? 'ring-2 ring-gold-300' : 'hover:shadow-[var(--shadow-lift)]'">
+                                    <header class="flex items-start gap-3 p-5 pb-4">
+                                        <template x-if="row.foto_url"><img :src="row.foto_url" alt="" class="size-12 shrink-0 rounded-2xl object-cover ring-1 ring-stone-200"></template>
+                                        <template x-if="!row.foto_url"><span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-sm font-bold text-brand-700 ring-1 ring-brand-100" x-text="initials(row.name)"></span></template>
+                                        <div class="min-w-0 flex-1">
+                                            <h3 class="truncate font-semibold text-ink-900" x-text="row.name_gelar || row.name"></h3>
+                                            <p class="truncate font-mono text-xs text-stone-500" x-text="'@' + row.username"></p>
+                                            <p class="mt-1.5 flex items-center gap-1.5 text-xs text-stone-500"><x-icon name="mail" class="size-3.5 text-stone-400" /> <span class="truncate" x-text="row.email"></span></p>
+                                            <p x-show="row.nohp" class="mt-0.5 flex items-center gap-1.5 text-xs text-stone-500"><x-icon name="whatsapp" class="size-3.5 text-brand-600" /> <span x-text="row.nohp"></span></p>
+                                        </div>
+                                        <div class="relative" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape="menu = false">
+                                            <button type="button" @click="menu = !menu" :aria-expanded="menu" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-ink-900" aria-label="Aksi lainnya"><x-icon name="ellipsis-vertical" class="size-4" /></button>
+                                            <div x-show="menu" x-cloak x-transition.origin.top.right class="absolute right-0 z-20 mt-1 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-[var(--shadow-lift)]">
+                                                <a :href="base + '/' + row.id + '/edit'" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"><x-icon name="sliders-horizontal" class="size-4 text-stone-400" /> Halaman pengaturan</a>
+                                                <button type="button" @click="menu = false; bulk('grant-all')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-brand-700 hover:bg-brand-50"><x-icon name="check-check" class="size-4" /> Beri akses penuh</button>
+                                                <button type="button" @click="menu = false; bulk('revoke-all')" class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"><x-icon name="shield-off" class="size-4" /> Cabut semua akses</button>
+                                            </div>
+                                        </div>
+                                    </header>
+
+                                    <div class="mx-5 flex items-center gap-3">
+                                        <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100" role="progressbar" :aria-valuenow="selected.length" aria-valuemin="0" :aria-valuemax="keys.length" aria-label="Jumlah menu aktif">
+                                            <div class="h-full rounded-full transition-all duration-300" :class="selected.length === 0 ? 'bg-red-400' : (selected.length >= keys.length ? 'bg-brand-600' : 'bg-gold-500')" :style="`width: ${Math.max(selected.length / keys.length * 100, 0)}%`"></div>
+                                        </div>
+                                        <span class="badge" :class="selected.length === 0 ? 'badge-red' : (selected.length >= keys.length ? 'badge-green' : 'badge-gold')" x-text="statusText"></span>
+                                    </div>
+
+                                    <div class="flex-1 space-y-3.5 p-5">
+                                        @foreach ($groups as $group => $items)
+                                            <div>
+                                                <p class="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold tracking-[.15em] text-stone-400 uppercase"><x-icon :name="$groupMeta[$group][0] ?? 'circle'" class="size-3.5" /> {{ $groupMeta[$group][1] ?? $group }}</p>
+                                                <div class="flex flex-wrap gap-1.5">
+                                                    @foreach ($items as $key => $p)
+                                                        <label title="{{ $p['description'] }}"
+                                                               class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition select-none has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand-500/25"
+                                                               :class="selected.includes(@js($key)) ? 'border-brand-700 bg-brand-700 text-white shadow-sm shadow-brand-900/20' : 'border-stone-200 bg-white text-stone-500 hover:border-brand-400 hover:text-brand-700'">
+                                                            <input type="checkbox" value="{{ $key }}" x-model="selected" class="sr-only">
+                                                            <x-icon name="check" class="size-3.5" x-show="selected.includes({{ Js::from($key) }})" />
+                                                            <x-icon :name="$p['lucide']" class="size-3.5" x-show="!selected.includes({{ Js::from($key) }})" />
+                                                            {{ $p['label'] }}
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <footer class="flex min-h-[57px] flex-wrap items-center gap-2 rounded-b-2xl border-t border-stone-100 bg-stone-50/70 px-5 py-2.5">
+                                        <div x-show="!dirty" class="flex flex-1 flex-wrap items-center gap-1">
+                                            <span class="mr-1 text-[11px] font-semibold text-stone-400">Pilih cepat:</span>
+                                            <button type="button" @click="selected = [...defaultKeys]" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-white hover:text-brand-700 hover:shadow-sm">Bawaan</button>
+                                            <button type="button" @click="selected = [...keys]" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-white hover:text-brand-700 hover:shadow-sm">Semua</button>
+                                            <button type="button" @click="selected = []" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-white hover:text-red-600 hover:shadow-sm">Kosongkan</button>
+                                        </div>
+                                        <div x-show="dirty" x-cloak class="flex flex-1 flex-wrap items-center justify-between gap-2">
+                                            <span class="flex items-center gap-2 text-xs font-semibold text-gold-700"><span class="size-2 animate-pulse rounded-full bg-gold-500"></span> Belum disimpan</span>
+                                            <div class="flex gap-1.5">
+                                                <button type="button" @click="reset()" class="btn btn-ghost btn-sm">Batal</button>
+                                                <button type="button" @click="save()" :disabled="saving" class="btn btn-primary btn-sm" data-action="simpan-akses">
+                                                    <x-icon name="loader-circle" class="size-4 animate-spin" x-show="saving" x-cloak />
+                                                    <x-icon name="save" class="size-4" x-show="!saving" /> Simpan
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </footer>
+                                </article>
+                            </template>
+
+                            <template x-if="loading && !rows.length">
+                                <div class="contents">
+                                    <template x-for="i in 2" :key="i">
+                                        <div class="card space-y-4 p-5">
+                                            <div class="flex gap-3"><div class="skeleton size-12 rounded-2xl"></div><div class="flex-1 space-y-2"><div class="skeleton h-4 w-2/3"></div><div class="skeleton h-3 w-1/3"></div></div></div>
+                                            <div class="skeleton h-2 w-full"></div>
+                                            <div class="flex flex-wrap gap-2"><div class="skeleton h-7 w-28 rounded-full"></div><div class="skeleton h-7 w-24 rounded-full"></div><div class="skeleton h-7 w-20 rounded-full"></div></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div x-show="!loading && !rows.length" x-cloak class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 bg-white/60 px-6 py-14 text-center">
+                            <span class="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600 ring-8 ring-brand-50/50"><x-icon name="users" class="size-7" /></span>
+                            <p class="mt-5 font-semibold text-ink-900" x-text="error ? 'Gagal memuat data operator' : (search.trim().length >= 3 ? 'Tidak ada operator untuk “' + search.trim() + '”' : 'Belum ada akun operator')"></p>
+                            <p class="mt-1.5 max-w-sm text-sm text-stone-500" x-text="error || (search.trim().length >= 3 ? 'Coba kata kunci lain atau hapus pencarian.' : 'Tambahkan operator untuk mulai membagi tugas pengelolaan website.')"></p>
+                            <button type="button" x-show="!error && search.trim().length < 3" @click="$dispatch('operator:open')" class="btn btn-primary btn-sm mt-5"><x-icon name="user-plus" class="size-4" /> Tambah Operator</button>
+                            <button type="button" x-show="search" @click="search = ''" class="btn btn-outline btn-sm mt-5"><x-icon name="x" class="size-4" /> Hapus pencarian</button>
+                        </div>
+
+                        {{-- Navigasi halaman --}}
+                        <div x-show="rows.length" class="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                            <p class="text-xs text-stone-500">
+                                Menampilkan <b class="text-stone-700" x-text="from"></b>–<b class="text-stone-700" x-text="to"></b> dari <b class="text-stone-700" x-text="filtered"></b> operator
+                                <span x-show="filtered !== total" x-cloak>(disaring dari <span x-text="total"></span>)</span>
+                            </p>
+                            <nav class="flex items-center gap-1" aria-label="Navigasi halaman operator">
+                                <button type="button" @click="go(page - 1)" :disabled="page <= 1" class="grid size-9 place-items-center rounded-lg border border-stone-200 bg-white text-stone-600 transition hover:border-brand-500 hover:text-brand-700 disabled:opacity-40" aria-label="Sebelumnya"><x-icon name="chevron-left" class="size-4" /></button>
+                                <template x-for="(p, i) in pageList" :key="i + '-' + p">
+                                    <button type="button" @click="go(p)" :disabled="p === '…'" x-text="p"
+                                            class="hidden min-w-9 rounded-lg px-2 py-1.5 text-sm font-semibold transition sm:block"
+                                            :class="p === page ? 'bg-brand-700 text-white shadow-sm' : (p === '…' ? 'text-stone-400' : 'border border-stone-200 bg-white text-stone-600 hover:border-brand-500 hover:text-brand-700')"></button>
+                                </template>
+                                <span class="px-2 text-sm font-semibold text-stone-600 sm:hidden"><span x-text="page"></span> / <span x-text="pages"></span></span>
+                                <button type="button" @click="go(page + 1)" :disabled="page >= pages" class="grid size-9 place-items-center rounded-lg border border-stone-200 bg-white text-stone-600 transition hover:border-brand-500 hover:text-brand-700 disabled:opacity-40" aria-label="Berikutnya"><x-icon name="chevron-right" class="size-4" /></button>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="modal-body" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-                    {{-- Quick Action Bar --}}
-                    <div class="quick-selector-bar">
-                        <span class="small font-weight-bold text-muted">Aksi Cepat:</span>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-outline-info font-weight-bold" onclick="selectDefaultPerms()">
-                                <i class="mdi mdi-star-outline mr-1"></i> Default (Berita & Layanan)
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-success font-weight-bold ml-1" onclick="selectAllPerms(true)">
-                                <i class="mdi mdi-checkbox-multiple-marked mr-1"></i> Pilih Semua (Full)
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger font-weight-bold ml-1" onclick="selectAllPerms(false)">
-                                <i class="mdi mdi-checkbox-blank-outline mr-1"></i> Hapus Semua
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Grouped Permissions --}}
-                    @php
-                        $groupedPerms = [];
-                        foreach ($allPermissions as $key => $details) {
-                            $groupedPerms[$details['group']][$key] = $details;
-                        }
-                    @endphp
-
-                    @foreach($groupedPerms as $groupName => $perms)
-                        <div class="permission-group-title">
-                            <i class="mdi {{ $groupName === 'Konten' ? 'mdi-file-document-edit-outline' : ($groupName === 'Arsip' ? 'mdi-archive-outline' : 'mdi-face-agent') }}"></i>
-                            Bidang {{ $groupName }}
-                        </div>
-
-                        <div class="row">
-                            @foreach($perms as $key => $item)
-                                <div class="col-md-6 mb-2">
-                                    <label class="permission-card" id="card-perm-{{ $key }}" for="chk-{{ $key }}">
-                                        <input type="checkbox"
-                                               name="permissions[]"
-                                               value="{{ $key }}"
-                                               id="chk-{{ $key }}"
-                                               class="permission-checkbox"
-                                               onchange="togglePermCardVisual('{{ $key }}')">
-                                        <div class="permission-info">
-                                            <div class="perm-title">
-                                                <i class="{{ $item['icon'] }} text-success"></i>
-                                                {{ $item['label'] }}
-                                            </div>
-                                            <p class="perm-desc">{{ $item['description'] }}</p>
-                                        </div>
-                                    </label>
+                {{-- Ringkasan cakupan --}}
+                <aside class="space-y-6 xl:col-span-4">
+                    <section class="card overflow-hidden">
+                        <header class="border-b border-stone-100 px-5 py-4">
+                            <h3 class="flex items-center gap-2 font-semibold text-ink-900"><x-icon name="layout-dashboard" class="size-4 text-brand-600" /> Cakupan menu</h3>
+                            <p class="mt-0.5 text-xs text-stone-500">Jumlah operator yang memegang tiap menu operasional.</p>
+                        </header>
+                        <div class="space-y-5 p-5">
+                            @foreach ($groups as $group => $items)
+                                <div>
+                                    <p class="text-[10px] font-bold tracking-[.15em] text-stone-400 uppercase">{{ $groupMeta[$group][1] ?? $group }}</p>
+                                    <ul class="mt-2 space-y-3">
+                                        @foreach ($items as $key => $p)
+                                            <li>
+                                                <div class="flex items-center justify-between gap-3 text-sm">
+                                                    <span class="flex min-w-0 items-center gap-2.5 text-stone-700">
+                                                        <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700"><x-icon :name="$p['lucide']" class="size-3.5" /></span>
+                                                        <span class="truncate">{{ $p['label'] }}</span>
+                                                    </span>
+                                                    <span class="shrink-0 text-xs font-semibold tabular-nums" :class="loaded && !coverage[{{ Js::from($key) }}] ? 'text-red-600' : 'text-stone-500'"
+                                                          x-text="!loaded ? '–' : (coverage[{{ Js::from($key) }}] ? coverage[{{ Js::from($key) }}] + ' operator' : 'Belum ada')"></span>
+                                                </div>
+                                                <div class="mt-1.5 ml-[38px] h-1.5 overflow-hidden rounded-full bg-stone-100">
+                                                    <div class="h-full rounded-full bg-brand-500 transition-all duration-500" :style="`width: ${pct({{ Js::from($key) }})}%`"></div>
+                                                </div>
+                                            </li>
+                                        @endforeach
+                                    </ul>
                                 </div>
                             @endforeach
                         </div>
-                    @endforeach
-                </div>
+                    </section>
 
-                <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px; border-top: 1px solid #eef2f0;">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success font-weight-bold" id="btn-save-permission">
-                        <i class="mdi mdi-content-save mr-1"></i> Simpan Hak Akses
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-{{-- ===== MODAL TAMBAH OPERATOR BARU ===== --}}
-<div class="modal fade" id="modalCreateOperator" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.18);">
-            <form id="form-create-operator" method="POST">
-                @csrf
-                <input type="hidden" name="role" value="operator">
-                <div class="modal-header" style="background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%); color: #fff; padding: 20px 24px;">
-                    <div>
-                        <h5 class="modal-title font-weight-bold text-white mb-1">
-                            <i class="mdi mdi-account-plus mr-1"></i> Tambah Akun Operator Baru
-                        </h5>
-                        <p class="mb-0 text-white-50 small">Buat akun operator dan tetapkan pembagian tugas awalnya.</p>
-                    </div>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: .9;">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div class="modal-body" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-                    <div id="create-error-alert" class="alert alert-danger d-none" style="border-radius: 8px;"></div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Nama Lengkap <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control" placeholder="Contoh: Ahmad Fauzi" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Nama & Gelar</label>
-                            <input type="text" name="name_gelar" class="form-control" placeholder="Contoh: Ahmad Fauzi, S.Pd.I">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Username <span class="text-danger">*</span></label>
-                            <input type="text" name="username" class="form-control" placeholder="Username login" maxlength="20" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Email <span class="text-danger">*</span></label>
-                            <input type="email" name="email" class="form-control" placeholder="alamat@email.com" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">No. WhatsApp / HP</label>
-                            <input type="text" name="nohp" class="form-control" placeholder="0812xxxxxxxx">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Jenis Kelamin</label>
-                            <select name="jk" class="form-control">
-                                <option value="Laki-laki">Laki-laki</option>
-                                <option value="Perempuan">Perempuan</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Password <span class="text-danger">*</span></label>
-                            <input type="password" name="password" class="form-control" placeholder="Minimal 8 karakter" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="font-weight-bold small text-muted">Konfirmasi Password <span class="text-danger">*</span></label>
-                            <input type="password" name="password_confirmation" class="form-control" placeholder="Ulangi password" required>
-                        </div>
-                    </div>
-
-                    {{-- Default Hak Akses Checklist --}}
-                    <div class="mt-2 pt-3 border-top">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="font-weight-bold text-dark small"><i class="mdi mdi-shield-check mr-1 text-success"></i> Pembagian Tugas Awal:</span>
-                            <span class="badge badge-info small font-weight-bold">Default: Berita & Layanan</span>
-                        </div>
-
-                        <div class="row">
-                            @foreach($allPermissions as $permKey => $perm)
-                                @php
-                                    $isDefault = in_array($permKey, \App\Models\User::DEFAULT_OPERATOR_PERMISSIONS, true);
-                                @endphp
-                                <div class="col-md-6 mb-2">
-                                    <label class="permission-card {{ $isDefault ? 'selected' : '' }}" for="create-chk-{{ $permKey }}" style="padding: 10px 14px;">
-                                        <input type="checkbox"
-                                               name="menu_permissions[]"
-                                               value="{{ $permKey }}"
-                                               id="create-chk-{{ $permKey }}"
-                                               class="permission-checkbox"
-                                               {{ $isDefault ? 'checked' : '' }}
-                                               onchange="$(this).closest('.permission-card').toggleClass('selected', $(this).is(':checked'))">
-                                        <div class="permission-info">
-                                            <div class="font-weight-bold text-dark" style="font-size: 13px;">
-                                                <i class="{{ $perm['icon'] }} text-success mr-1"></i> {{ $perm['label'] }}
-                                            </div>
-                                            <small class="text-muted d-block" style="font-size: 11px;">{{ $perm['description'] }}</small>
-                                        </div>
-                                    </label>
-                                </div>
+                    <section class="card p-5">
+                        <h3 class="flex items-center gap-2 font-semibold text-ink-900"><x-icon name="sparkles" class="size-4 text-gold-500" /> Akses bawaan operator baru</h3>
+                        <p class="mt-1 text-xs text-stone-500">Diberikan otomatis bila akun operator dibuat tanpa pilihan menu.</p>
+                        <div class="mt-3 flex flex-wrap gap-1.5">
+                            @foreach ($defaults as $key)
+                                @isset($perms[$key])
+                                    <span class="badge badge-green py-1"><x-icon :name="$perms[$key]['lucide']" class="size-3" /> {{ $perms[$key]['label'] }}</span>
+                                @endisset
                             @endforeach
                         </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer" style="background: #f8fafc; padding: 16px 24px; border-top: 1px solid #eef2f0;">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success font-weight-bold" id="btn-save-new-op">
-                        <i class="mdi mdi-check-circle mr-1"></i> Simpan Operator
-                    </button>
-                </div>
-            </form>
+                        <ul class="mt-4 space-y-2.5 border-t border-stone-100 pt-4 text-xs leading-relaxed text-stone-600">
+                            <li class="flex gap-2"><x-icon name="layout-dashboard" class="mt-0.5 size-3.5 shrink-0 text-brand-600" /> Dashboard dan Profil Akun selalu dapat dibuka oleh setiap operator.</li>
+                            <li class="flex gap-2"><x-icon name="refresh-cw" class="mt-0.5 size-3.5 shrink-0 text-brand-600" /> Perubahan hak akses berlaku saat operator memuat ulang halaman panel.</li>
+                            <li class="flex gap-2"><x-icon name="search" class="mt-0.5 size-3.5 shrink-0 text-brand-600" /> Pencarian membutuhkan minimal 3 huruf (nama, username, email, atau no. HP).</li>
+                        </ul>
+                    </section>
+                </aside>
+            </div>
         </div>
-    </div>
-</div>
-@endsection
 
-@section('javascript')
-<script>
-$(document).ready(function() {
-    let operatorsTable = null;
-    let operatorsCache = {};
-    const allPermissionsData = @json($allPermissions);
-    const defaultPermissionKeys = @json(\App\Models\User::DEFAULT_OPERATOR_PERMISSIONS);
-    const totalPermissionsCount = Object.keys(allPermissionsData).length;
-
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'
-        }
-    });
-
-    // ── DATATABLES INITIALIZATION (IDENTICAL TO user.blade.php) ──
-    operatorsTable = $('#operators-table').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: "{{ route('admin.operator-permissions.index') }}",
-            data: function(request) {
-                request.search.value = $.trim(request.search.value);
-            },
-            dataSrc: function(response) {
-                operatorsCache = {};
-                $.each(response.data, function(index, op) {
-                    operatorsCache[op.id] = op;
-                });
-                $('#header-total-operators').text(response.recordsTotal);
-                return response.data;
-            }
-        },
-        pageLength: 10,
-        lengthMenu: [[10, 25, 50], [10, 25, 50]],
-        searchDelay: 500,
-        order: [[1, 'asc']],
-        columns: [
-            // 0. Number
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                render: function(data, type, row, meta) {
-                    return meta.settings._iDisplayStart + meta.row + 1;
-                }
-            },
-            // 1. Nama Operator & Gelar
-            {
-                data: 'name',
-                render: function(data, type, row) {
-                    let avatarHtml = '';
-                    if (row.foto_url) {
-                        avatarHtml = `<img src="${row.foto_url}" alt="${$('<div>').text(data).html()}" style="width:100%;height:100%;object-fit:cover;">`;
-                    } else {
-                        avatarHtml = $('<div>').text(data.charAt(0).toUpperCase()).html();
-                    }
-
-                    const displayName = row.name_gelar ? $('<div>').text(row.name_gelar).html() : $('<div>').text(data).html();
-
-                    return `
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:var(--green-pale);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--green);overflow:hidden;flex-shrink:0;">
-                                ${avatarHtml}
+        {{-- Modal tambah operator --}}
+        <div x-data="crudForm({ name: 'operator', storeUrl: @js(route('admin.users.store')), updateUrl: @js(route('admin.users.index').'/:id'), defaults: { name: '', name_gelar: '', username: '', email: '', nohp: '', jk: '', password: '', password_confirmation: '', menu_permissions: @js($defaults) } })">
+            <x-admin.modal title="'Tambah Akun Operator'" icon="user-plus" size="max-w-3xl">
+                <form x-ref="form" @submit.prevent="submit()" class="flex min-h-0 flex-1 flex-col" autocomplete="off">
+                    <input type="hidden" name="role" value="operator">
+                    <div class="scrollbar-thin flex-1 space-y-6 overflow-y-auto p-6">
+                        <p class="text-sm text-stone-500">Buat akun operator dan tetapkan pembagian tugas awalnya. Data lengkap dapat diubah kemudian di menu Pengguna.</p>
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            <div>
+                                <label for="op-name" class="label">Nama lengkap <span class="text-red-500">*</span></label>
+                                <input id="op-name" x-ref="first" name="name" x-model="data.name" type="text" maxlength="100" required placeholder="cth: Ahmad Fauzi" class="input" :class="error('name') && 'input-error'">
+                                <p class="field-error" x-show="error('name')" x-text="error('name')"></p>
                             </div>
                             <div>
-                                <span style="font-weight:700;color:var(--text);display:block;">${displayName}</span>
-                                <small style="color:var(--gray);font-size:11.5px;">Operator</small>
+                                <label for="op-gelar" class="label">Nama beserta gelar</label>
+                                <input id="op-gelar" name="name_gelar" x-model="data.name_gelar" type="text" maxlength="100" placeholder="cth: Ahmad Fauzi, S.Pd.I." class="input" :class="error('name_gelar') && 'input-error'">
+                                <p class="field-error" x-show="error('name_gelar')" x-text="error('name_gelar')"></p>
+                            </div>
+                            <div>
+                                <label for="op-username" class="label">Username <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-stone-400">@</span>
+                                    <input id="op-username" name="username" x-model="data.username" type="text" maxlength="20" required autocapitalize="none" spellcheck="false" placeholder="username_login" class="input pl-8" :class="error('username') && 'input-error'">
+                                </div>
+                                <p class="field-error" x-show="error('username')" x-text="error('username')"></p>
+                            </div>
+                            <div>
+                                <label for="op-email" class="label">Email <span class="text-red-500">*</span></label>
+                                <input id="op-email" name="email" x-model="data.email" type="email" maxlength="255" required placeholder="alamat@email.com" class="input" :class="error('email') && 'input-error'">
+                                <p class="field-error" x-show="error('email')" x-text="error('email')"></p>
+                            </div>
+                            <div>
+                                <label for="op-nohp" class="label">No. WhatsApp / HP</label>
+                                <input id="op-nohp" name="nohp" x-model="data.nohp" type="tel" maxlength="15" inputmode="tel" placeholder="0812xxxxxxxx" class="input" :class="error('nohp') && 'input-error'">
+                                <p class="field-error" x-show="error('nohp')" x-text="error('nohp')"></p>
+                            </div>
+                            <div>
+                                <label for="op-jk" class="label">Jenis kelamin</label>
+                                <select id="op-jk" name="jk" x-model="data.jk" class="input">
+                                    <option value="">Pilih jenis kelamin</option>
+                                    <option value="L">Laki-laki</option>
+                                    <option value="P">Perempuan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="op-password" class="label">Kata sandi <span class="text-red-500">*</span></label>
+                                <input id="op-password" name="password" x-model="data.password" type="password" minlength="8" required autocomplete="new-password" placeholder="Minimal 8 karakter" class="input" :class="error('password') && 'input-error'">
+                                <p class="field-error" x-show="error('password')" x-text="error('password')"></p>
+                            </div>
+                            <div>
+                                <label for="op-password2" class="label">Konfirmasi kata sandi <span class="text-red-500">*</span></label>
+                                <input id="op-password2" name="password_confirmation" x-model="data.password_confirmation" type="password" minlength="8" required autocomplete="new-password" placeholder="Ulangi kata sandi" class="input">
+                                <p x-show="data.password_confirmation" x-cloak class="mt-1.5 text-xs font-medium" :class="data.password === data.password_confirmation ? 'text-brand-700' : 'text-red-600'" x-text="data.password === data.password_confirmation ? 'Kata sandi cocok' : 'Belum cocok dengan kata sandi'"></p>
                             </div>
                         </div>
-                    `;
-                }
-            },
-            // 2. Username
-            {
-                data: 'username',
-                render: function(data) {
-                    return `<code>@${$('<div>').text(data).html()}</code>`;
-                }
-            },
-            // 3. Kontak
-            {
-                data: 'email',
-                render: function(data, type, row) {
-                    let contactHtml = `<div style="font-size:12.5px;"><i class="mdi mdi-email-outline mr-1 text-muted"></i>${$('<div>').text(data).html()}</div>`;
-                    if (row.nohp) {
-                        contactHtml += `<div style="font-size:12px;color:var(--gray);margin-top:2px;"><i class="mdi mdi-whatsapp mr-1 text-success"></i>${$('<div>').text(row.nohp).html()}</div>`;
-                    }
-                    return contactHtml;
-                }
-            },
-            // 4. Tugas & Hak Akses Badges
-            {
-                data: 'assigned_permissions',
-                orderable: false,
-                searchable: false,
-                render: function(permissions, type, row) {
-                    if (!permissions || permissions.length === 0) {
-                        return '<span class="task-badge empty"><i class="mdi mdi-alert-circle-outline"></i> Belum ada tugas</span>';
-                    }
 
-                    let badgesHtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
-                    permissions.forEach(function(key) {
-                        if (allPermissionsData[key]) {
-                            const p = allPermissionsData[key];
-                            badgesHtml += `<span class="task-badge ${key}"><i class="${p.icon}"></i> ${p.label}</span>`;
+                        <fieldset class="rounded-2xl border border-stone-200 p-4 sm:p-5">
+                            <legend class="px-1 text-sm font-semibold text-ink-900">Pembagian tugas awal</legend>
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-xs text-stone-500"><b class="text-brand-700" x-text="data.menu_permissions.length"></b> dari {{ count($keys) }} menu dipilih</p>
+                                <div class="flex gap-1">
+                                    <button type="button" @click="data.menu_permissions = [...defaultKeys]" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-brand-700">Bawaan</button>
+                                    <button type="button" @click="data.menu_permissions = [...keys]" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-brand-700">Semua</button>
+                                    <button type="button" @click="data.menu_permissions = []" class="rounded-lg px-2 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-red-600">Kosongkan</button>
+                                </div>
+                            </div>
+                            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach ($perms as $key => $p)
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand-500/20"
+                                           :class="data.menu_permissions.includes({{ Js::from($key) }}) ? 'border-brand-500 bg-brand-50/60' : 'border-stone-200 hover:border-brand-300'">
+                                        <input type="checkbox" name="menu_permissions[]" value="{{ $key }}" x-model="data.menu_permissions" class="checkbox mt-0.5">
+                                        <span class="min-w-0">
+                                            <span class="flex items-center gap-1.5 text-sm font-semibold text-ink-900"><x-icon :name="$p['lucide']" class="size-4 text-brand-600" /> {{ $p['label'] }}</span>
+                                            <span class="mt-0.5 block text-xs text-stone-500">{{ $p['description'] }}</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <p x-show="!data.menu_permissions.length" x-cloak class="mt-3 flex items-center gap-1.5 text-xs text-gold-700"><x-icon name="info" class="size-3.5" /> Bila tidak ada yang dipilih, akses bawaan akan diterapkan otomatis.</p>
+                        </fieldset>
+                    </div>
+                    <footer class="flex shrink-0 justify-end gap-2 border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+                        <button type="button" @click="close()" class="btn btn-outline">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="saving">
+                            <x-icon name="loader-circle" class="size-4 animate-spin" x-show="saving" x-cloak />
+                            <x-icon name="circle-check" class="size-4" x-show="!saving" /> Simpan Operator
+                        </button>
+                    </footer>
+                </form>
+            </x-admin.modal>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                /** Ringkasan seluruh operator (statistik & cakupan menu), dimuat ulang setiap tabel berubah. */
+                Alpine.data('opOverview', ({ base, keys, defaultKeys }) => ({
+                    base,
+                    keys,
+                    defaultKeys,
+                    loaded: false,
+                    stats: { total: null, full: null, partial: null, none: null },
+                    coverage: {},
+                    init() {
+                        this.loadOverview();
+                        window.addEventListener('table:reload', () => this.loadOverview());
+                        window.addEventListener('beforeunload', (e) => {
+                            if (document.querySelector('[data-dirty="true"]')) {
+                                e.preventDefault();
+                                e.returnValue = '';
+                            }
+                        });
+                    },
+                    async loadOverview() {
+                        try {
+                            let all = [];
+                            let total = 1;
+                            while (all.length < total) {
+                                const q = new URLSearchParams({ draw: '1', start: String(all.length), length: '100', 'order[0][column]': '0', 'order[0][dir]': 'asc' });
+                                const res = await MUIAdmin.http(`${this.base}?${q}`);
+                                total = res.recordsTotal ?? 0;
+                                if (!res.data?.length) break;
+                                all = all.concat(res.data);
+                            }
+                            const owned = all.map((op) => (op.assigned_permissions || []).filter((k) => this.keys.includes(k)));
+                            this.stats = {
+                                total: all.length,
+                                full: owned.filter((p) => p.length >= this.keys.length).length,
+                                partial: owned.filter((p) => p.length > 0 && p.length < this.keys.length).length,
+                                none: owned.filter((p) => p.length === 0).length,
+                            };
+                            this.coverage = Object.fromEntries(this.keys.map((k) => [k, owned.filter((p) => p.includes(k)).length]));
+                            this.loaded = true;
+                        } catch { /* biarkan nilai sebelumnya */ }
+                    },
+                    pct(key) {
+                        return this.stats.total ? Math.round(((this.coverage[key] || 0) / this.stats.total) * 100) : 0;
+                    },
+                    initials(name) {
+                        return String(name || '?').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+                    },
+                }));
+
+                /** Kartu satu operator: pilihan menu lokal, simpan (PUT), beri/cabut semua (POST). */
+                Alpine.data('operatorCard', (row) => ({
+                    original: [...(row.assigned_permissions || [])],
+                    selected: [...(row.assigned_permissions || [])],
+                    saving: false,
+                    get dirty() {
+                        return [...this.selected].sort().join() !== [...this.original].sort().join();
+                    },
+                    get statusText() {
+                        const n = this.selected.length;
+                        const t = this.keys.length;
+                        return n === 0 ? 'Belum ada tugas' : (n >= t ? 'Akses penuh' : `${n}/${t} menu`);
+                    },
+                    reset() {
+                        this.selected = [...this.original];
+                    },
+                    async save() {
+                        if (this.saving) return;
+                        this.saving = true;
+                        try {
+                            const res = await MUIAdmin.http(`${this.base}/${row.id}`, { method: 'PUT', body: { permissions: this.keys.filter((k) => this.selected.includes(k)) } });
+                            this.original = [...(res.user?.permissions ?? this.selected)];
+                            MUIAdmin.toast(res.message || 'Hak akses berhasil disimpan.');
+                            MUIAdmin.reloadTables();
+                        } catch (e) {
+                            MUIAdmin.toast(e.message, 'error');
+                        } finally {
+                            this.saving = false;
                         }
-                    });
-                    badgesHtml += '</div>';
-                    return badgesHtml;
-                }
-            },
-            // 5. Status Tugas
-            {
-                data: 'assigned_permissions',
-                orderable: false,
-                searchable: false,
-                render: function(permissions) {
-                    const count = (permissions || []).length;
-                    if (count >= totalPermissionsCount) {
-                        return '<span class="status-badge full"><i class="mdi mdi-check-all mr-1"></i> Akses Penuh</span>';
-                    } else if (count === 0) {
-                        return '<span class="status-badge none"><i class="mdi mdi-close mr-1"></i> Belum Ada</span>';
-                    } else {
-                        return `<span class="status-badge partial"><i class="mdi mdi-tune mr-1"></i> ${count}/${totalPermissionsCount} Menu</span>`;
-                    }
-                }
-            },
-            // 6. Aksi
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-right',
-                render: function(data, type, row) {
-                    const safeName = $('<div>').text(row.name_gelar || row.name).html().replace(/'/g, "\\'");
-                    const safeUsername = $('<div>').text(row.username).html().replace(/'/g, "\\'");
-
-                    return `
-                        <button type="button" class="btn btn-outline-primary btn-sm mr-1" title="Atur Hak Akses" onclick="openPermissionModal(${row.id}, '${safeName}', '${safeUsername}')">
-                            <i class="mdi mdi-tune-vertical"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-success btn-sm mr-1" title="Beri Akses Penuh" onclick="quickGrantAll(${row.id}, '${safeName}')">
-                            <i class="mdi mdi-check-all"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" title="Cabut Semua Akses" onclick="quickRevokeAll(${row.id}, '${safeName}')">
-                            <i class="mdi mdi-close-octagon"></i>
-                        </button>
-                    `;
-                }
-            }
-        ],
-        language: {
-            search: 'Cari:',
-            processing: 'Memproses data operator...',
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ operator',
-            infoEmpty: 'Tidak ada operator',
-            infoFiltered: '(difilter dari _MAX_ total operator)',
-            zeroRecords: 'Operator tidak ditemukan',
-            emptyTable: 'Belum ada data operator',
-            paginate: {
-                first: 'Pertama',
-                last: 'Terakhir',
-                next: 'Berikutnya',
-                previous: 'Sebelumnya'
-            }
-        },
-        responsive: true
-    });
-
-    // ── SEARCH MINIMAL 3 HURUF ATURAN (IDENTICAL TO user.blade.php) ──
-    $('#operators-table').on('processing.dt', function(event, settings, processing) {
-        var search = $.trim($(settings.nTableWrapper).find('input[type="search"]').val() || '');
-
-        if (processing && search.length > 0 && search.length < 3) {
-            $(settings.nTableWrapper).find('.dataTables_processing').hide();
-        }
-    });
-
-    // ── BUKA MODAL PERMISSION ──
-    window.openPermissionModal = function(operatorId, operatorName, operatorUsername) {
-        const op = operatorsCache[operatorId];
-        const assignedPermissions = op ? op.assigned_permissions : [];
-
-        $('#modalOpTitle').html('<i class="mdi mdi-account-key mr-1"></i> Atur Hak Akses: ' + operatorName);
-        $('#modalOpSubtitle').text('Username: @' + operatorUsername + ' — Tentukan menu operasional yang aktif.');
-        $('#form-update-permission').attr('action', '/admin/operator-permissions/' + operatorId);
-
-        // Reset all checkboxes
-        $('#modalPermission .permission-checkbox').prop('checked', false);
-        $('#modalPermission .permission-card').removeClass('selected');
-
-        if (Array.isArray(assignedPermissions)) {
-            assignedPermissions.forEach(function(key) {
-                $('#chk-' + key).prop('checked', true);
-                $('#card-perm-' + key).addClass('selected');
+                    },
+                    async bulk(action) {
+                        const name = row.name_gelar || row.name;
+                        const grant = action === 'grant-all';
+                        const ok = await MUIAdmin.confirmAction(grant
+                            ? { title: 'Beri akses penuh?', message: `Operator “${name}” akan dapat membuka seluruh ${this.keys.length} menu operasional.`, confirmText: 'Ya, beri akses penuh', tone: 'primary' }
+                            : { title: 'Cabut semua akses?', message: `Seluruh menu operasional untuk “${name}” akan dicabut. Operator hanya dapat membuka Dashboard dan Profil Akun.`, confirmText: 'Ya, cabut semua' });
+                        if (!ok) return;
+                        try {
+                            const res = await MUIAdmin.http(`${this.base}/${row.id}/${action}`, { method: 'POST' });
+                            MUIAdmin.toast(res.message, grant ? 'success' : 'warning');
+                            MUIAdmin.reloadTables();
+                        } catch (e) {
+                            MUIAdmin.toast(e.message, 'error');
+                        }
+                    },
+                }));
             });
-        }
-
-        $('#modalPermission').modal('show');
-    };
-
-    window.togglePermCardVisual = function(key) {
-        const isChecked = $('#chk-' + key).is(':checked');
-        if (isChecked) {
-            $('#card-perm-' + key).addClass('selected');
-        } else {
-            $('#card-perm-' + key).removeClass('selected');
-        }
-    };
-
-    window.selectAllPerms = function(check) {
-        $('#modalPermission .permission-checkbox').prop('checked', check);
-        if (check) {
-            $('#modalPermission .permission-card').addClass('selected');
-        } else {
-            $('#modalPermission .permission-card').removeClass('selected');
-        }
-    };
-
-    window.selectDefaultPerms = function() {
-        $('#modalPermission .permission-checkbox').prop('checked', false);
-        $('#modalPermission .permission-card').removeClass('selected');
-        defaultPermissionKeys.forEach(function(key) {
-            $('#chk-' + key).prop('checked', true);
-            $('#card-perm-' + key).addClass('selected');
-        });
-    };
-
-    // ── SUBMIT UPDATE PERMISSION VIA JQUERY AJAX ──
-    $('#form-update-permission').on('submit', function(e) {
-        e.preventDefault();
-
-        const formAction = $(this).attr('action');
-        const formData = $(this).serialize();
-        const $btn = $('#btn-save-permission');
-
-        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin mr-1"></i> Menyimpan...');
-
-        $.ajax({
-            url: formAction,
-            type: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(res) {
-                $btn.prop('disabled', false).html('<i class="mdi mdi-content-save mr-1"></i> Simpan Hak Akses');
-                $('#modalPermission').modal('hide');
-
-                if (res.success) {
-                    operatorsTable.ajax.reload(null, false);
-
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('success', res.message);
-                    } else {
-                        alert(res.message);
-                    }
-                }
-            },
-            error: function(xhr) {
-                $btn.prop('disabled', false).html('<i class="mdi mdi-content-save mr-1"></i> Simpan Hak Akses');
-                const errMsg = xhr.responseJSON?.message || 'Gagal menyimpan hak akses operator.';
-                if (typeof window.showToast === 'function') {
-                    window.showToast('error', errMsg);
-                } else {
-                    alert('Error: ' + errMsg);
-                }
-            }
-        });
-    });
-
-    // ── QUICK ACTION: BERI SEMUA AKSES VIA JQUERY AJAX ──
-    window.quickGrantAll = function(opId, opName) {
-        if (!confirm('Berikan akses penuh ke semua menu untuk operator "' + opName + '"?')) return;
-
-        $.ajax({
-            url: '/admin/operator-permissions/' + opId + '/grant-all',
-            type: 'POST',
-            dataType: 'json',
-            success: function(res) {
-                if (res.success) {
-                    operatorsTable.ajax.reload(null, false);
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('success', res.message);
-                    }
-                }
-            },
-            error: function() {
-                if (typeof window.showToast === 'function') {
-                    window.showToast('error', 'Gagal memberikan semua hak akses.');
-                }
-            }
-        });
-    };
-
-    // ── QUICK ACTION: CABUT SEMUA AKSES VIA JQUERY AJAX ──
-    window.quickRevokeAll = function(opId, opName) {
-        if (!confirm('Cabut semua hak akses menu untuk operator "' + opName + '"?')) return;
-
-        $.ajax({
-            url: '/admin/operator-permissions/' + opId + '/revoke-all',
-            type: 'POST',
-            dataType: 'json',
-            success: function(res) {
-                if (res.success) {
-                    operatorsTable.ajax.reload(null, false);
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('warning', res.message);
-                    }
-                }
-            },
-            error: function() {
-                if (typeof window.showToast === 'function') {
-                    window.showToast('error', 'Gagal mencabut hak akses.');
-                }
-            }
-        });
-    };
-
-    // ── TAMBAH OPERATOR BARU MODAL (AJAX) ──
-    $('#btn-create-operator').on('click', function() {
-        $('#create-error-alert').addClass('d-none').empty();
-        $('#form-create-operator')[0].reset();
-
-        // Set default checklist (Berita & Layanan)
-        $('#form-create-operator .permission-checkbox').each(function() {
-            const val = $(this).val();
-            const isDef = defaultPermissionKeys.includes(val);
-            $(this).prop('checked', isDef);
-            $(this).closest('.permission-card').toggleClass('selected', isDef);
-        });
-
-        $('#modalCreateOperator').modal('show');
-    });
-
-    $('#form-create-operator').on('submit', function(e) {
-        e.preventDefault();
-
-        const $btn = $('#btn-save-new-op');
-        const $alert = $('#create-error-alert');
-        $alert.addClass('d-none').empty();
-        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin mr-1"></i> Menyimpan...');
-
-        $.ajax({
-            url: "{{ route('admin.users.store') }}",
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(res) {
-                $btn.prop('disabled', false).html('<i class="mdi mdi-check-circle mr-1"></i> Simpan Operator');
-                $('#modalCreateOperator').modal('hide');
-
-                if (typeof window.showToast === 'function') {
-                    window.showToast('success', res.message || 'Operator baru berhasil ditambahkan.');
-                }
-
-                operatorsTable.ajax.reload(null, false);
-            },
-            error: function(xhr) {
-                $btn.prop('disabled', false).html('<i class="mdi mdi-check-circle mr-1"></i> Simpan Operator');
-                let errHtml = '';
-                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                    errHtml = '<ul class="mb-0 pl-3">';
-                    $.each(xhr.responseJSON.errors, function(field, messages) {
-                        errHtml += '<li>' + messages.join(', ') + '</li>';
-                    });
-                    errHtml += '</ul>';
-                } else {
-                    errHtml = xhr.responseJSON?.message || 'Terjadi kesalahan saat menyimpan operator.';
-                }
-
-                $alert.removeClass('d-none').html(errHtml);
-            }
-        });
-    });
-});
-</script>
-@endsection
+        </script>
+    @endpush
+</x-layouts.admin>

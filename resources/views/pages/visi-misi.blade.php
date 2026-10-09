@@ -1,148 +1,83 @@
-@extends('layouts.frontend')
+@php
+    $s = fn (string $key, ?string $default = null) => filled($settings[$key] ?? null) ? $settings[$key] : $default;
+    $misi = collect(preg_split('/\r\n|\r|\n/', (string) $s('misi_list', '')))->map(fn ($l) => trim($l))->filter()->map(function ($line) {
+        [$judul, $isi] = array_pad(explode('|', $line, 2), 2, null);
 
-@section('title', ($settings['visi_title'] ?? 'Visi & Misi') . ' — Majelis Ulama Indonesia')
-@section('meta_description', $settings['visi_subtitle'] ?? 'Visi dan Misi Majelis Ulama Indonesia (MUI) dalam mewujudkan baldatun thayyibatun wa rabbun ghafur serta masyarakat khaira ummah di Indonesia.')
+        return ['judul' => trim($judul), 'isi' => trim((string) $isi)];
+    });
+    $prinsip = [
+        ['Tawassuth', 'Moderat, mengambil jalan tengah', 'scale'],
+        ['Tawazun', 'Berimbang dalam segala aspek', 'git-compare-arrows'],
+        ['I’tidal', 'Lurus, tegas, dan adil', 'ruler'],
+        ['Tasamuh', 'Toleran dan menghargai perbedaan', 'handshake'],
+    ];
+@endphp
 
-@section('content')
-    {{-- ── HERO / BANNER ── --}}
-    <section class="page-hero">
-        <div class="mui-shell">
-            <nav class="page-breadcrumb" aria-label="Breadcrumb">
-                <a href="{{ url('/') }}"><i class="fas fa-home me-1"></i>Beranda</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span>Tentang Kami</span>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span class="current">Visi & Misi</span>
-            </nav>
-            <h1 class="page-hero-title">{{ $settings['visi_title'] ?? 'Visi & Misi MUI' }}</h1>
-            <p class="page-hero-desc">
-                {{ $settings['visi_subtitle'] ?? 'Arah, cita-cita luhur, dan komitmen pengabdian Majelis Ulama Indonesia bagi kemaslahatan umat dan bangsa.' }}
-            </p>
-        </div>
-    </section>
+<x-layouts.site :title="$s('visi_title', 'Visi & Misi')" :description="$s('visi_subtitle')">
+    <x-page-hero :title="$s('visi_title', 'Visi & Misi MUI')" eyebrow="Profil" :crumbs="['Profil' => route('profilemui'), 'Visi & Misi' => null]" :subtitle="$s('visi_subtitle')" />
 
-    {{-- ── CONTENT ── --}}
-    <div class="page-content-wrapper">
-        <div class="mui-shell">
-            <div class="row g-4">
-                {{-- Main Column --}}
-                <div class="col-lg-8">
-                    {{-- VISI MUI --}}
-                    <div class="mui-card" style="border-top: 4px solid var(--gold);">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="icon-circle" style="background: var(--gold-light); color: var(--green-dark);">
-                                <i class="fas fa-eye"></i>
-                            </div>
-                            <div>
-                                <span class="badge" style="background: var(--green); color: #fff; font-size: 11px; padding: 4px 10px;">Cita-Cita Luhur</span>
-                                <h2 class="mb-0 mt-1" style="font-size: 22px; font-weight: 800; color: var(--green-dark);">
-                                    Visi Majelis Ulama Indonesia
-                                </h2>
-                            </div>
-                        </div>
+    <div class="container-x mt-10">
+        <x-profile-nav />
 
-                        <div style="background: var(--green-pale); border-left: 4px solid var(--green); border-radius: var(--radius-sm); padding: 22px; margin-top: 14px;">
-                            <blockquote style="font-family: 'Amiri', serif; font-size: 20px; line-height: 1.8; color: var(--green-dark); margin-bottom: 12px; font-style: italic;">
-                                "{{ $settings['visi_text'] ?? 'Terciptanya kondisi kehidupan kemasyarakatan, kebangsaan dan kenegaraan yang baik, memperoleh ridha dan ampunan Allah SWT (Baldatun Thayyibatun Wa Rabbun Ghafur) menuju masyarakat berkualitas (Khaira Ummah) demi terwujudnya kejayaan Islam dan kaum muslimin (Izzul Islam wal Muslimin) dalam wadah Negara Kesatuan Republik Indonesia.' }}"
-                            </blockquote>
-                        </div>
-                    </div>
-
-                    {{-- MISI MUI --}}
-                    <div class="mui-card" style="border-top: 4px solid var(--green);">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="icon-circle">
-                                <i class="fas fa-bullseye"></i>
-                            </div>
-                            <div>
-                                <span class="badge" style="background: var(--gold); color: #1a1a1a; font-size: 11px; padding: 4px 10px;">Langkah Strategis</span>
-                                <h2 class="mb-0 mt-1" style="font-size: 22px; font-weight: 800; color: var(--green-dark);">
-                                    Misi Majelis Ulama Indonesia
-                                </h2>
-                            </div>
-                        </div>
-
-                        @php
-                            $rawMisi = array_filter(array_map('trim', explode("\n", $settings['misi_list'] ?? '')));
-                            $misiItems = [];
-                            foreach ($rawMisi as $idx => $line) {
-                                $num = str_pad($idx + 1, 2, '0', STR_PAD_LEFT);
-                                if (str_contains($line, '|')) {
-                                    $parts = explode('|', $line, 2);
-                                    $misiItems[] = [
-                                        'num' => $num,
-                                        'title' => trim($parts[0]),
-                                        'desc' => trim($parts[1]),
-                                    ];
-                                } else {
-                                    $misiItems[] = [
-                                        'num' => $num,
-                                        'title' => 'Misi ' . ($idx + 1),
-                                        'desc' => $line,
-                                    ];
-                                }
-                            }
-                        @endphp
-
-                        <div class="d-flex flex-column gap-3 mt-3">
-                            @forelse ($misiItems as $m)
-                                <div style="display: flex; gap: 16px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);">
-                                    <div style="font-size: 18px; font-weight: 800; color: var(--green); min-width: 32px;">
-                                        {{ $m['num'] }}
-                                    </div>
-                                    <div>
-                                        <h5 style="font-size: 14.5px; font-weight: 700; color: var(--green-dark); margin-bottom: 4px;">
-                                            {{ $m['title'] }}
-                                        </h5>
-                                        <p class="mb-0 text-muted" style="font-size: 13.5px; line-height: 1.6;">
-                                            {{ $m['desc'] }}
-                                        </p>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="text-muted small">Belum ada daftar misi yang ditambahkan.</div>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Sidebar Column --}}
-                <div class="col-lg-4">
-                    {{-- Quick Nav --}}
-                    <div class="mui-card" style="padding: 22px;">
-                        <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
-                            Tentang Kami
-                        </h3>
-                        <div class="d-flex flex-column gap-2">
-                            <a href="{{ route('profilemui') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Profil MUI
-                            </a>
-                            <a href="{{ route('visi-misi') }}" class="btn btn-sm text-start fw-bold" style="background: var(--green-pale); color: var(--green); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-gold"></i> Visi Misi
-                            </a>
-                            <a href="{{ route('struktur-organisasi') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Struktur Organisasi
-                            </a>
-                            <a href="{{ route('kontak') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Kontak Kami
-                            </a>
-                        </div>
-                    </div>
-
-                    {{-- Prinsip Wasathiyah --}}
-                    <div class="mui-card" style="padding: 22px; background: linear-gradient(135deg, var(--green-pale) 0%, #fff 100%);">
-                        <div class="icon-circle mb-3">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
-                        <h4 style="font-size: 15px; font-weight: 700; color: var(--green-dark); margin-bottom: 8px;">
-                            {{ $settings['wasathiyah_title'] ?? 'Prinsip Islam Wasathiyah' }}
-                        </h4>
-                        <p class="text-muted small mb-0" style="line-height: 1.7;">
-                            {{ $settings['wasathiyah_desc'] ?? 'MUI senantiasa mengedepankan corak keislaman yang moderat (tawasuth), berimbang (tawazun), adil (i\'tidal), dan toleran (tasamuh) dalam setiap bimbingan fatwa dan gerak langkahnya.' }}
-                        </p>
-                    </div>
-                </div>
+        {{-- Visi --}}
+        <section class="reveal bg-gradient-brand relative mt-10 overflow-hidden rounded-[2rem] px-6 py-14 text-center sm:px-16 sm:py-20">
+            <div class="pattern-islamic absolute inset-0"></div>
+            <div class="absolute -top-24 -left-24 size-80 rounded-full bg-gold-400/15 blur-3xl"></div>
+            <div class="absolute -right-24 -bottom-24 size-80 rounded-full bg-brand-400/20 blur-3xl"></div>
+            <div class="relative mx-auto max-w-4xl">
+                <p class="eyebrow justify-center text-gold-300!">Visi</p>
+                <x-icon name="quote" class="mx-auto mt-6 size-10 text-gold-300" />
+                <p class="mt-5 font-display text-xl leading-relaxed text-white italic sm:text-[1.7rem] sm:leading-[1.6]">
+                    {{ $s('visi_text', 'Terciptanya kondisi kehidupan kemasyarakatan, kebangsaan dan kenegaraan yang baik, memperoleh ridha dan ampunan Allah SWT (Baldatun Thayyibatun wa Rabbun Ghafur).') }}
+                </p>
+                <p class="arabic mt-8 text-center text-2xl text-gold-300">بَلْدَةٌ طَيِّبَةٌ وَرَبٌّ غَفُورٌ</p>
             </div>
-        </div>
+        </section>
+
+        {{-- Misi --}}
+        @if ($misi->isNotEmpty())
+            <section class="mt-24">
+                <div class="reveal flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="eyebrow">Misi</p>
+                        <h2 class="section-title mt-3">Langkah pengabdian untuk umat dan bangsa</h2>
+                    </div>
+                    <p class="text-sm text-stone-500">{{ $misi->count() }} butir misi</p>
+                </div>
+                <div class="reveal mt-10 grid gap-5 md:grid-cols-2">
+                    @foreach ($misi as $item)
+                        <article class="group card card-hover flex gap-5 p-6">
+                            <span class="font-display text-4xl leading-none font-bold text-gold-400/80 transition group-hover:text-gold-500">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                            <div>
+                                <h3 class="leading-snug font-semibold text-ink-900">{{ $item['judul'] }}</h3>
+                                @if ($item['isi'])
+                                    <p class="mt-2 text-sm leading-relaxed text-stone-600">{{ $item['isi'] }}</p>
+                                @endif
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Wasathiyah --}}
+        <section class="mt-24 grid gap-10 lg:grid-cols-12 lg:items-center">
+            <div class="reveal lg:col-span-5">
+                <p class="eyebrow">Manhaj</p>
+                <h2 class="section-title mt-3">{{ $s('wasathiyah_title', 'Prinsip Islam Wasathiyah') }}</h2>
+                <p class="mt-5 leading-[1.85] text-stone-600">{{ $s('wasathiyah_desc', 'MUI senantiasa mengedepankan corak keislaman yang moderat, berimbang, adil, dan toleran.') }}</p>
+            </div>
+            <div class="reveal grid gap-4 sm:grid-cols-2 lg:col-span-7">
+                @foreach ($prinsip as [$nama, $arti, $ikon])
+                    <div class="card flex items-start gap-4 p-5">
+                        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-100"><x-icon :name="$ikon" class="size-5" /></span>
+                        <div>
+                            <p class="font-display text-xl font-semibold text-ink-900">{{ $nama }}</p>
+                            <p class="mt-0.5 text-sm text-stone-500">{{ $arti }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
     </div>
-@endsection
+</x-layouts.site>

@@ -171,11 +171,22 @@ class KonsultasiAdminController extends Controller
             ];
         });
 
+        $perStatus = Konsultasi::query()
+            ->selectRaw('status, COUNT(*) as jumlah')
+            ->groupBy('status')
+            ->pluck('jumlah', 'status');
+
         return response()->json([
             'draw' => (int) $request->input('draw'),
             'recordsTotal' => $total,
             'recordsFiltered' => $filtered,
             'data' => $data,
+            'stats' => [
+                'total' => $total,
+                'pending' => (int) ($perStatus['pending'] ?? 0),
+                'dijawab' => (int) ($perStatus['dijawab'] ?? 0),
+                'ditolak' => (int) ($perStatus['ditolak'] ?? 0),
+            ],
         ]);
     }
 }

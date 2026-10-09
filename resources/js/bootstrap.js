@@ -1,34 +1,36 @@
-import 'bootstrap';
-
 /**
- * We'll load the axios HTTP library which allows us to easily issue requests
- * to our Laravel back-end. This library automatically handles sending the
- * CSRF token as a header based on the value of the "XSRF" token cookie.
+ * Utilitas bersama: HTTP helper (CSRF) & format pesan aman.
  */
+export const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-import axios from 'axios';
-window.axios = axios;
+export async function http(url, { method = 'GET', body, headers = {} } = {}) {
+    const res = await fetch(url, {
+        method,
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrf(),
+            ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+            ...headers,
+        },
+        body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+    });
 
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.success === false) {
+        const message = Object.values(data?.errors ?? {})?.[0]?.[0] || data?.error || data?.message || 'Terjadi kesalahan. Silakan coba lagi.';
+        throw Object.assign(new Error(message), { status: res.status, data });
+    }
+    return data;
+}
 
-/**
- * Echo exposes an expressive API for subscribing to channels and listening
- * for events that are broadcast by Laravel. Echo and event broadcasting
- * allows your team to easily build robust real-time web applications.
- */
+export const escapeHtml = (s = '') =>
+    String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// import Echo from 'laravel-echo';
-
-// import Pusher from 'pusher-js';
-// window.Pusher = Pusher;
-
-// window.Echo = new Echo({
-//     broadcaster: 'pusher',
-//     key: import.meta.env.VITE_PUSHER_APP_KEY,
-//     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-//     wsHost: import.meta.env.VITE_PUSHER_HOST ?? `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
-//     wsPort: import.meta.env.VITE_PUSHER_PORT ?? 80,
-//     wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
-//     forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
-//     enabledTransports: ['ws', 'wss'],
-// });
+/** Teks → HTML aman dengan tautan otomatis, huruf tebal (**teks**) & baris baru. */
+export const formatMessage = (s = '') =>
+    escapeHtml(s)
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" class="underline">$1</a>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');

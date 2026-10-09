@@ -1,47 +1,29 @@
-@extends('layouts.app')
+<x-layouts.auth title="Lupa Kata Sandi">
+    <p class="eyebrow">Pemulihan Akun</p>
+    <h1 class="mt-3 font-display text-3xl font-semibold">Lupa kata sandi?</h1>
+    <p class="mt-3 text-sm text-stone-500">Masukkan alamat email akun Anda. Kami akan mengirimkan tautan untuk membuat kata sandi baru.</p>
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Reset Password') }}</div>
-
-                <div class="card-body">
-                    @if (session('status'))
-                        <div class="alert alert-success" role="alert">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('password.email') }}">
-                        @csrf
-
-                        <div class="row mb-3">
-                            <label for="email" class="col-md-4 col-form-label text-md-end">{{ __('Email Address') }}</label>
-
-                            <div class="col-md-6">
-                                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required autocomplete="email" autofocus>
-
-                                @error('email')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-0">
-                            <div class="col-md-6 offset-md-4">
-                                <button type="submit" class="btn btn-primary">
-                                    {{ __('Send Password Reset Link') }}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    @if (session('status'))
+        <div class="mt-6 flex items-start gap-3 rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-200" role="status">
+            <x-icon name="mail-check" class="mt-0.5 size-4" /> {{ session('status') }}
         </div>
-    </div>
-</div>
-@endsection
+    @endif
+
+    <form method="POST" action="{{ route('password.email') }}" class="mt-8 space-y-5" x-data="{ loading: false }" @submit="loading = true">
+        @csrf
+        <div>
+            <label for="email" class="label">Alamat email</label>
+            <div class="relative">
+                <x-icon name="mail" class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-stone-400" />
+                <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="email" class="input pl-10 @error('email') input-error @enderror">
+            </div>
+            @error('email')<p class="field-error"><x-icon name="circle-alert" class="size-3.5" /> {{ $message }}</p>@enderror
+        </div>
+        <button class="btn btn-primary btn-lg w-full" :disabled="loading">
+            <x-icon name="loader-circle" class="size-4 animate-spin" x-show="loading" x-cloak />
+            <x-icon name="send" class="size-4" x-show="!loading" /> Kirim Tautan Reset
+        </button>
+    </form>
+
+    <a href="{{ route('login') }}" class="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-900"><x-icon name="arrow-left" class="size-4" /> Kembali ke halaman masuk</a>
+</x-layouts.auth>

@@ -47,8 +47,40 @@ class LiveChatService
     {
         $start = Setting::get('chat_operational_start', '08:00');
         $end = Setting::get('chat_operational_end', '16:00');
+        $days = self::formatOperationalDays((string) Setting::get('chat_operational_days', '1,2,3,4,5'));
 
-        return "Senin – Jumat, {$start} – {$end} WIB";
+        return "{$days}, {$start} – {$end} WIB";
+    }
+
+    /**
+     * Ubah daftar hari ISO ("1,2,3,4,5") menjadi teks ("Senin – Jumat", "Senin, Rabu, Jumat", "Setiap hari").
+     */
+    public static function formatOperationalDays(string $days): string
+    {
+        $names = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+
+        $list = collect(explode(',', $days))
+            ->map(fn (string $day): int => (int) trim($day))
+            ->filter(fn (int $day): bool => isset($names[$day]))
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($list->isEmpty()) {
+            return 'Tidak ada hari layanan';
+        }
+
+        if ($list->count() === 7) {
+            return 'Setiap hari';
+        }
+
+        $contiguous = $list->last() - $list->first() + 1 === $list->count();
+
+        if ($contiguous && $list->count() >= 3) {
+            return $names[$list->first()].' – '.$names[$list->last()];
+        }
+
+        return $list->map(fn (int $day): string => $names[$day])->implode(', ');
     }
 
     /**

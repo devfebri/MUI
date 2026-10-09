@@ -1,1040 +1,349 @@
-@extends('layouts.master')
+@php
+    $user = auth()->user();
+    $base = $user->isAdmin() ? route('admin.surat.index') : route('operator.surat.index');
+    $accept = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
+@endphp
 
-@section('css')
-    <style>
-        :root {
-            --green: #007f5f;
-            --green-dark: #005f47;
-            --green-light: #00a878;
-            --green-pale: #e8f5f1;
-            --gold: #c9a84c;
-            --red: #ef4444;
-            --blue: #2563eb;
-            --yellow: #f0a500;
-            --text: #1a1a2e;
-            --gray: #6b7280;
-            --bg: #f4f7f6;
-            --white: #ffffff;
-            --border: #e5e7eb;
-            --radius: 14px;
-            --shadow: 0 2px 16px rgba(0, 0, 0, .07);
-            --shadow-hov: 0 8px 32px rgba(0, 127, 95, .14);
-            --tr: .22s cubic-bezier(.4, 0, .2, 1);
-        }
+<x-layouts.admin title="Arsip Surat" header="Kelola arsip surat masuk & keluar MUI Batanghari">
+    <div x-data="suratPage(@js($base))">
+        <div x-data="serverTable({ url: @js($base), columns: ['id', 'nomor_surat', 'perihal', 'tanggal_surat', 'created_at'], order: [3, 'desc'] })">
+            <x-admin.page-header eyebrow="Arsip Digital" title="Arsip Surat" description="Simpan surat masuk & keluar beserta berkasnya (PDF, Word, Excel, atau gambar). Arsip juga tampil di halaman publik Arsip Surat.">
+                <x-slot:actions>
+                    <a href="{{ route('surat') }}" target="_blank" rel="noopener" class="btn btn-outline"><x-icon name="external-link" class="size-4" /> Halaman publik</a>
+                    <button type="button" @click="$dispatch('surat:open')" class="btn btn-primary"><x-icon name="upload" class="size-4" /> Unggah Surat</button>
+                </x-slot:actions>
+            </x-admin.page-header>
 
-        body {
-            background: var(--bg) !important;
-        }
-
-        /* ── PAGE HEADER ── */
-        .page-header {
-            background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
-            border-radius: var(--radius);
-            padding: 22px 28px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .page-header h4 {
-            font-size: 20px;
-            font-weight: 800;
-            margin: 0;
-            color: #fff;
-        }
-
-        .page-header p {
-            margin: 3px 0 0;
-            font-size: 13px;
-            color: rgba(255, 255, 255, .8);
-        }
-
-        /* ── STAT CARDS ── */
-        .stat-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: all var(--tr);
-            border: 1px solid transparent;
-        }
-
-        .stat-card:hover {
-            box-shadow: var(--shadow-hov);
-            transform: translateY(-2px);
-            border-color: var(--green-pale);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .stat-icon.green {
-            background: var(--green-pale);
-            color: var(--green);
-        }
-
-        .stat-icon.blue {
-            background: #eff6ff;
-            color: var(--blue);
-        }
-
-        .stat-icon.yellow {
-            background: #fff8e6;
-            color: var(--yellow);
-        }
-
-        .stat-value {
-            font-size: 26px;
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: 12.5px;
-            color: var(--gray);
-            margin-top: 3px;
-        }
-
-        /* ── PANEL ── */
-        .panel-card {
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .panel-header {
-            padding: 16px 22px;
-            border-bottom: 1px solid #f0f4f3;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .panel-header h5 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .panel-header h5 i {
-            color: var(--green);
-            font-size: 18px;
-        }
-
-        /* ── TABLE ── */
-        .surat-table {
-            width: 100%;
-        }
-
-        .surat-table th {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--gray);
-            padding: 10px 14px;
-            border-bottom: 2px solid #f0f4f3;
-            background: #fafcfb;
-            white-space: nowrap;
-        }
-
-        .surat-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #f4f6f5;
-            font-size: 13.5px;
-            color: var(--text);
-            vertical-align: middle;
-        }
-
-        .surat-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .surat-table tr:hover td {
-            background: #fafcfb;
-        }
-
-        /* ── NOMOR SURAT ── */
-        .nomor-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 700;
-            font-family: monospace;
-            background: var(--green-pale);
-            color: var(--green);
-            letter-spacing: .3px;
-        }
-
-        .nomor-kosong {
-            color: var(--gray);
-            font-style: italic;
-            font-size: 12px;
-        }
-
-        /* ── FILE BADGE ── */
-        .file-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 12.5px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all var(--tr);
-            border: 1px solid var(--border);
-            background: var(--white);
-            color: var(--text);
-            max-width: 200px;
-            overflow: hidden;
-        }
-
-        .file-badge:hover {
-            background: var(--green-pale);
-            border-color: var(--green);
-            color: var(--green);
-        }
-
-        .file-badge .file-icon {
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .file-badge .file-name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .ext-pdf {
-            color: #dc2626;
-        }
-
-        .ext-doc {
-            color: #2563eb;
-        }
-
-        .ext-docx {
-            color: #2563eb;
-        }
-
-        .ext-xls {
-            color: #16a34a;
-        }
-
-        .ext-xlsx {
-            color: #16a34a;
-        }
-
-        .ext-img {
-            color: #7c3aed;
-        }
-
-        /* ── AUTHOR ── */
-        .author-av {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: var(--green-pale);
-            color: var(--green);
-            font-size: 11px;
-            font-weight: 800;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 6px;
-            flex-shrink: 0;
-        }
-
-        /* ── MODAL ── */
-        .modal-header {
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: #fff;
-            padding: 16px 22px;
-        }
-
-        .modal-title {
-            font-weight: 800;
-            font-size: 16px;
-        }
-
-        .modal-header .close {
-            color: #fff;
-            opacity: .8;
-            text-shadow: none;
-            font-size: 22px;
-        }
-
-        .modal-header .close:hover {
-            opacity: 1;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--text);
-            margin-bottom: 5px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(0, 127, 95, .12);
-        }
-
-        /* ── FILE UPLOAD AREA ── */
-        .file-upload-area {
-            border: 2px dashed var(--border);
-            border-radius: 10px;
-            padding: 28px 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--tr);
-            position: relative;
-            background: #fafcfb;
-        }
-
-        .file-upload-area:hover,
-        .file-upload-area.dragover {
-            border-color: var(--green);
-            background: var(--green-pale);
-        }
-
-        .file-upload-area i {
-            font-size: 34px;
-            color: var(--green);
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .file-upload-area p {
-            font-size: 13px;
-            color: var(--gray);
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        .file-upload-area small {
-            display: block;
-            margin-top: 5px;
-            font-size: 11px;
-            color: #aaa;
-        }
-
-        .file-upload-area input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Pilihan File Terpilih */
-        .file-chosen {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: var(--green-pale);
-            border: 1px solid rgba(0, 127, 95, .2);
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 13px;
-            color: var(--green-dark);
-        }
-
-        .file-chosen.show {
-            display: flex;
-        }
-
-        .file-chosen i {
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .file-chosen-name {
-            font-weight: 700;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .file-chosen-remove {
-            background: none;
-            border: none;
-            color: var(--red);
-            cursor: pointer;
-            font-size: 15px;
-            padding: 0 4px;
-            flex-shrink: 0;
-        }
-
-        /* Ganti File (saat edit) */
-        .current-file {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: #f9fafb;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 13px;
-        }
-
-        .current-file i {
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        .current-file span {
-            flex: 1;
-            font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .current-file small {
-            color: var(--gray);
-            font-size: 11px;
-        }
-    </style>
-@endsection
-
-@section('content')
-    <div class="container-fluid" style="padding: 24px 28px;">
-
-        {{-- PAGE HEADER --}}
-        <div class="page-header">
-            <div>
-                <h4><i class="mdi mdi-email-outline" style="margin-right:8px;"></i>Manajemen Surat</h4>
-                <p>Kelola arsip surat masuk & keluar MUI Batanghari</p>
+            <div class="mt-6 grid gap-4 sm:grid-cols-3">
+                <x-stat-card label="Total arsip surat" icon="folder-archive" bind="meta.stats?.total ?? '–'" note="Seluruh surat terarsip" />
+                <x-stat-card label="Diunggah bulan ini" icon="calendar-check" tone="gold" bind="meta.stats?.bulan_ini ?? '–'" note="{{ now()->translatedFormat('F Y') }}" />
+                <x-stat-card label="Diunggah oleh Anda" icon="user-check" tone="blue" bind="meta.stats?.saya ?? '–'" note="Akun {{ $user->name }}" />
             </div>
-            <button type="button" class="btn btn-light btn-sm font-weight-bold" id="btn-create-surat">
-                <i class="mdi mdi-plus-circle"></i> Unggah Surat
-            </button>
+
+            <x-admin.table class="mt-6" colspan="7" empty="Belum ada arsip surat" empty-icon="folder-archive" search-placeholder="Cari nomor surat atau perihal…">
+                <x-slot:head>
+                    <th class="w-12">#</th>
+                    <x-admin.th col="1" class="hidden sm:table-cell">No. Surat</x-admin.th>
+                    <x-admin.th col="2">Perihal</x-admin.th>
+                    <x-admin.th col="3">Tgl. Surat</x-admin.th>
+                    <th>Berkas</th>
+                    <x-admin.th col="4">Diunggah</x-admin.th>
+                    <th class="text-right">Aksi</th>
+                </x-slot:head>
+                <x-slot:row>
+                    <tr>
+                        <td class="text-stone-400 tabular-nums" x-text="rowNumber(index)"></td>
+                        <td class="hidden whitespace-nowrap sm:table-cell">
+                            <span x-show="row.nomor_surat" class="inline-flex rounded-md bg-brand-50 px-2 py-1 font-mono text-xs font-semibold text-brand-800 ring-1 ring-brand-600/10" x-text="row.nomor_surat"></span>
+                            <span x-show="!row.nomor_surat" class="text-xs text-stone-400 italic">Tanpa nomor</span>
+                        </td>
+                        <td class="min-w-56">
+                            <p x-show="row.nomor_surat" class="mb-1 font-mono text-[11px] font-semibold text-brand-700 sm:hidden" x-text="row.nomor_surat"></p>
+                            <button type="button" @click="$dispatch('surat:view', row)" class="line-clamp-2 text-left font-semibold text-ink-900 transition hover:text-brand-700" :title="row.perihal" x-text="row.perihal"></button>
+                        </td>
+                        <td class="whitespace-nowrap text-stone-600" x-text="MUIAdmin.formatDate(row.tanggal_surat)"></td>
+                        <td class="whitespace-nowrap">
+                            <div class="flex items-center gap-1" x-show="row.file_url">
+                                <button type="button" @click="$dispatch('surat:view', row)" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white py-1 pr-2.5 pl-1 text-xs font-semibold text-stone-700 transition hover:border-brand-400 hover:text-brand-700" :title="'Pratinjau berkas ' + row.file_surat" aria-label="Pratinjau berkas surat">
+                                    <span class="grid size-6 place-items-center rounded-md ring-1" :class="fileTone(row.file_ext)">
+                                        <x-icon name="file-text" class="size-3.5" x-show="fileKind(row.file_ext) === 'pdf'" />
+                                        <x-icon name="file-type" class="size-3.5" x-show="fileKind(row.file_ext) === 'word'" x-cloak />
+                                        <x-icon name="file-spreadsheet" class="size-3.5" x-show="fileKind(row.file_ext) === 'excel'" x-cloak />
+                                        <x-icon name="file-image" class="size-3.5" x-show="fileKind(row.file_ext) === 'image'" x-cloak />
+                                        <x-icon name="file" class="size-3.5" x-show="fileKind(row.file_ext) === 'other'" x-cloak />
+                                    </span>
+                                    <span x-text="fileLabel(row.file_ext)"></span>
+                                </button>
+                                <a :href="row.file_url" :download="downloadName(row)" class="grid size-8 place-items-center rounded-lg text-stone-500 transition hover:bg-brand-50 hover:text-brand-700" title="Unduh berkas" aria-label="Unduh berkas surat"><x-icon name="download" class="size-4" /></a>
+                            </div>
+                            <span x-show="!row.file_url" class="text-xs text-stone-400 italic">Tidak ada berkas</span>
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <div class="flex items-center gap-2.5">
+                                <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-700 text-[11px] font-bold text-gold-300" x-text="initials(row.pengunggah?.name)" aria-hidden="true"></span>
+                                <div class="leading-tight">
+                                    <p class="text-[13px] font-semibold text-ink-900" x-text="row.pengunggah?.name ?? 'Tidak diketahui'"></p>
+                                    <p class="mt-0.5 text-xs text-stone-500" :title="'Pukul ' + clock(row.created_at)" x-text="MUIAdmin.formatDate(row.created_at)"></p>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex justify-end gap-1.5">
+                                <button type="button" @click="$dispatch('surat:view', row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-sky-50 hover:text-sky-700" title="Detail & pratinjau" aria-label="Lihat detail surat"><x-icon name="eye" class="size-4" /></button>
+                                <button type="button" @click="$dispatch('surat:open', row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-brand-50 hover:text-brand-700" title="Ubah" aria-label="Ubah surat"><x-icon name="pencil" class="size-4" /></button>
+                                <button type="button" @click="remove(row)" class="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600" title="Hapus" aria-label="Hapus surat"><x-icon name="trash-2" class="size-4" /></button>
+                            </div>
+                        </td>
+                    </tr>
+                </x-slot:row>
+            </x-admin.table>
         </div>
 
-        {{-- STAT CARDS --}}
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon green"><i class="mdi mdi-email-multiple"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-total">–</div>
-                        <div class="stat-label">Total Surat</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon blue"><i class="mdi mdi-file-pdf-box"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-bulan">–</div>
-                        <div class="stat-label">Bulan Ini</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon yellow"><i class="mdi mdi-account-edit"></i></div>
-                    <div>
-                        <div class="stat-value" id="stat-saya">–</div>
-                        <div class="stat-label">Diunggah Saya</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {{-- Formulir unggah / ubah --}}
+        <div x-data="crudForm({ name: 'surat', storeUrl: @js($base), updateUrl: @js($base.'/:id'), defaults: { nomor_surat: '', tanggal_surat: '', perihal: '' } })">
+            <x-admin.modal title="mode === 'edit' ? 'Ubah Arsip Surat' : 'Unggah Surat'" icon="folder-archive">
+                <form x-ref="form" @submit.prevent="submit()" class="flex min-h-0 flex-1 flex-col">
+                    <div class="scrollbar-thin flex-1 space-y-5 overflow-y-auto p-6">
+                        <div class="grid gap-5 sm:grid-cols-5">
+                            <div class="sm:col-span-3">
+                                <label for="s-nomor" class="label">Nomor surat <span class="font-normal text-stone-400">(opsional)</span></label>
+                                <input id="s-nomor" x-ref="first" name="nomor_surat" x-model="data.nomor_surat" type="text" maxlength="100" placeholder="cth: 001/MUI-BTH/IX/2026" class="input font-mono" :class="error('nomor_surat') && 'input-error'">
+                                <p class="field-error" x-show="error('nomor_surat')" x-text="error('nomor_surat')"></p>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label for="s-tanggal" class="label">Tanggal surat <span class="text-red-500">*</span></label>
+                                <input id="s-tanggal" name="tanggal_surat" x-model="data.tanggal_surat" type="date" required class="input" :class="error('tanggal_surat') && 'input-error'">
+                                <p class="field-error" x-show="error('tanggal_surat')" x-text="error('tanggal_surat')"></p>
+                            </div>
+                        </div>
 
-        {{-- TABLE --}}
-        <div class="panel-card">
-            <div class="panel-header">
-                <h5><i class="mdi mdi-format-list-bulleted"></i> Daftar Surat</h5>
-            </div>
-            <div class="table-responsive" style="padding:0;">
-                <table class="surat-table" id="surat-table">
-                    <thead>
-                        <tr>
-                            <th style="width:44px;">#</th>
-                            <th>Nomor Surat</th>
-                            <th>Perihal</th>
-                            <th>Tgl Surat</th>
-                            <th>File</th>
-                            <th>Diunggah Oleh</th>
-                            <th>Tgl Upload</th>
-                            <th style="width:110px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                        <div>
+                            <label for="s-perihal" class="label">Perihal <span class="text-red-500">*</span></label>
+                            <textarea id="s-perihal" name="perihal" x-model="data.perihal" rows="3" maxlength="500" required placeholder="Tuliskan perihal atau ringkasan isi surat…" class="input resize-none" :class="error('perihal') && 'input-error'"></textarea>
+                            <div class="mt-1 flex items-start gap-3">
+                                <p class="field-error mt-0" x-show="error('perihal')" x-text="error('perihal')"></p>
+                                <p class="ml-auto shrink-0 text-xs text-stone-400 tabular-nums"><span x-text="(data.perihal || '').length"></span>/500</p>
+                            </div>
+                        </div>
 
-    {{-- ── MODAL CRUD ── --}}
-    <div class="modal fade" id="surat-modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="surat-modal-title">Unggah Surat</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <form id="surat-form" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <div id="surat-form-errors" class="alert alert-danger d-none"></div>
-                        <div class="row">
+                        <div x-data="dropFile({ field: 'file_surat', maxMb: 5, exts: @js($accept) })" @surat:open.window="reset()">
+                            <p class="label">
+                                Berkas surat
+                                <span x-show="mode === 'create'" class="text-red-500">*</span>
+                                <span x-show="mode === 'edit'" x-cloak class="font-normal text-stone-400">(biarkan kosong jika tidak diganti)</span>
+                            </p>
 
-                            {{-- Nomor Surat --}}
-                            <div class="form-group col-md-5">
-                                <label>Nomor Surat <small class="text-muted">(opsional)</small></label>
-                                <input type="text" class="form-control" id="s-nomor" name="nomor_surat" maxlength="100"
-                                    placeholder="cth: 001/MUI/IX/2026">
+                            <div x-show="mode === 'edit' && data.file_url && !name" x-cloak class="mb-3 flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-lg ring-1" :class="fileTone(data.file_ext)">
+                                    <x-icon name="file-text" class="size-5" x-show="fileKind(data.file_ext) === 'pdf'" />
+                                    <x-icon name="file-type" class="size-5" x-show="fileKind(data.file_ext) === 'word'" x-cloak />
+                                    <x-icon name="file-spreadsheet" class="size-5" x-show="fileKind(data.file_ext) === 'excel'" x-cloak />
+                                    <x-icon name="file-image" class="size-5" x-show="fileKind(data.file_ext) === 'image'" x-cloak />
+                                    <x-icon name="file" class="size-5" x-show="fileKind(data.file_ext) === 'other'" x-cloak />
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-semibold text-ink-900" x-text="data.file_surat"></p>
+                                    <p class="text-xs text-stone-500">Berkas saat ini · <span x-text="fileLabel(data.file_ext)"></span></p>
+                                </div>
+                                <a :href="data.file_url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><x-icon name="external-link" class="size-4" /><span class="hidden sm:inline">Lihat</span></a>
                             </div>
 
-                            {{-- Tanggal Surat --}}
-                            <div class="form-group col-md-4">
-                                <label>Tanggal Surat <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="s-tanggal" name="tanggal_surat" required>
+                            <label for="s-file" x-show="!name" class="relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-8 text-center transition focus-within:ring-4 focus-within:ring-brand-500/15"
+                                   :class="dragging ? 'border-brand-500 bg-brand-50' : ((problem || error('file_surat')) ? 'border-red-300 bg-red-50/40' : 'border-stone-300 bg-sand-50 hover:border-brand-400 hover:bg-brand-50/50')"
+                                   @dragenter="dragging = true" @dragover="dragging = true" @dragleave="dragging = false" @drop="dragging = false">
+                                <input id="s-file" x-ref="file" type="file" name="file_surat" accept="{{ collect($accept)->map(fn ($e) => '.'.$e)->implode(',') }}" :required="mode === 'create'" @change="pick($event)" class="absolute inset-0 size-full cursor-pointer opacity-0" aria-describedby="s-file-hint">
+                                <span class="grid size-12 place-items-center rounded-2xl bg-white text-brand-600 shadow-sm ring-1 ring-stone-200 transition" :class="dragging && 'scale-110'"><x-icon name="cloud-upload" class="size-6" /></span>
+                                <p class="mt-3 text-sm font-semibold text-ink-900"><span class="text-brand-700 underline decoration-gold-400 decoration-2 underline-offset-4">Pilih berkas</span> atau seret ke sini</p>
+                                <p id="s-file-hint" class="mt-1 text-xs text-stone-500">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG · maks. 5 MB</p>
+                            </label>
+
+                            <div x-show="name" x-cloak class="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-3.5 py-3">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand-700 ring-1 ring-brand-100"><x-icon name="file-check" class="size-5" /></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-semibold text-ink-900" x-text="name"></p>
+                                    <p class="text-xs text-stone-500"><span x-text="size"></span> · <span x-text="mode === 'edit' ? 'akan menggantikan berkas lama' : 'siap diunggah'"></span></p>
+                                </div>
+                                <a x-show="previewable" :href="url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm"><x-icon name="eye" class="size-4" /><span class="hidden sm:inline">Pratinjau</span></a>
+                                <button type="button" @click="reset()" class="grid size-8 shrink-0 place-items-center rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600" title="Batalkan pilihan" aria-label="Batalkan pilihan berkas"><x-icon name="x" class="size-4" /></button>
                             </div>
-
-                            {{-- Perihal --}}
-                            <div class="form-group col-12">
-                                <label>Perihal <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="s-perihal" name="perihal" rows="3" maxlength="500" required
-                                    placeholder="Tuliskan perihal surat..."></textarea>
-                                <div class="text-right" style="font-size:11px;color:var(--gray);margin-top:3px;">
-                                    <span id="perihal-count">0</span>/500
-                                </div>
-                            </div>
-
-                            {{-- File Upload --}}
-                            <div class="form-group col-12">
-                                <label>File Surat <span class="text-danger" id="file-required-star">*</span>
-                                    <small class="text-muted" id="file-optional-note" style="display:none;">(biarkan kosong
-                                        jika tidak diganti)</small>
-                                </label>
-
-                                {{-- Tampil file saat edit --}}
-                                <div class="current-file d-none" id="current-file-info">
-                                    <i class="mdi mdi-file-document" id="current-file-icon" style="color:var(--green);"></i>
-                                    <span id="current-file-name">—</span>
-                                    <small>File saat ini</small>
-                                </div>
-
-                                <div class="file-upload-area" id="file-upload-area">
-                                    <input type="file" id="s-file" name="file_surat"
-                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
-                                    <i class="mdi mdi-cloud-upload-outline"></i>
-                                    <p><strong>Klik atau seret file ke sini</strong></p>
-                                    <small>PDF, DOC, DOCX, XLS, XLSX, JPG, PNG · Maks 5 MB</small>
-                                </div>
-
-                                <div class="file-chosen" id="file-chosen">
-                                    <i class="mdi mdi-file-check" style="color:var(--green);"></i>
-                                    <span class="file-chosen-name" id="file-chosen-name">—</span>
-                                    <span class="file-chosen-size text-muted" id="file-chosen-size"
-                                        style="font-size:11px;white-space:nowrap;"></span>
-                                    <button type="button" class="file-chosen-remove" id="file-remove-btn"
-                                        title="Hapus pilihan">
-                                        <i class="mdi mdi-close"></i>
-                                    </button>
-                                </div>
-                            </div>
-
+                            <p class="field-error" x-show="problem || error('file_surat')" x-cloak x-text="problem || error('file_surat')"></p>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success" id="btn-save-surat">
-                            <i class="mdi mdi-content-save"></i> Simpan
+                    <footer class="flex shrink-0 justify-end gap-2 border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+                        <button type="button" @click="close()" class="btn btn-outline">Batal</button>
+                        <button type="submit" class="btn btn-primary" :disabled="saving">
+                            <x-icon name="loader-circle" class="size-4 animate-spin" x-show="saving" x-cloak />
+                            <x-icon name="save" class="size-4" x-show="!saving" />
+                            <span x-text="saving ? 'Menyimpan…' : (mode === 'edit' ? 'Simpan Perubahan' : 'Unggah Surat')"></span>
                         </button>
-                    </div>
+                    </footer>
                 </form>
-            </div>
+            </x-admin.modal>
+        </div>
+
+        {{-- Detail & pratinjau berkas --}}
+        <div x-data="suratViewer">
+            <x-admin.modal title="'Detail Arsip Surat'" icon="file-text" size="max-w-6xl">
+                <div class="scrollbar-thin flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+                    <aside class="scrollbar-thin shrink-0 space-y-5 border-b border-stone-100 p-6 lg:w-80 lg:overflow-y-auto lg:border-r lg:border-b-0">
+                        <div>
+                            <span x-show="doc?.nomor_surat" class="inline-flex rounded-md bg-brand-50 px-2 py-1 font-mono text-xs font-semibold text-brand-800 ring-1 ring-brand-600/10" x-text="doc?.nomor_surat"></span>
+                            <span x-show="!doc?.nomor_surat" class="badge badge-gray">Tanpa nomor surat</span>
+                            <h3 class="mt-3 font-display text-xl leading-snug font-semibold text-ink-900" x-text="doc?.perihal"></h3>
+                        </div>
+                        <dl class="divide-y divide-stone-100 rounded-2xl border border-stone-200 text-sm">
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="calendar-days" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Tanggal surat</dt><dd class="font-semibold text-ink-900" x-text="MUIAdmin.formatDate(doc?.tanggal_surat, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="user-round" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Diunggah oleh</dt><dd class="font-semibold text-ink-900" x-text="doc?.pengunggah?.name ?? 'Tidak diketahui'"></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="clock" class="mt-0.5 size-4 text-brand-600" />
+                                <div><dt class="text-xs text-stone-500">Tanggal unggah</dt><dd class="font-semibold text-ink-900"><span x-text="MUIAdmin.formatDate(doc?.created_at, { day: 'numeric', month: 'long', year: 'numeric' })"></span> · <span x-text="clock(doc?.created_at)"></span></dd></div>
+                            </div>
+                            <div class="flex items-start gap-3 px-4 py-3">
+                                <x-icon name="paperclip" class="mt-0.5 size-4 text-brand-600" />
+                                <div class="min-w-0"><dt class="text-xs text-stone-500">Berkas</dt><dd class="truncate font-semibold text-ink-900" :title="doc?.file_surat" x-text="doc?.file_surat ? fileLabel(doc.file_ext) + ' · ' + doc.file_surat : 'Tidak ada berkas'"></dd></div>
+                            </div>
+                        </dl>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="edit()" class="btn btn-outline btn-sm"><x-icon name="pencil" class="size-4" /> Ubah data</button>
+                            <a x-show="doc?.file_url" :href="doc?.file_url" :download="doc ? downloadName(doc) : null" class="btn btn-primary btn-sm"><x-icon name="download" class="size-4" /> Unduh berkas</a>
+                        </div>
+                    </aside>
+
+                    <section class="flex min-h-[65vh] flex-1 flex-col bg-stone-100 lg:min-h-[72vh]">
+                        <header class="flex items-center gap-3 border-b border-stone-200 bg-sand-100/70 px-4 py-3">
+                            <span class="grid size-9 shrink-0 place-items-center rounded-lg ring-1" :class="fileTone(doc?.file_ext)">
+                                <x-icon name="file-text" class="size-5" x-show="kind === 'pdf'" />
+                                <x-icon name="file-type" class="size-5" x-show="kind === 'word'" x-cloak />
+                                <x-icon name="file-spreadsheet" class="size-5" x-show="kind === 'excel'" x-cloak />
+                                <x-icon name="file-image" class="size-5" x-show="kind === 'image'" x-cloak />
+                                <x-icon name="file" class="size-5" x-show="kind === 'other'" x-cloak />
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-semibold text-ink-900">Pratinjau berkas</p>
+                                <p class="truncate font-mono text-[11px] text-stone-500" x-text="doc?.file_surat ?? '—'"></p>
+                            </div>
+                            <a x-show="doc?.file_url" :href="doc?.file_url" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" title="Buka di tab baru"><x-icon name="external-link" class="size-4" /><span class="hidden sm:inline">Buka</span></a>
+                        </header>
+                        <div class="relative flex-1">
+                            <template x-if="open && doc?.file_url && kind === 'pdf'">
+                                <div class="absolute inset-0">
+                                    <div x-show="!loaded" class="absolute inset-0 grid place-items-center text-sm text-stone-500">
+                                        <span class="flex items-center gap-2"><x-icon name="loader-circle" class="size-5 animate-spin text-brand-600" /> Memuat dokumen…</span>
+                                    </div>
+                                    <iframe :src="doc.file_url + '#view=FitH'" :title="'Berkas surat ' + (doc.nomor_surat || doc.perihal)" class="relative size-full" @load="loaded = true"></iframe>
+                                </div>
+                            </template>
+                            <template x-if="open && doc?.file_url && kind === 'image'">
+                                <div class="absolute inset-0 grid place-items-center overflow-auto p-6">
+                                    <img :src="doc.file_url" :alt="'Berkas surat ' + (doc.nomor_surat || doc.perihal)" class="max-h-full max-w-full rounded-xl bg-white object-contain shadow-[var(--shadow-soft)]">
+                                </div>
+                            </template>
+                            <template x-if="open && doc && (!doc.file_url || ['word', 'excel', 'other'].includes(kind))">
+                                <div class="absolute inset-0 grid place-items-center p-6">
+                                    <div class="max-w-sm text-center">
+                                        <span class="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-brand-600 shadow-sm ring-1 ring-stone-200"><x-icon name="file-search" class="size-7" /></span>
+                                        <p class="mt-4 font-semibold text-ink-900" x-text="doc.file_url ? 'Pratinjau tidak tersedia untuk berkas ' + fileLabel(doc.file_ext) : 'Surat ini belum memiliki berkas'"></p>
+                                        <p class="mt-1.5 text-sm text-stone-500" x-text="doc.file_url ? 'Unduh berkas untuk membukanya dengan aplikasi Office di perangkat Anda.' : 'Unggah berkas melalui tombol Ubah data.'"></p>
+                                        <a x-show="doc.file_url" :href="doc.file_url" :download="downloadName(doc)" class="btn btn-primary btn-sm mt-5"><x-icon name="download" class="size-4" /> Unduh berkas</a>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <p x-show="kind === 'pdf'" class="border-t border-stone-200 bg-white px-5 py-3 text-xs leading-relaxed text-stone-500 sm:hidden">Pratinjau PDF mungkin tidak tampil di sebagian peramban ponsel. Gunakan tombol <b>Buka</b> atau <b>Unduh berkas</b>.</p>
+                    </section>
+                </div>
+            </x-admin.modal>
         </div>
     </div>
 
-    {{-- ── MODAL DETAIL ── --}}
-    <div class="modal fade" id="surat-detail-modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="mdi mdi-eye mr-2"></i>Detail Surat</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <div class="modal-body" id="surat-detail-body"></div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-@endsection
-
-@section('javascript')
-    <script>
-        $(function() {
-            'use strict';
-
-            /* ── CONFIG ── */
-            var role = @json(auth()->user()->role);
-            var baseUrl = @json(auth()->user()->isAdmin() ? route('admin.surat.index') : route('operator.surat.index'));
-            var crudBase = @json(auth()->user()->isAdmin() ? url('admin/surat') : url('operator/surat'));
-            var myId = @json(auth()->id());
-
-            var rows = {};
-            var editingId = null;
-            var table;
-
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'Accept': 'application/json'
-                }
-            });
-
-            /* ── STATS ── */
-            function loadStats() {
-                $.get(baseUrl, {
-                    draw: 1,
-                    start: 0,
-                    length: 1000
-                }, function(res) {
-                    var total = res.recordsTotal;
-                    var bulan = 0;
-                    var saya = 0;
-                    var now = new Date();
-
-                    $.each(res.data, function(i, r) {
-                        var d = new Date(r.created_at);
-                        if (d.getMonth() === now.getMonth() && d.getFullYear() === now
-                        .getFullYear()) bulan++;
-                        if (r.pengunggah && r.pengunggah.id === myId) saya++;
-                    });
-
-                    $('#stat-total').text(total);
-                    $('#stat-bulan').text(bulan);
-                    $('#stat-saya').text(saya);
-                });
-            }
-
-            loadStats();
-
-            /* ── FILE ICON ── */
-            function fileIcon(ext) {
-                var map = {
-                    pdf: '<i class="mdi mdi-file-pdf-box ext-pdf"></i>',
-                    doc: '<i class="mdi mdi-file-word ext-doc"></i>',
-                    docx: '<i class="mdi mdi-file-word ext-docx"></i>',
-                    xls: '<i class="mdi mdi-file-excel ext-xls"></i>',
-                    xlsx: '<i class="mdi mdi-file-excel ext-xlsx"></i>',
-                    jpg: '<i class="mdi mdi-file-image ext-img"></i>',
-                    jpeg: '<i class="mdi mdi-file-image ext-img"></i>',
-                    png: '<i class="mdi mdi-file-image ext-img"></i>',
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                const KIND = { pdf: 'pdf', doc: 'word', docx: 'word', xls: 'excel', xlsx: 'excel', jpg: 'image', jpeg: 'image', png: 'image' };
+                const LABEL = { pdf: 'PDF', word: 'Word', excel: 'Excel', image: 'Gambar', other: 'Berkas' };
+                const TONE = {
+                    pdf: 'bg-red-50 text-red-600 ring-red-100',
+                    word: 'bg-sky-50 text-sky-700 ring-sky-100',
+                    excel: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+                    image: 'bg-violet-50 text-violet-700 ring-violet-100',
+                    other: 'bg-stone-100 text-stone-600 ring-stone-200',
                 };
-                return map[ext] || '<i class="mdi mdi-file-outline" style="color:var(--gray);"></i>';
-            }
+                const slug = (text) => String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 
-            function humanSize(bytes) {
-                if (!bytes) return '';
-                if (bytes < 1024) return bytes + ' B';
-                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-                return (bytes / 1048576).toFixed(1) + ' MB';
-            }
-
-            /* ── DATATABLE ── */
-            table = $('#surat-table').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: baseUrl,
-                    dataSrc: function(res) {
-                        rows = {};
-                        $.each(res.data, function(i, r) {
-                            rows[r.id] = r;
+                /** Utilitas halaman arsip surat (dipakai tabel, formulir & penampil). */
+                Alpine.data('suratPage', (base) => ({
+                    base,
+                    fileKind: (ext) => KIND[String(ext || '').toLowerCase()] ?? 'other',
+                    fileLabel(ext) { return LABEL[this.fileKind(ext)]; },
+                    fileTone(ext) { return TONE[this.fileKind(ext)]; },
+                    downloadName: (row) => `Surat-${slug(row.nomor_surat || row.perihal) || row.id}.${String(row.file_ext || 'pdf').toLowerCase()}`,
+                    initials: (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
+                    clock(value) {
+                        const d = new Date(String(value || '').replace(' ', 'T'));
+                        return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+                    },
+                    remove(row) {
+                        const label = row.nomor_surat ? `nomor ${row.nomor_surat}` : `“${String(row.perihal).slice(0, 80)}”`;
+                        return MUIAdmin.destroy(`${base}/${row.id}`, {
+                            title: 'Hapus arsip surat?',
+                            message: `Surat ${label} beserta berkas terlampirnya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`,
                         });
-                        return res.data;
-                    }
-                },
-                pageLength: 10,
-                lengthMenu: [
-                    [10, 25, 50],
-                    [10, 25, 50]
-                ],
-                searchDelay: 400,
-                order: [
-                    [3, 'desc']
-                ],
-                columns: [{
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, r, meta) {
-                            return meta.settings._iDisplayStart + meta.row + 1;
-                        }
                     },
-                    {
-                        data: 'nomor_surat',
-                        render: function(data) {
-                            return data ?
-                                '<span class="nomor-badge">' + $('<div>').text(data).html() +
-                                '</span>' :
-                                '<span class="nomor-kosong">— tanpa nomor —</span>';
-                        }
+                }));
+
+                /** Penampil detail & pratinjau berkas surat. */
+                Alpine.data('suratViewer', () => ({
+                    open: false,
+                    doc: null,
+                    loaded: false,
+                    init() {
+                        window.addEventListener('surat:view', (e) => {
+                            this.doc = { ...e.detail };
+                            this.loaded = false;
+                            this.open = true;
+                        });
                     },
-                    {
-                        data: 'perihal',
-                        render: function(data) {
-                            var safe = $('<div>').text(data).html();
-                            return '<div style="max-width:280px;line-height:1.4;">' +
-                                (safe.length > 80 ? safe.substring(0, 80) + '…' : safe) + '</div>';
-                        }
+                    get kind() {
+                        return this.doc ? this.fileKind(this.doc.file_ext) : 'other';
                     },
-                    {
-                        data: 'tanggal_surat',
-                        render: function(data, type) {
-                            if (type === 'sort' || type === 'type') return data;
-                            var d = new Date(data);
-                            return d.toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                            });
-                        }
+                    close() {
+                        this.open = false;
                     },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, row) {
-                            var icon = fileIcon(row.file_ext);
-                            var name = row.file_surat ? row.file_surat.split('/').pop() : '—';
-                            return '<a href="' + row.file_url +
-                                '" target="_blank" class="file-badge">' +
-                                '<span class="file-icon">' + icon + '</span>' +
-                                '<span class="file-name">' + $('<div>').text(name).html() +
-                                '</span>' +
-                                '</a>';
-                        }
+                    edit() {
+                        const row = this.doc;
+                        this.open = false;
+                        this.$dispatch('surat:open', row);
                     },
-                    {
-                        data: 'pengunggah',
-                        render: function(data) {
-                            if (!data) return '<span class="text-muted">—</span>';
-                            var init = data.name ? data.name.charAt(0).toUpperCase() : '?';
-                            return '<div style="display:flex;align-items:center;">' +
-                                '<span class="author-av">' + init + '</span>' +
-                                $('<div>').text(data.name || '').html() + '</div>';
-                        }
+                }));
+
+                /** Area unggah berkas (klik / seret & lepas) dengan validasi jenis & ukuran di sisi klien. */
+                Alpine.data('dropFile', ({ field, maxMb, exts }) => ({
+                    name: null,
+                    size: null,
+                    ext: null,
+                    url: null,
+                    dragging: false,
+                    problem: null,
+                    get previewable() {
+                        return ['pdf', 'jpg', 'jpeg', 'png'].includes(this.ext);
                     },
-                    {
-                        data: 'created_at',
-                        render: function(data, type) {
-                            if (type === 'sort' || type === 'type') return new Date(data).getTime();
-                            return new Date(data).toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                            });
-                        }
+                    human: (bytes) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`),
+                    forget() {
+                        if (this.url) URL.revokeObjectURL(this.url);
+                        Object.assign(this, { name: null, size: null, ext: null, url: null, dragging: false });
                     },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        render: function(d, t, row) {
-                            return '<button type="button" class="btn btn-outline-info btn-sm btn-detail-surat mr-1" data-id="' +
-                                row.id + '" title="Detail"><i class="mdi mdi-eye"></i></button>' +
-                                '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-surat mr-1" data-id="' +
-                                row.id + '" title="Edit"><i class="mdi mdi-pencil"></i></button>' +
-                                '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-surat" data-id="' +
-                                row.id + '" title="Hapus"><i class="mdi mdi-delete"></i></button>';
+                    reset() {
+                        this.forget();
+                        this.problem = null;
+                        if (this.$refs.file) this.$refs.file.value = '';
+                    },
+                    pick(e) {
+                        const file = e.target.files?.[0];
+                        this.forget();
+                        // Tanpa berkas (mis. dialog dibatalkan): pertahankan pesan validasi sebelumnya.
+                        if (!file) return;
+                        const ext = (file.name.includes('.') ? file.name.split('.').pop() : '').toLowerCase();
+                        if (!exts.includes(ext)) {
+                            this.reset();
+                            this.problem = `Format ${ext ? '.' + ext : 'berkas ini'} tidak didukung. Gunakan ${exts.map((x) => x.toUpperCase()).join(', ')}.`;
+                            return;
                         }
-                    }
-                ],
-                language: {
-                    search: 'Cari:',
-                    processing: 'Memuat...',
-                    lengthMenu: 'Tampilkan _MENU_ surat',
-                    info: 'Menampilkan _START_–_END_ dari _TOTAL_ surat',
-                    infoEmpty: 'Tidak ada surat',
-                    infoFiltered: '(difilter dari _MAX_ surat)',
-                    zeroRecords: 'Surat tidak ditemukan',
-                    emptyTable: 'Belum ada data surat',
-                    paginate: {
-                        first: '«',
-                        last: '»',
-                        next: '›',
-                        previous: '‹'
-                    }
-                },
-                responsive: true
+                        if (file.size > maxMb * 1048576) {
+                            this.reset();
+                            this.problem = `Ukuran berkas ${this.human(file.size)} melebihi batas ${maxMb} MB.`;
+                            return;
+                        }
+                        Object.assign(this, { name: file.name, size: this.human(file.size), ext, url: URL.createObjectURL(file), problem: null });
+                        if (this.errors?.[field]) delete this.errors[field];
+                    },
+                }));
             });
-
-            /* ── PERIHAL COUNTER ── */
-            $('#s-perihal').on('input', function() {
-                $('#perihal-count').text($(this).val().length);
-            });
-
-            /* ── FILE PILIH ── */
-            $('#s-file').on('change', function() {
-                var file = this.files[0];
-                if (!file) {
-                    resetFileUI();
-                    return;
-                }
-
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Ukuran file maksimal 5 MB.');
-                    this.value = '';
-                    resetFileUI();
-                    return;
-                }
-
-                $('#file-upload-area').hide();
-                $('#file-chosen-name').text(file.name);
-                $('#file-chosen-size').text(humanSize(file.size));
-                $('#file-chosen').addClass('show');
-            });
-
-            $('#file-remove-btn').on('click', function() {
-                $('#s-file').val('');
-                resetFileUI();
-            });
-
-            function resetFileUI() {
-                $('#file-upload-area').show();
-                $('#file-chosen').removeClass('show');
-                $('#file-chosen-name').text('—');
-                $('#file-chosen-size').text('');
-            }
-
-            /* ── DRAG & DROP ── */
-            var dropArea = document.getElementById('file-upload-area');
-            if (dropArea) {
-                dropArea.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    this.classList.add('dragover');
-                });
-                dropArea.addEventListener('dragleave', function() {
-                    this.classList.remove('dragover');
-                });
-                dropArea.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('dragover');
-                    var file = e.dataTransfer.files[0];
-                    if (file) {
-                        var input = document.getElementById('s-file');
-                        var dt = new DataTransfer();
-                        dt.items.add(file);
-                        input.files = dt.files;
-                        $(input).trigger('change');
-                    }
-                });
-            }
-
-            /* ── HELPERS ── */
-            function resetForm() {
-                editingId = null;
-                $('#surat-form')[0].reset();
-                $('#surat-form-errors').addClass('d-none').empty();
-                $('#surat-modal-title').text('Unggah Surat');
-                $('#file-required-star').show();
-                $('#file-optional-note').hide();
-                $('#current-file-info').addClass('d-none');
-                $('#s-file').prop('required', true);
-                $('#perihal-count').text('0');
-                resetFileUI();
-            }
-
-            function showErrors(xhr) {
-                var msgs = [];
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    $.each(xhr.responseJSON.errors, function(k, arr) {
-                        msgs = msgs.concat(arr);
-                    });
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msgs.push(xhr.responseJSON.message);
-                }
-                $('#surat-form-errors').html(msgs.join('<br>')).removeClass('d-none');
-            }
-
-            function refresh() {
-                table.ajax.reload(null, false);
-                loadStats();
-            }
-
-            /* ── CREATE ── */
-            $('#btn-create-surat').on('click', function() {
-                resetForm();
-                $('#surat-modal').modal('show');
-            });
-
-            /* ── EDIT ── */
-            $(document).on('click', '.btn-edit-surat', function() {
-                var item = rows[$(this).data('id')];
-                if (!item) return;
-                resetForm();
-                editingId = item.id;
-                $('#surat-modal-title').text('Edit Surat');
-
-                // Isi field
-                $('#s-nomor').val(item.nomor_surat || '');
-                $('#s-perihal').val(item.perihal).trigger('input');
-                $('#s-tanggal').val(item.tanggal_surat);
-
-                // File saat ini
-                var ext = item.file_ext;
-                var name = item.file_surat ? item.file_surat.split('/').pop() : '—';
-                $('#current-file-icon').attr('class', 'mdi mdi-' +
-                    (ext === 'pdf' ? 'file-pdf-box' : ext === 'doc' || ext === 'docx' ? 'file-word' :
-                        ext === 'xls' || ext === 'xlsx' ? 'file-excel' :
-                        ext === 'jpg' || ext === 'jpeg' || ext === 'png' ? 'file-image' :
-                        'file-document'));
-                $('#current-file-name').text(name);
-                $('#current-file-info').removeClass('d-none');
-
-                // File tidak wajib saat edit
-                $('#file-required-star').hide();
-                $('#file-optional-note').show();
-                $('#s-file').prop('required', false);
-
-                $('#surat-modal').modal('show');
-            });
-
-            /* ── DETAIL ── */
-            $(document).on('click', '.btn-detail-surat', function() {
-                var item = rows[$(this).data('id')];
-                if (!item) return;
-
-                var ext = item.file_ext;
-                var icon = fileIcon(ext);
-                var name = item.file_surat ? item.file_surat.split('/').pop() : '—';
-
-                var html = '<div style="font-size:14px;">' +
-                    '<table class="table table-sm table-bordered" style="font-size:13.5px;">' +
-                    '<tbody>' +
-                    '<tr><th style="width:40%;background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Nomor Surat</th>' +
-                    '<td><strong>' + (item.nomor_surat ? $('<div>').text(item.nomor_surat).html() :
-                        '<em class="text-muted">— tanpa nomor —</em>') + '</strong></td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Perihal</th>' +
-                    '<td>' + $('<div>').text(item.perihal).html() + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Tanggal Surat</th>' +
-                    '<td>' + new Date(item.tanggal_surat).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                    }) + '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Diunggah Oleh</th>' +
-                    '<td>' + (item.pengunggah ? $('<div>').text(item.pengunggah.name).html() : '—') +
-                    '</td></tr>' +
-                    '<tr><th style="background:#fafcfb;color:var(--gray);font-size:11px;text-transform:uppercase;letter-spacing:.7px;">Tgl Upload</th>' +
-                    '<td>' + new Date(item.created_at).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                    }) + '</td></tr>' +
-                    '</tbody></table>' +
-                    '<div style="margin-top:14px;">' +
-                    '<a href="' + item.file_url +
-                    '" target="_blank" class="file-badge" style="display:inline-flex;">' +
-                    '<span class="file-icon">' + icon + '</span>' +
-                    '<span class="file-name">' + $('<div>').text(name).html() + '</span>' +
-                    '&nbsp;<i class="mdi mdi-open-in-new" style="font-size:14px;color:var(--green);"></i>' +
-                    '</a>' +
-                    '</div>' +
-                    '</div>';
-
-                $('#surat-detail-body').html(html);
-                $('#surat-detail-modal').modal('show');
-            });
-
-            /* ── SAVE ── */
-            $('#surat-form').on('submit', function(e) {
-                e.preventDefault();
-
-                var formData = new FormData(this);
-                if (editingId) {
-                    formData.append('_method', 'PUT');
-                }
-
-                var $btn = $('#btn-save-surat').prop('disabled', true).html(
-                    '<i class="mdi mdi-loading mdi-spin"></i> Menyimpan...');
-                var url = editingId ? crudBase + '/' + editingId : crudBase;
-
-                $.ajax({
-                    url: url,
-                    method: 'POST', // _method=PUT dikirim via FormData untuk update
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                }).done(function(res) {
-                    $('#surat-modal').modal('hide');
-                    alertify.success(res.message);
-                    refresh();
-                }).fail(function(xhr) {
-                    showErrors(xhr);
-                }).always(function() {
-                    $btn.prop('disabled', false).html(
-                    '<i class="mdi mdi-content-save"></i> Simpan');
-                });
-            });
-
-            /* ── DELETE ── */
-            $(document).on('click', '.btn-delete-surat', function() {
-                var id = $(this).data('id');
-                var item = rows[id];
-                var peri = item ? item.perihal.substring(0, 60) : 'surat ini';
-                if (!confirm('Hapus surat:\n"' + peri +
-                        '"\n\nFile terlampir juga akan dihapus. Tindakan ini tidak dapat dibatalkan.'))
-                    return;
-
-                $.ajax({
-                        url: crudBase + '/' + id,
-                        method: 'DELETE'
-                    })
-                    .done(function(res) {
-                        alertify.success(res.message);
-                        refresh();
-                    })
-                    .fail(function(xhr) {
-                        alertify.error(xhr.responseJSON ? xhr.responseJSON.message :
-                        'Gagal menghapus.');
-                    });
-            });
-
-            /* ── RESET MODAL ── */
-            $('#surat-modal').on('hidden.bs.modal', resetForm);
-        });
-    </script>
-@endsection
+        </script>
+    @endpush
+</x-layouts.admin>

@@ -1,252 +1,125 @@
-@extends('layouts.frontend')
+@php
+    $s = fn (string $key, ?string $default = null) => filled($settings[$key] ?? null) ? $settings[$key] : $default;
+    $bagan = $s('struktur_bagan_gambar') ? asset('uploads/pengaturan/'.basename($s('struktur_bagan_gambar'))) : null;
+    $harian = collect([
+        ['wakil_ketua_umum', 'Wakil Ketua Umum', 'user-round-check'],
+        ['sekjen', 'Sekretaris Jenderal', 'notebook-pen'],
+        ['bendahara_umum', 'Bendahara Umum', 'wallet'],
+        ['ketua_bidang', 'Ketua-Ketua Bidang', 'users'],
+    ])->map(fn ($r) => ['jabatan' => $s("struktur_{$r[0]}", $r[1]), 'desc' => $s("struktur_{$r[0]}_desc"), 'icon' => $r[2]]);
+    $komisi = collect(preg_split('/\r\n|\r|\n/', (string) $s('struktur_komisi_list', '')))->map(fn ($l) => trim($l))->filter()->map(function ($line) {
+        [$nama, $isi] = array_pad(explode('|', $line, 2), 2, null);
 
-@section('title', ($settings['struktur_title'] ?? 'Struktur Organisasi') . ' — Majelis Ulama Indonesia')
-@section('meta_description', $settings['struktur_subtitle'] ?? 'Susunan struktur organisasi Majelis Ulama Indonesia (MUI), Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi, dan Badan/Lembaga.')
+        return ['nama' => trim($nama), 'isi' => trim((string) $isi)];
+    });
+@endphp
 
-@section('content')
-    {{-- ── HERO / BANNER ── --}}
-    <section class="page-hero">
-        <div class="mui-shell">
-            <nav class="page-breadcrumb" aria-label="Breadcrumb">
-                <a href="{{ url('/') }}"><i class="fas fa-home me-1"></i>Beranda</a>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span>Tentang Kami</span>
-                <span class="sep"><i class="fas fa-chevron-right"></i></span>
-                <span class="current">Struktur Organisasi</span>
-            </nav>
-            <h1 class="page-hero-title">{{ $settings['struktur_title'] ?? 'Struktur Organisasi MUI' }}</h1>
-            <p class="page-hero-desc">
-                {{ $settings['struktur_subtitle'] ?? 'Susunan kepengurusan Dewan Pertimbangan, Dewan Pimpinan Harian, Komisi-Komisi, serta Lembaga/Badan Otonom Majelis Ulama Indonesia.' }}
-            </p>
-        </div>
-    </section>
+<x-layouts.site :title="$s('struktur_title', 'Struktur Organisasi')" :description="$s('struktur_subtitle')">
+    <x-page-hero :title="$s('struktur_title', 'Struktur Organisasi MUI')" eyebrow="Profil" :crumbs="['Profil' => route('profilemui'), 'Struktur Organisasi' => null]" :subtitle="$s('struktur_subtitle')" />
 
-    {{-- ── CONTENT ── --}}
-    <div class="page-content-wrapper">
-        <div class="mui-shell">
-            <div class="row g-4">
-                {{-- Main Column --}}
-                <div class="col-lg-8">
+    <div class="container-x mt-10">
+        <x-profile-nav />
 
-                    {{-- Bagan Struktur Organisasi (Jika Diunggah) --}}
-                    @if (!empty($settings['struktur_bagan_gambar']))
-                        <div class="mui-card mb-4" style="border-top: 4px solid var(--green);">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                                <h2 class="mui-card-title mb-0">
-                                    <i class="fas fa-project-diagram text-success"></i>
-                                    Bagan Struktur Organisasi
-                                </h2>
-                                <a href="{{ asset('uploads/pengaturan/' . $settings['struktur_bagan_gambar']) }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                    <i class="fas fa-expand me-1"></i> Perbesar Bagan
-                                </a>
-                            </div>
-                            <div class="text-center p-2 rounded" style="background: #f8fafc; border: 1px solid var(--border);">
-                                <img src="{{ asset('uploads/pengaturan/' . $settings['struktur_bagan_gambar']) }}"
-                                     alt="Bagan Struktur Organisasi MUI" class="img-fluid rounded shadow-sm" style="max-height: 480px; object-fit: contain;">
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Dewan Pertimbangan --}}
-                    <div class="mui-card">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                            <h2 class="mui-card-title mb-0">
-                                <i class="fas fa-crown text-warning"></i>
-                                Dewan Pertimbangan MUI
-                            </h2>
-                            <span class="badge" style="background: var(--gold); color: #111; font-weight: 700; padding: 6px 12px; border-radius: 20px;">
-                                Pengarah & Kebijakan
-                            </span>
-                        </div>
-                        <p class="text-muted small mb-3" style="line-height: 1.6;">
-                            {{ $settings['struktur_dewan_pertimbangan_desc'] ?? 'Dewan Pertimbangan berwenang memberikan arahan, fatwa pertimbangan strategis, serta nasihat kepada Dewan Pimpinan Harian dalam penetapan garis kebijakan organisasi.' }}
-                        </p>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px;">
-                                    <div class="icon-circle" style="background: var(--green); color: #fff; width: 46px; height: 46px; font-size: 18px;">
-                                        <i class="fas fa-user-tie"></i>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Ketua Dewan Pertimbangan</span>
-                                        <strong style="color: var(--green-dark); font-size: 15px;">{{ $settings['struktur_ketua_pertimbangan'] ?? "Prof. Dr. KH. Ma'ruf Amin" }}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; gap: 14px;">
-                                    <div class="icon-circle" style="background: var(--gold); color: #111; width: 46px; height: 46px; font-size: 18px;">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Wakil Ketua & Anggota</span>
-                                        <strong style="color: var(--green-dark); font-size: 15px;">{{ $settings['struktur_anggota_pertimbangan'] ?? 'Tokoh & Ulama Ormas Islam' }}</strong>
-                                    </div>
-                                </div>
-                            </div>
+        @if ($bagan)
+            <section class="reveal mt-10" x-data="{ zoom: false }">
+                <div class="card overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 bg-sand-100/60 px-6 py-4">
+                        <h2 class="flex items-center gap-2 font-bold text-ink-900"><x-icon name="network" class="size-5 text-gold-500" /> Bagan Struktur Organisasi</h2>
+                        <div class="flex gap-2">
+                            <button type="button" @click="zoom = true" class="btn btn-outline btn-sm"><x-icon name="zoom-in" class="size-4" /> Perbesar</button>
+                            <a href="{{ $bagan }}" download class="btn btn-primary btn-sm"><x-icon name="download" class="size-4" /> Unduh</a>
                         </div>
                     </div>
-
-                    {{-- Dewan Pimpinan Harian --}}
-                    <div class="mui-card">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                            <h2 class="mui-card-title mb-0">
-                                <i class="fas fa-sitemap text-success"></i>
-                                Dewan Pimpinan Harian
-                            </h2>
-                            <span class="badge" style="background: var(--green); color: #fff; font-weight: 700; padding: 6px 12px; border-radius: 20px;">
-                                Pelaksana Harian
-                            </span>
-                        </div>
-                        <p class="text-muted small mb-3" style="line-height: 1.6;">
-                            {{ $settings['struktur_pimpinan_harian_desc'] ?? 'Dewan Pimpinan Harian bertanggung jawab menjalankan roda organisasi, kepemimpinan operasional, serta representasi resmi Majelis Ulama Indonesia.' }}
-                        </p>
-
-                        <div class="row g-3">
-                            {{-- Ketua Umum --}}
-                            <div class="col-12">
-                                <div style="background: linear-gradient(135deg, var(--green-pale) 0%, #fff 100%); border: 2px solid var(--green); border-radius: var(--radius); padding: 20px; text-align: center;">
-                                    <div class="icon-circle mx-auto mb-2" style="background: var(--green); color: #fff; width: 54px; height: 54px; font-size: 22px;">
-                                        <i class="fas fa-user-check"></i>
-                                    </div>
-                                    <span class="badge" style="background: var(--green-dark); color: #fff; font-size: 11px; padding: 4px 10px;">Pucuk Pimpinan</span>
-                                    <h4 class="mt-2 mb-1" style="font-weight: 800; color: var(--green-dark); font-size: 18px;">
-                                        {{ $settings['struktur_ketua_umum'] ?? 'Ketua Umum Dewan Pimpinan MUI' }}
-                                    </h4>
-                                    <p class="mb-0 text-muted small">
-                                        {{ $settings['struktur_ketua_umum_desc'] ?? 'Memimpin seluruh pelaksanaan ketetapan Munas dan kebijakan Dewan Pimpinan.' }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- Wakil Ketua Umum --}}
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
-                                    <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Posisi Pimpinan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
-                                        {{ $settings['struktur_wakil_ketua_umum'] ?? 'Wakil Ketua Umum' }}
-                                    </h5>
-                                    <p class="small text-muted mb-0">
-                                        {{ $settings['struktur_wakil_ketua_umum_desc'] ?? 'Membantu pelaksanaan tugas dan wewenang Ketua Umum dalam bidang-bidang strategis.' }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- Sekretaris Jenderal --}}
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
-                                    <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Kesekretariatan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
-                                        {{ $settings['struktur_sekjen'] ?? 'Sekretaris Jenderal (Sekjen)' }}
-                                    </h5>
-                                    <p class="small text-muted mb-0">
-                                        {{ $settings['struktur_sekjen_desc'] ?? 'Memimpin tata kelola administrasi, koordinasi komisi, dan operasional kesekretariatan.' }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- Bendahara Umum --}}
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
-                                    <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Perbendaharaan</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
-                                        {{ $settings['struktur_bendahara_umum'] ?? 'Bendahara Umum' }}
-                                    </h5>
-                                    <p class="small text-muted mb-0">
-                                        {{ $settings['struktur_bendahara_umum_desc'] ?? 'Mengelola perbendaharaan, transparansi keuangan, dan akuntabilitas anggaran lembaga.' }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- Para Ketua Bidang --}}
-                            <div class="col-md-6">
-                                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 100%;">
-                                    <span class="text-muted d-block small" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Bidang Kerja</span>
-                                    <h5 style="color: var(--green-dark); font-weight: 700; font-size: 15px; margin-bottom: 4px;">
-                                        {{ $settings['struktur_ketua_bidang'] ?? 'Ketua-Ketua Bidang' }}
-                                    </h5>
-                                    <p class="small text-muted mb-0">
-                                        {{ $settings['struktur_ketua_bidang_desc'] ?? 'Mengoordinasikan komisi fatwa, dakwah, ukhuwah, hukum, infokom, dan luar negeri.' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <button type="button" @click="zoom = true" class="block w-full bg-white p-4 sm:p-6" aria-label="Perbesar bagan">
+                        <img src="{{ $bagan }}" alt="Bagan struktur organisasi {{ $site['site_short'] }}" loading="lazy" class="mx-auto max-h-[640px] w-auto">
+                    </button>
+                </div>
+                <template x-teleport="body">
+                    <div x-show="zoom" x-cloak x-transition.opacity class="fixed inset-0 z-[90] flex items-center justify-center overflow-auto bg-black/90 p-4" @click="zoom = false" @keydown.escape.window="zoom = false" role="dialog" aria-modal="true">
+                        <img src="{{ $bagan }}" alt="Bagan struktur organisasi" class="max-w-none rounded-xl bg-white sm:max-w-[95vw]" @click.stop>
+                        <button type="button" class="absolute top-5 right-5 text-white" aria-label="Tutup"><x-icon name="x" class="size-8" /></button>
                     </div>
+                </template>
+            </section>
+        @endif
 
-                    {{-- Komisi & Lembaga --}}
-                    <div class="mui-card">
-                        <h2 class="mui-card-title">
-                            <i class="fas fa-layer-group text-success"></i>
-                            Komisi, Badan & Lembaga Otonom
-                        </h2>
-                        @php
-                            $rawKomisi = array_filter(array_map('trim', explode("\n", $settings['struktur_komisi_list'] ?? '')));
-                            $komisiItems = [];
-                            foreach ($rawKomisi as $k) {
-                                if (str_contains($k, '|')) {
-                                    $p = explode('|', $k, 2);
-                                    $komisiItems[] = ['name' => trim($p[0]), 'desc' => trim($p[1])];
-                                } else {
-                                    $komisiItems[] = ['name' => $k, 'desc' => ''];
-                                }
-                            }
-                        @endphp
-                        <div class="row g-3">
-                            @forelse ($komisiItems as $item)
-                                <div class="col-md-6">
-                                    <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; background: var(--bg); height: 100%;">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <i class="fas fa-check text-success" style="font-size: 13px;"></i>
-                                            <strong style="color: var(--green-dark); font-size: 14px;">{{ $item['name'] }}</strong>
-                                        </div>
-                                        @if ($item['desc'])
-                                            <p class="mb-0 text-muted small" style="font-size: 12.5px; line-height: 1.5;">
-                                                {{ $item['desc'] }}
-                                            </p>
-                                        @endif
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="col-12 text-muted small">Belum ada komisi atau badan otonom terdaftar.</div>
-                            @endforelse
-                        </div>
+        {{-- Dewan Pertimbangan --}}
+        <section class="mt-16 grid gap-8 lg:grid-cols-12 lg:items-start">
+            <div class="reveal lg:col-span-5">
+                <p class="eyebrow">Dewan Pertimbangan</p>
+                <h2 class="section-title mt-3">Penasihat & pemberi arahan strategis</h2>
+                <p class="mt-4 leading-relaxed text-stone-600">{{ $s('struktur_dewan_pertimbangan_desc', 'Dewan Pertimbangan memberikan arahan dan nasihat kepada Dewan Pimpinan Harian.') }}</p>
+            </div>
+            <div class="reveal grid gap-4 sm:grid-cols-2 lg:col-span-7">
+                <div class="bg-gradient-brand relative overflow-hidden rounded-2xl p-6 text-white">
+                    <div class="pattern-islamic absolute inset-0"></div>
+                    <div class="relative">
+                        <span class="grid size-11 place-items-center rounded-xl bg-gold-400 text-brand-950"><x-icon name="crown" class="size-5" /></span>
+                        <p class="mt-4 text-xs font-bold tracking-wider text-gold-300 uppercase">Ketua Dewan Pertimbangan</p>
+                        <p class="mt-1 font-display text-xl font-semibold text-white">{{ $s('struktur_ketua_pertimbangan', '—') }}</p>
                     </div>
                 </div>
+                <div class="card p-6">
+                    <span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-brand-100"><x-icon name="users-round" class="size-5" /></span>
+                    <p class="mt-4 text-xs font-bold tracking-wider text-gold-600 uppercase">Anggota</p>
+                    <p class="mt-1 font-display text-xl font-semibold text-ink-900">{{ $s('struktur_anggota_pertimbangan', '—') }}</p>
+                </div>
+            </div>
+        </section>
 
-                {{-- Sidebar Column --}}
-                <div class="col-lg-4">
-                    {{-- Quick Nav --}}
-                    <div class="mui-card" style="padding: 22px;">
-                        <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
-                            Tentang Kami
-                        </h3>
-                        <div class="d-flex flex-column gap-2">
-                            <a href="{{ route('profilemui') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Profil MUI
-                            </a>
-                            <a href="{{ route('visi-misi') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Visi Misi
-                            </a>
-                            <a href="{{ route('struktur-organisasi') }}" class="btn btn-sm text-start fw-bold" style="background: var(--green-pale); color: var(--green); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-gold"></i> Struktur Organisasi
-                            </a>
-                            <a href="{{ route('kontak') }}" class="btn btn-sm text-start text-dark" style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;">
-                                <i class="fas fa-chevron-right me-2 text-muted"></i> Kontak Kami
-                            </a>
-                        </div>
-                    </div>
+        {{-- Dewan Pimpinan Harian --}}
+        <section class="mt-24">
+            <div class="reveal text-center">
+                <p class="eyebrow justify-center">Dewan Pimpinan Harian</p>
+                <h2 class="section-title mt-3">Penggerak roda organisasi</h2>
+                <p class="mx-auto mt-4 max-w-2xl text-stone-600">{{ $s('struktur_pimpinan_harian_desc') }}</p>
+            </div>
 
-                    {{-- Informasi Singkat --}}
-                    <div class="mui-card" style="padding: 22px; background: linear-gradient(180deg, #fbfbfb 0%, #fff 100%);">
-                        <h3 style="font-size: 16px; font-weight: 700; color: var(--green-dark); margin-bottom: 14px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">
-                            Musyawarah Nasional
-                        </h3>
-                        <p class="small text-muted mb-0" style="line-height: 1.7;">
-                            Struktur kepengurusan Majelis Ulama Indonesia ditetapkan secara berkala melalui Musyawarah Nasional (Munas) yang dihadiri oleh perwakilan ormas Islam dan utusan ulama se-Indonesia.
-                        </p>
+            <div class="reveal mx-auto mt-10 max-w-md">
+                <div class="bg-gradient-brand relative overflow-hidden rounded-3xl p-7 text-center text-white shadow-[var(--shadow-lift)]">
+                    <div class="pattern-islamic absolute inset-0"></div>
+                    <div class="relative">
+                        <img src="{{ $site['logo_url'] }}" alt="" class="mx-auto size-16 rounded-full bg-white object-contain p-0.5 ring-4 ring-gold-300/60">
+                        <p class="mt-4 font-display text-2xl font-semibold text-white">{{ $s('struktur_ketua_umum', 'Ketua Umum') }}</p>
+                        <p class="mt-2 text-sm text-white/70">{{ $s('struktur_ketua_umum_desc') }}</p>
                     </div>
                 </div>
             </div>
-        </div>
+            <div class="mx-auto h-10 w-px bg-gradient-to-b from-gold-400 to-stone-200" aria-hidden="true"></div>
+            <div class="reveal grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($harian as $item)
+                    <article class="card card-hover relative p-6 text-center">
+                        <span class="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700 ring-1 ring-brand-100"><x-icon :name="$item['icon']" class="size-5" /></span>
+                        <h3 class="mt-4 font-semibold text-ink-900">{{ $item['jabatan'] }}</h3>
+                        @if ($item['desc'])
+                            <p class="mt-2 text-xs leading-relaxed text-stone-500">{{ $item['desc'] }}</p>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+        </section>
+
+        {{-- Komisi & Lembaga --}}
+        @if ($komisi->isNotEmpty())
+            <section class="bg-gradient-brand relative mt-24 overflow-hidden rounded-[2rem] px-6 py-14 sm:px-12">
+                <div class="pattern-islamic absolute inset-0"></div>
+                <div class="absolute -top-24 -right-24 size-80 rounded-full bg-gold-400/15 blur-3xl"></div>
+                <div class="relative">
+                    <p class="eyebrow text-gold-300!">Perangkat Organisasi</p>
+                    <h2 class="mt-3 font-display text-3xl font-semibold text-white sm:text-4xl">Komisi, Badan & Lembaga</h2>
+                    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($komisi as $item)
+                            <div class="rounded-2xl border border-white/10 bg-white/[.06] p-5 backdrop-blur transition hover:border-gold-400/40 hover:bg-white/10">
+                                <span class="font-display text-sm font-bold text-gold-300">{{ str_pad((string) $loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                                <h3 class="mt-1 font-semibold text-white">{{ $item['nama'] }}</h3>
+                                @if ($item['isi'])
+                                    <p class="mt-1.5 text-sm leading-relaxed text-white/70">{{ $item['isi'] }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
     </div>
-@endsection
+</x-layouts.site>
